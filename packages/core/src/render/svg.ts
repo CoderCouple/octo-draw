@@ -18,12 +18,16 @@ import type { OctoDocument } from '../doc'
 import { edgeColor, FONT_STACK, groupColors, inkColor, nodeColors, SURFACES, type RenderTheme } from './colors'
 import { el, escapeXml, f, iconGlyph, lines, type Attrs } from './xml'
 import { renderErd, renderSequence } from './kinds'
+import { resolveIcon, type ResolvedIcon } from '../icons'
 import { approachPoint, arrowHead, contentCenterY, roundedPolyline, roundedRect, shapePath, trimPolyline } from './geometry'
 
 export { escapeXml } from './xml'
 
 /** lucide-style icon node: a list of [tag, attributes] drawn in a 24×24 box. */
 export type IconNode = [tag: string, attrs: Record<string, string | number | undefined>][]
+
+/** Maps a DSL icon name to a catalog icon (`resolveIcon`) or a raw lucide-style node; null → text badge. */
+export type IconResolver = (name: string) => ResolvedIcon | IconNode | null | undefined
 
 export interface RenderSvgOptions {
 	theme?: RenderTheme
@@ -33,8 +37,12 @@ export interface RenderSvgOptions {
 	padding?: number
 	/** Fill the background with the theme color. Default true. */
 	background?: boolean
-	/** Resolve icon names to vector icons; unknown/absent icons render as a text badge. */
-	icon?: (name: string) => IconNode | null | undefined
+	/**
+	 * Resolve icon names to vector icons. Defaults to the built-in catalog
+	 * (`resolveIcon`); `false` draws every icon as a text badge. Unknown names
+	 * always render as a text badge.
+	 */
+	icon?: IconResolver | false
 	/** Text measurement (should match what layout used). Defaults to the headless estimate. */
 	measureText?: Measure
 	/** Output scale: width/height attributes are multiplied, viewBox is not. Default 1. */
@@ -48,8 +56,11 @@ interface Ctx {
 	mode: DiagramIR['style']['colorMode']
 	measure: Measure
 	filter?: string
-	icon?: RenderSvgOptions['icon']
+	icon?: IconResolver
 }
+
+/** `color: brand` keeps the node surface neutral and draws its icon in the brand color. */
+const isBrand = (color: string | undefined) => color?.trim().toLowerCase() === 'brand'
 
 function renderNode(node: IRNode, box: LaidOutNode, c: Ctx) {
 	const col = nodeColors(node.style?.color, c.mode, c.theme)
@@ -58,6 +69,7 @@ function renderNode(node: IRNode, box: LaidOutNode, c: Ctx) {
 	const label = node.label ?? node.key
 	const cy = contentCenterY(node.shape, box.h)
 	const size = 14
+	const glyph = { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill }
 	const out: string[] = [
 		el('path', { d, fill: col.fill === 'none' ? bg : col.fill, 'fill-opacity': col.fill === 'none' ? 0.001 : undefined, stroke: col.stroke, 'stroke-width': c.mode === 'outline' ? 2 : 1.5, filter: c.filter }),
 	]
@@ -65,12 +77,12 @@ function renderNode(node: IRNode, box: LaidOutNode, c: Ctx) {
 	if (node.icon && iconPlacement(node.shape) === 'left') {
 		const textW = c.measure(label, size).w
 		const sx = box.w / 2 - (ICON_SIZE + 8 + textW) / 2
-		out.push(iconGlyph(node.icon, sx, cy - ICON_SIZE / 2, ICON_SIZE, col.icon, c.icon))
+		out.push(iconGlyph(node.icon, sx, cy - ICON_SIZE / 2, ICON_SIZE, col.icon, c.icon, glyph))
 		out.push(lines(label, sx + ICON_SIZE + 8, cy, size, 500, col.text, 'start'))
 	} else if (node.icon) {
 		const textH = label.split('\n').length * size * 1.3
 		const top = cy - (ICON_SIZE + 6 + textH) / 2
-		out.push(iconGlyph(node.icon, box.w / 2 - ICON_SIZE / 2, top, ICON_SIZE, col.icon, c.icon))
+		out.push(iconGlyph(node.icon, box.w / 2 - ICON_SIZE / 2, top, ICON_SIZE, col.icon, c.icon, glyph))
 		out.push(lines(label, box.w / 2, top + ICON_SIZE + 6 + textH / 2, size, 500, col.text))
 	} else {
 		out.push(lines(label, box.w / 2, cy, size, 500, col.text))
@@ -87,7 +99,7 @@ function renderGroup(node: IRNode, box: LaidOutNode, c: Ctx) {
 	const out = [
 		el('path', { d: roundedRect(box.w, box.h, 12), fill: col.fill === 'none' ? bg : col.fill, 'fill-opacity': col.fill === 'none' ? 0.001 : undefined, stroke: col.stroke, 'stroke-width': 1.2, 'stroke-dasharray': dotted ? '4 4' : undefined }),
 	]
-	if (node.icon) out.push(iconGlyph(node.icon, 14, 11, 16, col.text, c.icon))
+	if (node.icon) out.push(iconGlyph(node.icon, 14, 11, 16, col.text, c.icon, { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill }))
 	out.push(el('text', { x: 14 + (node.icon ? 22 : 0), y: 19, 'font-size': 13, 'font-weight': 600, fill: col.text, 'dominant-baseline': 'central' }, escapeXml(label)))
 	return el('g', { 'data-group': node.key, transform: `translate(${f(box.x)},${f(box.y)})` }, out)
 }
@@ -248,7 +260,7 @@ export function renderDiagramSvg(ir: DiagramIR, layout: DiagramLayout, opts: Ren
 		mode: ir.style.colorMode,
 		measure: opts.measureText ?? estimateText,
 		filter: styleMode === 'shadow' ? 'url(#octo-shadow)' : styleMode === 'watercolor' ? 'url(#octo-watercolor)' : undefined,
-		icon: opts.icon,
+		icon: opts.icon === false ? undefined : (opts.icon ?? resolveIcon),
 	}
 
 	const byKey = new Map(ir.nodes.map((n) => [n.key, n]))

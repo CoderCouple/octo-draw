@@ -9,7 +9,7 @@ import { ERD_FIELD_FONT, ERD_HEAD_FONT, entityMetrics, fieldBadges } from '../la
 import { ERD_HEAD_H } from '../layout/erdRoute'
 import { edgeColor, groupColors, mix, nodeColors, resolveColor, SURFACES, type RenderTheme } from './colors'
 import { arrowHead, roundedPolyline, roundedRect } from './geometry'
-import type { IconNode } from './svg'
+import type { IconResolver } from './svg'
 import { el, escapeXml, f, iconGlyph, lines } from './xml'
 
 export interface KindCtx {
@@ -17,7 +17,7 @@ export interface KindCtx {
 	mode: DiagramIR['style']['colorMode']
 	measure: Measure
 	filter?: string
-	icon?: (name: string) => IconNode | null | undefined
+	icon?: IconResolver
 }
 
 // ---------------------------------------------------------------------------

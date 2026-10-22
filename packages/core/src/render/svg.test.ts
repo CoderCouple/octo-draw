@@ -70,8 +70,10 @@ describe('renderDiagramSvg', async () => {
 		expect(count(svg, /filter="url\(#octo-shadow\)"/g)).toBe(4)
 	})
 
-	it('renders icons as badges by default and via a resolver when given', () => {
-		expect(svg).toMatch(/data-icon="server"[^>]*><rect/)
+	it('draws catalog icons by default, badges with icon: false, and a custom resolver when given', () => {
+		expect(svg).toMatch(/<svg x="[\d.]+" y="[\d.]+" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#37352F"[^>]*data-icon="server"><rect/)
+		const badges = renderDiagramSvg(ir, layout, { icon: false })
+		expect(badges).toMatch(/<g transform="[^"]+" data-icon="server"><rect[^>]*\/><text[^>]*>SERVE<\/text>/)
 		const withIcons = renderDiagramSvg(ir, layout, { icon: (n) => (n === 'server' ? [['rect', { x: 2, y: 2, width: 20, height: 8, rx: 2, key: 'k' }]] : null) })
 		expect(withIcons).toMatch(/<svg x="[\d.]+" y="[\d.]+" width="20" height="20" viewBox="0 0 24 24"[^>]*data-icon="server"><rect x="2" y="2" width="20" height="8" rx="2"\/><\/svg>/)
 		expect(withIcons).not.toContain('key=')
@@ -139,4 +141,34 @@ describe('freehand layer and documents', () => {
 
 it('escapeXml', () => {
 	expect(escapeXml(`<a href="x">'&'</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;')
+})
+
+describe('icon catalog', () => {
+	const ARCH = `Queue [icon: kafka]
+DB [icon: postgresql, color: brand]
+VM [icon: aws-ec2]
+Mystery [icon: no-such-icon]
+Queue > DB
+`
+	it('emits brand paths monochrome by default and in brand color with color: brand', async () => {
+		const { ir: a } = parseOcto(ARCH)
+		const out = renderDiagramSvg(a, await layoutDiagram(a))
+		assertBalanced(out)
+		// kafka: filled simple-icons path in the theme foreground
+		expect(out).toMatch(/fill="#37352F" stroke="none"[^>]*data-icon="kafka"><path d="M[^"]{40,}"\/><\/svg>/)
+		// postgres with color: brand → PostgreSQL blue, node surface stays neutral
+		expect(out).toMatch(/fill="#4169E1" stroke="none"[^>]*data-icon="postgresql"><path d="M/)
+		expect(out).toMatch(/data-node="DB"[^>]*><path[^>]*fill="#FFFFFF"/)
+		// aws-ec2: generic stroked glyph + EC2 badge
+		expect(out).toMatch(/data-icon="aws-ec2">.*?<text[^>]*>EC2<\/text><\/svg>/)
+		// unknown names still render as a text badge
+		expect(out).toMatch(/<g transform="[^"]+" data-icon="no-such-icon"><rect/)
+	})
+
+	it('keeps brand icons legible in dark mode', async () => {
+		const { ir: a } = parseOcto('Repo [icon: github, color: brand]')
+		const out = renderDiagramSvg(a, await layoutDiagram(a), { theme: 'dark' })
+		// GitHub's brand color is near-black: falls back to the foreground on a dark surface
+		expect(out).not.toMatch(/fill="#181717"[^>]*data-icon="github"/)
+	})
 })

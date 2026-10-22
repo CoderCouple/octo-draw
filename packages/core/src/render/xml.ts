@@ -1,6 +1,7 @@
 /** Tiny string-based SVG builder shared by the headless renderers. */
 
-import type { IconNode } from './svg'
+import type { IconResolver } from './svg'
+import { iconColor, iconInnerSvg, iconPaint } from '../icons'
 
 export const f = (n: number) => String(Math.round(n * 100) / 100)
 
@@ -32,8 +33,19 @@ export function lines(text: string, x: number, y: number, size: number, weight: 
 	return el('text', { x, 'text-anchor': anchor, 'font-size': size, 'font-weight': weight, fill, 'dominant-baseline': 'central' }, spans)
 }
 
-export function iconGlyph(name: string, x: number, y: number, size: number, color: string, resolve?: (name: string) => IconNode | null | undefined) {
+export interface GlyphOptions {
+	/** The node asked for `color: brand`: draw brand icons in their brand color. */
+	brand?: boolean
+	/** Surface behind the icon (badge pill fill, brand-color legibility check). */
+	background?: string
+}
+
+export function iconGlyph(name: string, x: number, y: number, size: number, color: string, resolve?: IconResolver, opts: GlyphOptions = {}) {
 	const icon = resolve?.(name)
+	if (icon && !Array.isArray(icon)) {
+		const ink = iconColor(icon, color, opts)
+		return `<svg${attrs({ x, y, width: size, height: size, viewBox: icon.viewBox, ...iconPaint(icon, ink), overflow: 'visible', 'data-icon': name })}>${iconInnerSvg(icon, ink, opts.background)}</svg>`
+	}
 	if (!icon) {
 		const text = name.replace(/^(aws|gcp|azure)-/, '').slice(0, 5).toUpperCase()
 		return el('g', { transform: `translate(${f(x)},${f(y)})`, 'data-icon': name }, [

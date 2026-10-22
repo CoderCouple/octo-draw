@@ -107,7 +107,7 @@ export function loadInput(text: string, opts: { name?: string; from?: InputForma
 export interface ConvertOptions {
 	theme?: RenderTheme
 	scale?: number
-	/** Draw lucide icons (default true); false keeps text badges. */
+	/** Draw vector icons (default true); false keeps text badges. */
 	icons?: boolean
 }
 
@@ -120,7 +120,7 @@ export async function convertDoc(doc: OctoDocument, to: OutputFormat, opts: Conv
 		case 'json':
 			return serializeDocument(doc)
 		case 'svg':
-			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? undefined : await loadIconResolver() })) + '\n'
+			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? false : await loadIconResolver() })) + '\n'
 		case 'tldraw': {
 			const layout = await layoutDiagram(parseOcto(doc.code).ir, { pinned: doc.pins })
 			return JSON.stringify(toTldrawSnapshot(doc, layout), null, '\t') + '\n'
