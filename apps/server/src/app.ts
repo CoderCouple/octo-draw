@@ -2,14 +2,21 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { applyActions, renderDocumentSvg } from '@octo-draw/core'
-import { generate, IMAGE_MEDIA_TYPES, runAgent, vision, type ImageMediaType } from './ai'
+import { generate, IMAGE_MEDIA_TYPES, runAgent, type ImageMediaType } from './ai'
 import { errorMessage, NO_CREDENTIALS, type StreamFn } from './claude'
-import type { DocStore } from './docStore'
+import type { DocStoreLike } from './sync/docStoreAdapter'
+import type { RoomManager } from './sync/rooms'
 import { parseActions } from './schema'
 import { runAgentStream, type AgentMode } from './agentStream'
+import { visionImport } from './vision'
 
 export interface AppDeps {
-	store: DocStore
+	/** The default document (`/api/doc` without `docId`). */
+	store: DocStoreLike
+	/** Multi-document rooms: enables `?docId=` on `/api/doc*` and `/api/docs*`. */
+	rooms?: RoomManager
+	/** Wraps a room in the DocStore interface (injected to keep this module free of sync imports). */
+	storeForRoom?: (docId: string) => DocStoreLike
 	/** Returns null when no Anthropic credentials are configured. */
 	getStream: () => StreamFn | null
 }
@@ -82,7 +89,20 @@ function requireString(body: Record<string, unknown>, key: string, optional = fa
 	return v
 }
 
-export function createApp({ store, getStream }: AppDeps) {
+export function createApp({ store: defaultStore, rooms, storeForRoom, getStream }: AppDeps) {
+	/** `?docId=` (or body.docId) picks a room; absent means the default document. */
+	function pickStore(url: URL, body?: Record<string, unknown>): DocStoreLike {
+		const id = url.searchParams.get('docId') ?? (typeof body?.docId === 'string' ? body.docId : null)
+		if (!id) return defaultStore
+		if (!storeForRoom) throw new HttpError(400, 'This server has a single document; docId is not supported')
+		try {
+			return storeForRoom(id)
+		} catch (err) {
+			throw new HttpError(400, (err as Error).message)
+		}
+	}
+
+
 	function needStream(res: ServerResponse): StreamFn | null {
 		const s = getStream()
 		if (!s) json(res, 503, { error: NO_CREDENTIALS })
@@ -96,14 +116,37 @@ export function createApp({ store, getStream }: AppDeps) {
 
 		if (method === 'GET' && path === '/api/health') return json(res, 200, { ok: true, ai: getStream() !== null })
 
+		// ---- documents (rooms)
+		if (rooms && method === 'GET' && path === '/api/docs') return json(res, 200, { docs: rooms.list() })
+		const docMatch = rooms ? /^\/api\/docs\/([^/]+)(\/log)?$/.exec(path) : null
+		if (rooms && docMatch && method === 'GET') {
+			let room
+			try {
+				room = rooms.get(decodeURIComponent(docMatch[1]))
+			} catch (err) {
+				throw new HttpError(400, (err as Error).message)
+			}
+			if (!docMatch[2]) return json(res, 200, { clock: room.clock, document: room.snapshot() })
+			const kind = url.searchParams.get('kind')
+			const since = Number(url.searchParams.get('since'))
+			const entries = room.attribution({
+				kind: kind === 'human' || kind === 'agent' ? kind : undefined,
+				name: url.searchParams.get('name') ?? undefined,
+				sinceClock: Number.isFinite(since) && since > 0 ? since : undefined,
+			})
+			return json(res, 200, { clock: room.clock, entries })
+		}
+
 		// ---- document store
 		if (path === '/api/doc') {
 			if (method === 'GET') {
+				const store = pickStore(url)
 				const { code, version, source, updatedAt } = store.get()
 				return json(res, 200, { code, version, source, updatedAt })
 			}
 			if (method === 'PUT') {
 				const body = await readJson(req)
+				const store = pickStore(url, body)
 				const code = requireString(body, 'code') as string
 				const source = requireString(body, 'source', true) ?? 'unknown'
 				const base = body.baseVersion
@@ -118,11 +161,15 @@ export function createApp({ store, getStream }: AppDeps) {
 			const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light'
 			const scale = Math.min(8, Math.max(0.1, Number(url.searchParams.get('scale')) || 1))
 			const background = url.searchParams.get('background') !== '0'
-			const svg = await renderDocumentSvg({ code: store.get().code, pins: {}, shapes: [], title: '' }, { theme, scale, background })
+			const id = url.searchParams.get('docId')
+			const store = pickStore(url)
+			const doc = id && rooms ? rooms.get(id).snapshot() : { code: store.get().code, pins: {}, shapes: [], title: '' }
+			const svg = await renderDocumentSvg(doc, { theme, scale, background })
 			res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-cache' })
 			return res.end(svg)
 		}
 		if (method === 'GET' && path === '/api/doc/events') {
+			const store = pickStore(url)
 			sseStart(res)
 			const { code, version, source } = store.get()
 			sse(res, { code, version, source })
@@ -136,6 +183,7 @@ export function createApp({ store, getStream }: AppDeps) {
 		}
 		if (method === 'POST' && path === '/api/doc/actions') {
 			const body = await readJson(req)
+			const store = pickStore(url, body)
 			const parsed = parseActions(body.actions)
 			if (!parsed.ok) throw new HttpError(400, `Invalid actions: ${parsed.error}`)
 			const source = requireString(body, 'source', true) ?? 'agent'
@@ -167,10 +215,11 @@ export function createApp({ store, getStream }: AppDeps) {
 			const imageBase64 = requireString(body, 'imageBase64') as string
 			const mediaType = (requireString(body, 'mediaType', true) ?? 'image/png') as ImageMediaType
 			if (!IMAGE_MEDIA_TYPES.includes(mediaType)) throw new HttpError(400, `mediaType must be one of ${IMAGE_MEDIA_TYPES.join(', ')}`)
+			const mode = body.mode ?? 'auto'
+			if (mode !== 'auto' && mode !== 'single') throw new HttpError(400, '"mode" must be auto or single')
 			const stream = needStream(res)
 			if (!stream) return
-			const r = await vision(stream, { imageBase64, mediaType })
-			return json(res, 200, { code: r.code, diagnostics: r.diagnostics || undefined })
+			return json(res, 200, await visionImport(stream, { imageBase64, mediaType }, mode))
 		}
 		if (method === 'POST' && path === '/api/agent/stream') {
 			const body = await readJson(req)
@@ -179,6 +228,7 @@ export function createApp({ store, getStream }: AppDeps) {
 			const source = requireString(body, 'source', true) ?? 'agent'
 			const mode = body.mode
 			if (mode !== undefined && mode !== 'auto' && mode !== 'edit' && mode !== 'explain') throw new HttpError(400, '"mode" must be auto, edit or explain')
+			const store = pickStore(url, body)
 			const selection = Array.isArray(body.selection) ? body.selection.filter((k): k is string => typeof k === 'string').slice(0, 50) : []
 			const stream = needStream(res)
 			if (!stream) return
@@ -195,7 +245,7 @@ export function createApp({ store, getStream }: AppDeps) {
 						if (!ctrl.signal.aborted) sse(res, e)
 					},
 					// Write each applied step to the shared doc so other viewers / MCP agents see it live.
-					(next) => store.set(next, source),
+					store.writer ? store.writer(source, code) : (next) => store.set(next, source),
 				)
 			} catch (err) {
 				if (!ctrl.signal.aborted) sse(res, { type: 'error', message: errorMessage(err).message })

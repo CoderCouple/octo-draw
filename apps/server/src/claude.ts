@@ -24,6 +24,8 @@ export interface StreamRequest {
 	signal?: AbortSignal
 	/** Receives the tolerant-parsed snapshot of the tool input currently streaming (eager input streaming). */
 	onToolInput?: (snapshot: unknown) => void
+	/** Structured outputs: constrain the text reply to this JSON schema (`output_config.format`). */
+	outputFormat?: { type: 'json_schema'; schema: Record<string, unknown> }
 }
 
 /** Runs one streamed model turn; `onText` receives text deltas. Resolves with the final message. */
@@ -83,7 +85,7 @@ export function createStreamFn(client: Anthropic = new Anthropic()): StreamFn {
 					system: req.system,
 					messages: req.messages,
 					...(req.tools ? { tools: req.tools, tool_choice: { type: 'auto' as const } } : {}),
-					output_config: { effort: req.effort ?? 'medium' },
+					output_config: { effort: req.effort ?? 'medium', ...(req.outputFormat ? { format: req.outputFormat } : {}) },
 				}),
 				req.signal ? { signal: req.signal } : undefined,
 			)

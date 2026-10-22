@@ -3,9 +3,11 @@
  * an ASCII/Unicode box diagram or plain prose, and converts it to IR.
  */
 import { parseAscii } from '../ascii/parse'
+import { looksMarkdownErd } from '../ascii/table'
 import { KIND_HEADERS, parseOcto } from '../dsl/parse'
-import type { DiagramIR, Diagnostic } from '../ir'
+import type { DiagramIR, Diagnostic, Point } from '../ir'
 import { parseMermaid } from '../mermaid/parse'
+import { pinsFromCells } from './pins'
 
 export type TextFormat = 'octo' | 'mermaid' | 'ascii' | 'plain'
 
@@ -15,6 +17,14 @@ export interface ImportResult {
 	diagnostics: Diagnostic[]
 	/** ASCII imports only: how sure the parser is (0..1). */
 	confidence?: number
+	/**
+	 * ASCII imports only: layout hints, the top-left canvas position per node
+	 * key scaled from where the node sat in the text grid. Pass them as
+	 * `layoutDiagram(ir, { pinned: pins })` to keep the drawn arrangement.
+	 * Containers are not pinned (they refit around their children). Absent for
+	 * sequence diagrams and ERDs.
+	 */
+	pins?: Record<string, Point>
 }
 
 const MERMAID_LANGS = new Set(['mermaid', 'mmd'])
@@ -162,6 +172,11 @@ function detect(text: string): Detection {
 	if (!body.trim()) return { format: 'plain', body }
 	if (looksMermaid(body)) return { format: 'mermaid', body }
 
+	if (looksMarkdownErd(body)) {
+		const ascii = parseAscii(body)
+		if (ascii.ir.kind === 'erd' && ascii.ir.nodes.length) return { format: 'ascii', body, ascii }
+	}
+
 	const score = boxScore(body)
 	if (score >= 0.35) {
 		const ascii = parseAscii(body)
@@ -171,11 +186,12 @@ function detect(text: string): Detection {
 
 	// Weak ASCII: arrow chains (`A -> B`, `[x] --> [y]`, `a → b`) in short lines.
 	const lines = body.split('\n').filter((l) => l.trim())
-	const arrowy = /(-+>|<-+|=+>|→|←|⟶|──|▶|▼)/.test(body) || /^\s*[|v^]\s*$/m.test(body)
+	const arrowy = /(-+>|<-+|=+>|→|←|↓|↑|⟶|⬇|──|▶|▼|\S\s+-{3,}\s+\S)/.test(body) || /^\s*[|v^]\s*$/m.test(body)
 	const shortLines = lines.filter((l) => l.length <= 100).length / lines.length
 	if (arrowy && shortLines >= 0.8) {
 		const ascii = parseAscii(body)
-		if (ascii.ir.nodes.length >= 2 && ascii.ir.edges.length && ascii.confidence >= 0.6) return { format: 'ascii', body, ascii }
+		const links = ascii.ir.edges.length + (ascii.ir.sequence?.events.length ?? 0)
+		if (ascii.ir.nodes.length >= 2 && links && ascii.confidence >= 0.6) return { format: 'ascii', body, ascii }
 	}
 	return { format: 'plain', body }
 }
@@ -197,7 +213,12 @@ export function importText(text: string): ImportResult | null {
 		}
 		case 'ascii': {
 			const r = d.ascii ?? parseAscii(d.body)
-			return { format: 'ascii', ir: r.ir, diagnostics: r.diagnostics, confidence: r.confidence }
+			const out: ImportResult = { format: 'ascii', ir: r.ir, diagnostics: r.diagnostics, confidence: r.confidence }
+			if (r.cells && (r.ir.kind === 'flowchart' || r.ir.kind === 'architecture')) {
+				const pins = pinsFromCells(r.ir, r.cells)
+				if (Object.keys(pins).length) out.pins = pins
+			}
+			return out
 		}
 		default:
 			return null

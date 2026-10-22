@@ -118,10 +118,30 @@ describe('AI endpoints', () => {
 		const { base } = await start(() => stream)
 		const r = await fetch(`${base}/api/vision`, {
 			method: 'POST',
-			body: JSON.stringify({ imageBase64: 'data:image/png;base64,AAAA', mediaType: 'image/png' }),
+			body: JSON.stringify({ imageBase64: 'data:image/png;base64,AAAA', mediaType: 'image/png', mode: 'single' }),
 		})
-		expect(await r.json()).toEqual({ code: 'A > B' })
+		expect(await r.json()).toEqual({ code: 'A > B', pipeline: 'single-pass' })
 		expect(calls).toEqual([1, 3])
+	})
+
+	it('vision falls back to single-pass when the two-pass JSON is unusable', async () => {
+		const calls: unknown[] = []
+		const stream: StreamFn = async (req) => {
+			calls.push(req.outputFormat ? 'json' : 'dsl')
+			return msg([{ type: 'text', text: req.outputFormat ? 'not json' : 'A > B' }])
+		}
+		const { base } = await start(() => stream)
+		const r = await fetch(`${base}/api/vision`, { method: 'POST', body: JSON.stringify({ imageBase64: 'AAAA', mediaType: 'image/png' }) })
+		const body = (await r.json()) as { warnings: string[] }
+		expect(body).toMatchObject({ code: 'A > B', pipeline: 'single-pass' })
+		expect(body.warnings[0]).toMatch(/Two-pass import failed/)
+		expect(calls).toEqual(['json', 'dsl'])
+	})
+
+	it('validates the vision mode', async () => {
+		const { base } = await start(() => (async () => msg([])) as StreamFn)
+		const r = await fetch(`${base}/api/vision`, { method: 'POST', body: JSON.stringify({ imageBase64: 'AAAA', mode: 'x' }) })
+		expect(r.status).toBe(400)
 	})
 
 	it('runs the agent tool loop', async () => {

@@ -3,15 +3,28 @@
  * LLMs (ChatGPT, Claude, Gemini): boxes, arrows, labels, groups, bracket nodes,
  * inline arrow chains and directory trees.
  *
- * Pipeline: normalise → char grid → rectangles (corner tracing, ±1 col jitter)
- * → cell classification → line graph → components → terminals (what each line
- * end touches) → inline labels / text nodes → edges → nearby labels.
+ * Pre-passes: markdown schema tables (→ ERD, `table.ts`) and directory trees.
+ * Pipeline: normalise → char grid (per-line wide-char choice, `width.ts`) →
+ * rectangles (corner tracing, border drift up to ±4 cols) + diamonds
+ * (`diamond.ts`) → sequence check (`sequence.ts`) → cell classification →
+ * line graph (┼ / + start as crossings, merged back when they are forks) →
+ * terminals (what each line end touches) → inline labels / text nodes (step
+ * numbers stripped) → edges → nearby / branch labels.
  *
  * Never throws. `confidence` (0..1) says how much of the text was explained.
  */
 import { emptyIR, type Diagnostic, type IREdge, type IRNode, type NodeShape, type ParseResult } from '../ir'
+import type { CellRect } from '../import/pins'
+import { findDiamonds } from './diamond'
+import { parseSequence } from './sequence'
+import { parseMarkdownErd } from './table'
+import { buildGrid, FILLER } from './width'
 
-export type AsciiResult = ParseResult & { confidence: number }
+export type AsciiResult = ParseResult & {
+	confidence: number
+	/** Where each node sat in the text grid (node key → cell rectangle); feeds layout pins. */
+	cells?: Record<string, CellRect>
+}
 
 // ---------------------------------------------------------------------------
 // Directions and glyph tables
@@ -59,6 +72,7 @@ const TR = new Set([...'┐┓╗╮┑┒╕╖+.', ...'┤┬┼╣╦╬┫�
 const BL = new Set([...'└┗╚╰┕┖╘╙+\'`', ...'├┴┼╠╩╬┣┻╋'])
 const BR = new Set([...'┘┛╝╯┙┚╛╜+\'', ...'┤┴┼╣╩╬┫┻╋'])
 const JUNCTION = new Set([...'├┤┬┴┼╠╣╦╩╬┣┫┳┻╋'])
+const CROSS_CHARS = new Set([...'┼╋╬┿╂╪╫+'])
 const HB = new Set([...'─━═┄┅┈┉╌╍-=~_', ...'┬┴┼╦╩╬┳┻╋┯┷┿╤╧╪+'])
 const VB = new Set([...'│┃║┆┇┊┋╎╏|:', ...'├┤┼╠╣╬┣┫╋┝┥┿╞╡╟╢+'])
 
@@ -68,29 +82,6 @@ const isAlnum = (ch: string) => /[\p{L}\p{N}]/u.test(ch)
 
 // ---------------------------------------------------------------------------
 // Normalisation
-
-function isWide(cp: number): boolean {
-	return (
-		(cp >= 0x1100 && cp <= 0x115f) ||
-		(cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) ||
-		(cp >= 0xac00 && cp <= 0xd7a3) ||
-		(cp >= 0xf900 && cp <= 0xfaff) ||
-		(cp >= 0xfe30 && cp <= 0xfe4f) ||
-		(cp >= 0xff00 && cp <= 0xff60) ||
-		(cp >= 0xffe0 && cp <= 0xffe6) ||
-		(cp >= 0x1f300 && cp <= 0x1f64f) ||
-		(cp >= 0x1f680 && cp <= 0x1f6ff) ||
-		(cp >= 0x1f900 && cp <= 0x1faff) ||
-		cp === 0x2705 ||
-		cp === 0x274c ||
-		cp === 0x2b50 ||
-		(cp >= 0x231a && cp <= 0x231b) ||
-		(cp >= 0x23e9 && cp <= 0x23f3) ||
-		(cp >= 0x20000 && cp <= 0x3fffd)
-	)
-}
-
-const FILLER = '\u0000'
 
 export function stripFence(text: string): string {
 	const m = /^\s*(```+|~~~+)[^\n]*\n([\s\S]*?)(?:\n\s*\1[ \t]*(?:\n[\s\S]*)?)?$/.exec(text)
@@ -136,30 +127,6 @@ function prepare(text: string): Prepared {
 	}
 }
 
-function buildGrid(lines: string[], wide: boolean): string[][] {
-	return lines.map((l) => {
-		const row: string[] = []
-		for (const ch of l) {
-			row.push(ch)
-			if (wide && isWide(ch.codePointAt(0)!)) row.push(FILLER)
-		}
-		return row
-	})
-}
-
-function alignmentScore(g: string[][]): number {
-	let score = 0
-	for (let r = 0; r + 1 < g.length; r++) {
-		for (let c = 0; c < g[r].length; c++) {
-			const a = g[r][c]
-			if (!(UNI[a] && UNI[a] & S) && a !== '|' && a !== '+') continue
-			const b = g[r + 1][c]
-			if (b && ((UNI[b] && UNI[b] & N) || b === '|' || b === '+')) score++
-		}
-	}
-	return score
-}
-
 // ---------------------------------------------------------------------------
 // Directory trees
 
@@ -187,9 +154,12 @@ function parseTree(lines: string[]): AsciiResult | null {
 	ir.direction = 'right'
 	const keys = new KeyAllocator()
 	const stack: { col: number; key: string }[] = []
+	const cells: Record<string, CellRect> = {}
 	let root: string | undefined
 	let pairs = 0
+	let row = 0
 	for (const line of lines) {
+		row++
 		if (!line.trim() || /^[\s│|]+$/.test(line)) continue
 		const m = isTreeLine(line) ? TREE_RE.exec(line) : null
 		let col: number
@@ -206,6 +176,7 @@ function parseTree(lines: string[]): AsciiResult | null {
 		const node: IRNode = { key }
 		if (key !== name) node.label = name
 		ir.nodes.push(node)
+		cells[key] = { row: row - 1, col: Math.max(0, col) + (m ? m[2].length + 1 : 0), rows: 1, cols: [...name].length }
 		if (col < 0) {
 			stack.length = 0
 			root = key
@@ -226,7 +197,7 @@ function parseTree(lines: string[]): AsciiResult | null {
 		}
 		stack.push({ col, key })
 	}
-	return { ir, diagnostics: [], confidence: pairs ? 0.95 : 0.5 }
+	return { ir, diagnostics: [], confidence: pairs ? 0.95 : 0.5, cells }
 }
 
 class KeyAllocator {
@@ -263,6 +234,7 @@ interface Box {
 	children: number[]
 	key?: string
 	cost: number
+	shape?: NodeShape
 }
 
 const leftAt = (b: Box, r: number) => b.lefts[r - b.top]
@@ -321,12 +293,13 @@ function parseAsciiInner(text: string): AsciiResult {
 	})
 	if (!lines.length) return fail('No diagram found: empty text')
 
+	const erd = parseMarkdownErd(lines.join('\n'))
+	if (erd) return { ir: erd.ir, diagnostics: [], confidence: erd.confidence }
+
 	const tree = parseTree(lines)
 	if (tree) return tree
 
-	const rawGrid = buildGrid(lines, false)
-	const wideGrid = buildGrid(lines, true)
-	const g = alignmentScore(wideGrid) > alignmentScore(rawGrid) ? wideGrid : rawGrid
+	const g = buildGrid(lines)
 	const R = g.length
 	const at = (r: number, c: number): string => (r >= 0 && r < R && c >= 0 ? (g[r][c] ?? ' ') : ' ')
 	const posOffset = (r: number, c: number) => (offsets[r] ?? 0) + Math.min(c, (lines[r] ?? '').length)
@@ -362,6 +335,12 @@ function parseAsciiInner(text: string): AsciiResult {
 			best.children.push(b.id)
 		}
 	}
+	const seq = parseSequence(
+		g,
+		boxes.map((b) => ({ top: b.top, bottom: b.bottom, left: minLeft(b), right: maxRight(b) })),
+		(r, c) => borderOf.has(cid(r, c)),
+	)
+	if (seq) return { ir: seq.ir, diagnostics: [], confidence: seq.confidence }
 	const boxById = new Map(boxes.map((b) => [b.id, b]))
 	const leafAt = (r: number, c: number): Box | undefined => {
 		for (const b of boxes) if (!b.children.length && inInterior(b, r, c)) return b
@@ -539,10 +518,21 @@ function parseAsciiInner(text: string): AsciiResult {
 		if (ra !== rb) parent.set(ra, rb)
 	}
 	const linked = new Map<number, number>()
+	// Four-way cells (┼, +) start out as crossings: the horizontal and the
+	// vertical line through them are separate components (`part`). They are
+	// merged back into a junction after terminals are known (see 6b).
+	const HALF = (R + 4) * W_
+	const crossing = new Set<number>()
+	for (const [id, m] of conn) {
+		if (m !== (N | E | S | W)) continue
+		const [r, c] = [Math.floor(id / W_), id % W_]
+		if (CROSS_CHARS.has(at(r, c))) crossing.add(id)
+	}
+	const part = (id: number, d: number) => (crossing.has(id) && !isVert(d) ? id + HALF : id)
 	const markLink = (a: number, d: number, b: number, bd: number) => {
 		linked.set(a, (linked.get(a) ?? 0) | d)
 		linked.set(b, (linked.get(b) ?? 0) | bd)
-		union(a, b)
+		union(part(a, d), part(b, bd))
 	}
 	const cellsByComp = new Map<number, number[]>()
 	const coords = (id: number): [number, number] => [Math.floor(id / W_), id % W_]
@@ -586,10 +576,12 @@ function parseAsciiInner(text: string): AsciiResult {
 		}
 	}
 	for (const id of conn.keys()) {
-		const root = find(id)
-		const list = cellsByComp.get(root) ?? []
-		list.push(id)
-		cellsByComp.set(root, list)
+		for (const p of crossing.has(id) ? [id, id + HALF] : [id]) {
+			const root = find(p)
+			const list = cellsByComp.get(root) ?? []
+			list.push(id)
+			cellsByComp.set(root, list)
+		}
 	}
 
 	// --- 4. Text runs --------------------------------------------------------
@@ -668,6 +660,7 @@ function parseAsciiInner(text: string): AsciiResult {
 		const node: IRNode = { key }
 		if (label && key !== label) node.label = label
 		if (b.children.length) node.isContainer = true
+		if (b.shape) node.shape = b.shape
 		node.span = { from: posOffset(b.top, leftAt(b, b.top)), to: posOffset(b.bottom, rightAt(b, b.bottom) + 1), line: b.top + 1 }
 		nodeByKey.set(key, node)
 		if (label && !keyByLabel.has(label)) keyByLabel.set(label, key)
@@ -709,8 +702,22 @@ function parseAsciiInner(text: string): AsciiResult {
 			if (!(open & d)) continue
 			const res = probe(r, c, d)
 			if (!res) continue
-			terminals.push({ comp: find(id), r, c, dir: d, head: tip.get(id) === d, ...res })
+			terminals.push({ comp: find(part(id, d)), r, c, dir: d, head: tip.get(id) === d, ...res })
 		}
+	}
+
+	// --- 6b. Crossing or junction? A four-way cell is a junction (fork/bus)
+	// when either line through it would be dangling or would fan out to ends
+	// that all leave in the same direction (`┌──┼──┐` turning down to children).
+	for (const id of crossing) {
+		const v = find(id)
+		const h = find(id + HALF)
+		if (v === h) continue
+		const ends = (root: number) => terminals.filter((t) => find(t.comp) === root)
+		const tv = ends(v)
+		const th = ends(h)
+		const fork = (ts: Terminal[]) => ts.length < 2 || ts.every((t) => t.dir === ts[0].dir)
+		if (fork(tv) || fork(th)) union(v, h)
 	}
 
 	// --- 7. Inline labels: `── yes ──▶`, `--yes-->`, vertical text between runs.
@@ -721,6 +728,7 @@ function parseAsciiInner(text: string): AsciiResult {
 		if (t1.dir !== E && t1.dir !== S) continue
 		const run = runs[t1.run!]
 		if (run.consumed || isBracket(run.text)) continue
+		const otherEnds = (root: number) => terminals.filter((t) => find(t.comp) === root && t.run !== t1.run)
 		const t2 = terminals.find(
 			(t) =>
 				t !== t1 &&
@@ -733,6 +741,12 @@ function parseAsciiInner(text: string): AsciiResult {
 				(t1.dir === E ? t.c > run.c1 : t.r > run.r),
 		)
 		if (!t2) continue
+		// `A --- B --- C` is a chain; a label sits inside a directed line or
+		// between two boxes (`┌─┐── uses ──┌─┐`).
+		const outer = [...otherEnds(find(t1.comp)), ...otherEnds(find(t2.comp))]
+		const directed = outer.some((t) => t.head)
+		const boxed = outer.length >= 2 && outer.every((t) => t.kind === 'box')
+		if (!directed && !boxed) continue
 		const label = run.text
 		union(t1.comp, t2.comp)
 		dead.add(t1)
@@ -787,7 +801,8 @@ function parseAsciiInner(text: string): AsciiResult {
 	let attachedEnds = 0
 	let totalEnds = 0
 	const usedComps = new Set<number>()
-	const addEdge = (from: string, to: string, start: boolean, end: boolean, comp: number, label?: string) => {
+	const edgeEnd = new Map<IREdge, [number, number]>()
+	const addEdge = (from: string, to: string, start: boolean, end: boolean, comp: number, label?: string, toAt?: [number, number]) => {
 		const pair = `${from}->${to}`
 		const n = pairCount.get(pair) ?? 0
 		pairCount.set(pair, n + 1)
@@ -803,6 +818,7 @@ function parseAsciiInner(text: string): AsciiResult {
 		if (label) edge.label = label
 		ir.edges.push(edge)
 		edgeComp.set(edge, comp)
+		if (toAt) edgeEnd.set(edge, toAt)
 		usedComps.add(comp)
 	}
 	const compEntries = [...byComp.entries()].sort((a, b) => firstCell(a[1]) - firstCell(b[1]))
@@ -811,7 +827,8 @@ function parseAsciiInner(text: string): AsciiResult {
 	}
 	for (const [comp, ts] of compEntries) {
 		const ends = new Map<string, { key: string; head: boolean; r: number; c: number }>()
-		for (const t of ts) {
+		const rank = (d: number) => (d === N ? 0 : d === W ? 1 : d === E ? 2 : 3)
+		for (const t of [...ts].sort((a, b) => a.r - b.r || a.c - b.c || rank(a.dir) - rank(b.dir))) {
 			totalEnds++
 			let key: string | undefined
 			if (t.kind === 'box') key = boxById.get(t.box!)!.key
@@ -836,16 +853,16 @@ function parseAsciiInner(text: string): AsciiResult {
 		if (list.length === 2) {
 			let [a, b] = list
 			if (a.head && !b.head) [a, b] = [b, a]
-			addEdge(a.key, b.key, a.head && b.head, b.head, comp, label)
+			addEdge(a.key, b.key, a.head && b.head, b.head, comp, label, [b.r, b.c])
 			continue
 		}
 		const sources = list.filter((x) => !x.head)
 		const targets = list.filter((x) => x.head)
 		if (sources.length && targets.length) {
-			for (const s of sources) for (const t of targets) addEdge(s.key, t.key, false, true, comp)
+			for (const s of sources) for (const t of targets) addEdge(s.key, t.key, false, true, comp, undefined, [t.r, t.c])
 		} else {
 			const [hub, ...rest] = list
-			for (const t of rest) addEdge(hub.key, t.key, hub.head, t.head, comp)
+			for (const t of rest) addEdge(hub.key, t.key, hub.head, t.head, comp, undefined, [t.r, t.c])
 		}
 	}
 
@@ -863,7 +880,7 @@ function parseAsciiInner(text: string): AsciiResult {
 			for (const dr of [-1, 1]) {
 				const id = cid(run.r + dr, c)
 				if (connAt(run.r + dr, c) & (E | W)) {
-					const comp = find(id)
+					const comp = find(part(id, E))
 					if (!best || best.dist > 1) best = { comp, dist: 1 }
 				}
 			}
@@ -877,7 +894,7 @@ function parseAsciiInner(text: string): AsciiResult {
 				const id = cid(run.r, c)
 				if (conn.has(id)) {
 					if (connAt(run.r, c) & (N | S)) {
-						const comp = find(id)
+						const comp = find(part(id, N))
 						if (!best || best.dist > k) best = { comp, dist: k }
 					}
 					break
@@ -887,8 +904,24 @@ function parseAsciiInner(text: string): AsciiResult {
 		}
 		if (!best) continue
 		const es = edgesByComp.get(best.comp)
-		if (!es || es.length !== 1 || es[0].label) continue
-		es[0].label = run.text
+		if (!es) continue
+		if (es.length === 1) {
+			if (es[0].label) continue
+			es[0].label = run.text
+			run.consumed = 'label'
+			continue
+		}
+		// Branch labels (`yes │ no` over a split): the edge whose target end is nearest.
+		const mid = (run.c0 + run.c1) / 2
+		const ranked = es
+			.filter((e) => !e.label && edgeEnd.has(e))
+			.map((e) => {
+				const [er, ec] = edgeEnd.get(e)!
+				return { e, d: Math.abs(ec - mid) + Math.abs(er - run.r) * 0.5 }
+			})
+			.sort((a, b) => a.d - b.d)
+		if (!ranked.length || (ranked.length > 1 && ranked[1].d - ranked[0].d < 2)) continue
+		ranked[0].e.label = run.text
 		run.consumed = 'label'
 	}
 
@@ -924,7 +957,7 @@ function parseAsciiInner(text: string): AsciiResult {
 			const id = cid(r, c)
 			if (borderOf.has(id)) explained++
 			else if (conn.has(id)) {
-				if (usedComps.has(find(id))) explained++
+				if (usedComps.has(find(id)) || (crossing.has(id) && usedComps.has(find(id + HALF)))) explained++
 			} else {
 				const run = runAt.get(id)
 				if (run !== undefined && runs[run].consumed) explained++
@@ -938,13 +971,21 @@ function parseAsciiInner(text: string): AsciiResult {
 	// Long, sentence-like free-text nodes mean we probably parsed prose.
 	const textNodes = runs.filter((run) => run.consumed === 'node')
 	if (textNodes.length) {
-		const prosy = textNodes.filter((run) => run.text.length > 36 || /[.,;!?]\s|\.$/.test(run.text)).length
+		const prosy = textNodes.filter((run) => {
+			const t = stripStep(run.text)
+			return t.length > 36 || /[.,;!?]\s|\.$/.test(t)
+		}).length
 		if (prosy) confidence *= Math.max(0.2, 0.6 - 0.4 * (prosy / textNodes.length))
 	}
 	if (boxes.length) confidence = Math.min(1, confidence + 0.05)
 	if (!ir.nodes.length) return fail('No diagram found: no boxes, arrows or tree lines detected')
 
-	return { ir, diagnostics, confidence: Math.round(confidence * 1000) / 1000 }
+	const cells: Record<string, CellRect> = {}
+	for (const b of boxes) cells[b.key!] = { row: b.top, col: minLeft(b), rows: b.bottom - b.top + 1, cols: maxRight(b) - minLeft(b) + 1 }
+	for (const run of runs) {
+		if (run.consumed === 'node' && run.nodeKey && !cells[run.nodeKey]) cells[run.nodeKey] = { row: run.r, col: run.c0, rows: 1, cols: run.c1 - run.c0 + 1 }
+	}
+	return { ir, diagnostics, confidence: Math.round(confidence * 1000) / 1000, cells }
 }
 
 function popcount(m: number): number {
@@ -968,7 +1009,14 @@ function bracketShape(s: string): { label: string; shape?: NodeShape } {
 	if ((m = /^\((.*)\)$/.exec(t))) return { label: m[1].trim(), shape: 'oval' }
 	if ((m = /^\{(.*)\}$/.exec(t))) return { label: m[1].trim(), shape: 'diamond' }
 	if ((m = /^<([^<>]+)>$/.exec(t))) return { label: m[1].trim(), shape: 'diamond' }
-	return { label: t.replace(/^["'`]+|["'`:]+$/g, '').trim() || t }
+	const plain = t.replace(/^["'`]+|["'`:]+$/g, '').trim() || t
+	return { label: stripStep(plain) }
+}
+
+/** `1. Parse`, `2) Validate`, `Step 3: Save`, `(4) Ship`, `① Plan` → the step's text. */
+export function stripStep(s: string): string {
+	const m = /^(?:step\s*\d{1,2}\s*[:.)\-–]?|\d{1,2}[.):]|\(\d{1,2}\)|[①-⑳])\s+(\S.*)$/iu.exec(s)
+	return m ? m[1].trim() : s
 }
 
 // ---------------------------------------------------------------------------
@@ -998,6 +1046,11 @@ function findBoxes(g: string[][], at: (r: number, c: number) => string): Box[] {
 		if (seen.has(k)) continue
 		seen.add(k)
 		out.push({ ...b, id: out.length })
+	}
+	for (const d of findDiamonds(g, at)) {
+		const overlaps = out.some((o) => d.top <= o.bottom && d.bottom >= o.top && Math.min(...d.lefts) <= maxRight(o) && Math.max(...d.rights) >= minLeft(o))
+		if (overlaps) continue
+		out.push({ ...d, id: out.length, title: '', dividers: [], children: [], cost: 0, shape: 'diamond' })
 	}
 	return out
 
@@ -1059,13 +1112,29 @@ function findBoxes(g: string[][], at: (r: number, c: number) => string): Box[] {
 		const pick = (rr: number, col: number, set: Set<string>, alt: Set<string>, spread: number[]) => {
 			for (const dc of spread) {
 				const ch = at(rr, col + dc)
-				if (set.has(ch) || alt.has(ch)) return col + dc
+				if ((set.has(ch) || alt.has(ch)) && (Math.abs(dc) < 3 || farDriftOk(rr, col, col + dc))) return col + dc
 			}
 			return -1
 		}
+		/**
+		 * Drift of 3–4 columns (wide chars miscounted, a long label pushing the
+		 * border out) is accepted only when the candidate is not another box's
+		 * border: nothing vertical sits in that column on this box's top row or
+		 * on the row above, and the skipped cells hold text (or blanks past the line end).
+		 */
+		const farDriftOk = (rr: number, from: number, to: number) => {
+			const k = to
+			if (k !== cr && (TL.has(at(r, k)) || TR.has(at(r, k)) || VB.has(at(r, k)) || VB.has(at(rr - 1, k)))) return false
+			if (VB.has(at(rr, from))) return false
+			const lo = Math.min(from, to)
+			const hi = Math.max(from, to)
+			for (let x = lo + 1; x < hi; x++) if (VB.has(at(rr, x)) || TL.has(at(rr, x))) return false
+			return true
+		}
+		const RIGHT_SPREAD = [0, 1, -1, 2, -2, 3, -3, 4, -4]
 		for (let rr = r + 1; rr < g.length; rr++) {
 			const l = pick(rr, lc, VB, BL, [0, -1, 1])
-			const rg = pick(rr, rc, VB, BR, [0, 1, -1, 2, -2])
+			const rg = pick(rr, rc, VB, BR, RIGHT_SPREAD)
 			if (l < 0) {
 				if (gapsL < 1 && isGapCell(at(rr, lc)) && VB.has(at(rr + 1, lc))) {
 					gapsL++
@@ -1088,7 +1157,8 @@ function findBoxes(g: string[][], at: (r: number, c: number) => string): Box[] {
 				}
 				// Bottom row with a drifting right corner.
 				if (BL.has(at(rr, l)) && rr >= r + 2) {
-					for (let k = rc - 2; k <= rc + 2; k++) {
+					for (const dk of RIGHT_SPREAD) {
+						const k = rc + dk
 						if (BR.has(at(rr, k)) && bottomOk(rr, l, k)) {
 							lefts.push(l)
 							rights.push(k)

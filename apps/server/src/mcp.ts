@@ -43,6 +43,15 @@ async function call(method: string, path: string, body?: unknown): Promise<DocRe
 	return data
 }
 
+const DOC_ID = z
+	.string()
+	.regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/)
+	.optional()
+	.describe('Document (room) id. Omit for the default document open in the editor.')
+
+/** Appends `?docId=` when a document id is given. */
+const withDoc = (path: string, docId?: string) => (docId ? `${path}${path.includes('?') ? '&' : '?'}docId=${encodeURIComponent(docId)}` : path)
+
 const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] })
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true })
 
@@ -74,10 +83,11 @@ server.registerTool(
 	{
 		title: 'Get diagram',
 		description: 'Return the current diagram source (octo DSL) and its version.',
+		inputSchema: { docId: DOC_ID },
 		annotations: { readOnlyHint: true },
 	},
-	() => guard(async () => {
-		const doc = await call('GET', '/api/doc')
+	({ docId }) => guard(async () => {
+		const doc = await call('GET', withDoc('/api/doc', docId))
 		return text(`version: ${doc.version}\n\n${doc.code || '(empty diagram)'}`)
 	}),
 )
@@ -90,10 +100,11 @@ server.registerTool(
 		inputSchema: {
 			code: z.string().describe('Full octo DSL source'),
 			baseVersion: z.number().int().optional().describe('If given, fail when the diagram changed since this version'),
+			docId: DOC_ID,
 		},
 	},
-	({ code, baseVersion }) => guard(async () => {
-		const doc = await call('PUT', '/api/doc', { code, baseVersion, source: SOURCE })
+	({ code, baseVersion, docId }) => guard(async () => {
+		const doc = await call('PUT', withDoc('/api/doc', docId), { code, baseVersion, source: SOURCE })
 		return text(`Diagram updated (version ${doc.version}).${diagnostics(doc.code)}`)
 	}),
 )
@@ -106,10 +117,10 @@ server.registerTool(
 			'Apply targeted edits to the diagram. Nodes are addressed by key (their DSL name). ' +
 			'addEdge op: ">" arrow, "<" reverse, "<>" both, "-" line, "--" dotted line, "-->" dotted arrow. ' +
 			'Returns the resulting code and any per-action errors.',
-		inputSchema: { actions: z.array(AgentActionZ).describe('Edits, applied in order') },
+		inputSchema: { actions: z.array(AgentActionZ).describe('Edits, applied in order'), docId: DOC_ID },
 	},
-	({ actions }) => guard(async () => {
-		const doc = await call('POST', '/api/doc/actions', { actions, source: SOURCE })
+	({ actions, docId }) => guard(async () => {
+		const doc = await call('POST', withDoc('/api/doc/actions', docId), { actions, source: SOURCE })
 		const errs = doc.errors?.length ? `\n\nErrors:\n${doc.errors.map((e) => `- action ${e.index}: ${e.message}`).join('\n')}` : ''
 		return text(`Applied ${doc.applied ?? 0}/${actions.length} actions (version ${doc.version}).${errs}${diagnostics(doc.code)}\n\n${doc.code}`)
 	}),
@@ -122,13 +133,13 @@ server.registerTool(
 		description:
 			'Convert a diagram given as text (mermaid flowchart, ASCII/Unicode box art from a chat answer, or octo DSL; markdown fences allowed) ' +
 			'into octo DSL and make it the current diagram.',
-		inputSchema: { text: z.string().describe('The diagram text') },
+		inputSchema: { text: z.string().describe('The diagram text'), docId: DOC_ID },
 	},
-	({ text: input }) => guard(async () => {
+	({ text: input, docId }) => guard(async () => {
 		const r = importText(input)
 		if (!r) return fail('Could not recognise a diagram in that text.')
 		const code = printOcto(r.ir)
-		const doc = await call('PUT', '/api/doc', { code, source: SOURCE })
+		const doc = await call('PUT', withDoc('/api/doc', docId), { code, source: SOURCE })
 		const warn = r.diagnostics.length ? `\n\nImport diagnostics:\n${r.diagnostics.map((d) => `- ${d.message}`).join('\n')}` : ''
 		return text(`Imported ${r.format} (${r.ir.nodes.length} nodes, ${r.ir.edges.length} edges) as version ${doc.version}.${warn}\n\n${code}`)
 	}),
@@ -139,10 +150,11 @@ server.registerTool(
 	{
 		title: 'Export mermaid',
 		description: 'Return the current diagram as mermaid flowchart code.',
+		inputSchema: { docId: DOC_ID },
 		annotations: { readOnlyHint: true },
 	},
-	() => guard(async () => {
-		const doc = await call('GET', '/api/doc')
+	({ docId }) => guard(async () => {
+		const doc = await call('GET', withDoc('/api/doc', docId))
 		return text(toMermaid(parseOcto(doc.code).ir))
 	}),
 )
@@ -155,10 +167,11 @@ server.registerTool(
 			'Return the current diagram as structured JSON: a one-line summary, stats (node/group/edge counts, entry points, sinks, ' +
 			'most connected nodes, unconnected nodes, nesting depth, parse errors) and the full IR (nodes with key/label/shape/icon/parent, ' +
 			'edges with from/to/label/arrows). Use it to reason about structure before editing; use get_diagram for the source text.',
+		inputSchema: { docId: DOC_ID },
 		annotations: { readOnlyHint: true },
 	},
-	() => guard(async () => {
-		const doc = await call('GET', '/api/doc')
+	({ docId }) => guard(async () => {
+		const doc = await call('GET', withDoc('/api/doc', docId))
 		const { ir, stats, summary } = describeDiagram(doc.code)
 		return text(JSON.stringify({ version: doc.version, summary, stats, ir }, null, 2))
 	}),
@@ -169,13 +182,13 @@ server.registerTool(
 	{
 		title: 'Get diagram SVG',
 		description: 'Render the current diagram to a standalone SVG (headless, laid out like the canvas). Useful to look at the result or save a thumbnail.',
-		inputSchema: { theme: z.enum(['light', 'dark']).optional().describe('Color theme (default light)') },
+		inputSchema: { theme: z.enum(['light', 'dark']).optional().describe('Color theme (default light)'), docId: DOC_ID },
 		annotations: { readOnlyHint: true },
 	},
-	({ theme }) => guard(async () => {
+	({ theme, docId }) => guard(async () => {
 		let res: Response
 		try {
-			res = await fetch(`${BASE}/api/doc/svg?theme=${theme ?? 'light'}`)
+			res = await fetch(`${BASE}${withDoc(`/api/doc/svg?theme=${theme ?? 'light'}`, docId)}`)
 		} catch {
 			throw new Error(`octo-draw server is not reachable at ${BASE}. Start it with: pnpm --dir apps/server dev`)
 		}

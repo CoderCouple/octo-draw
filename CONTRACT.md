@@ -20,9 +20,10 @@ tldraw's `editor`, `tldraw`, `mermaid` and `sync` packages are proprietary. **Ne
 | `renameNodeLabel` | `(src: string, key: string, label: string) => string` — sets `label:` (identity unchanged) | `src/dsl/patch.ts` |
 | `parseMermaid` | `(src: string) => ParseResult` — flowchart/graph subset, hand-written, no mermaid dep | `src/mermaid/parse.ts` |
 | `toMermaid` | `(ir: DiagramIR) => string` | `src/mermaid/print.ts` |
-| `parseAscii` | `(text: string) => ParseResult & { confidence: number }` — ASCII/Unicode box diagrams from chat LLMs | `src/ascii/parse.ts` |
+| `parseAscii` | `(text: string) => ParseResult & { confidence: number; cells?: Record<string, CellRect> }` — ASCII/Unicode diagrams from chat LLMs: boxes, groups, diamonds, trees, arrow chains, numbered steps, ASCII sequence diagrams (→ kind `sequence`) and markdown schema tables (→ kind `erd`). `cells` is each node's grid rectangle | `src/ascii/parse.ts` |
 | `detectFormat` | `(text: string) => TextFormat` where `TextFormat = 'octo' \| 'mermaid' \| 'ascii' \| 'plain'` | `src/import/detect.ts` |
-| `importText` | `(text: string) => { format: TextFormat; ir: DiagramIR; diagnostics: Diagnostic[] } \| null` — strips markdown ``` fences first | `src/import/detect.ts` |
+| `importText` | `(text: string) => { format: TextFormat; ir: DiagramIR; diagnostics: Diagnostic[]; confidence?: number; pins?: Record<string, Point> } \| null` — strips markdown ``` fences first. Optional fields (ASCII imports only): `confidence` 0..1; `pins` = top-left canvas positions per node key scaled from the text grid (overlaps pushed apart, containers never pinned, absent for sequence/ERD) — pass as `layoutDiagram(ir, { pinned: pins })` to keep the drawn arrangement | `src/import/detect.ts` |
+| `pinsFromRects` | `(ir, rects: Record<string, SourceRect>, { scaleX, scaleY, gap?, snap? }) => Record<string, Point>` — source rectangles (grid cells, image bboxes) → non-overlapping pins; `pinsFromCells(ir, cells)` is the ASCII preset | `src/import/pins.ts` |
 | `layoutDiagram` | `(ir: DiagramIR, opts?: LayoutOptions) => Promise<DiagramLayout>` — ELK layered, compound groups, orthogonal edges; pinned nodes stay put and their edges are re-routed | `src/layout/layout.ts` |
 | `applyActions` | `(src: string, actions: AgentAction[]) => ApplyResult` — edits octo DSL source | `src/agent/apply.ts` |
 
@@ -67,7 +68,9 @@ API gateway --> Audit: async [id: audit-edge]
 A Node HTTP server on port **8787**. Vite proxies `/api` to it. It uses `@anthropic-ai/sdk`, model `claude-opus-5-5`, credentials from the environment (`ANTHROPIC_API_KEY` or an `ant auth login` profile). The key must never be sent to the browser.
 
 - `POST /api/generate` `{ prompt, code? }`: streams text/plain chunks of octo DSL (`text/event-stream`, `data: {"delta": "..."}` lines, then `data: {"done": true, "code": "..."}`). With `code`, it edits the existing diagram.
-- `POST /api/vision` `{ imageBase64, mediaType }`: takes an image of a diagram (ChatGPT/Gemini/whiteboard) and returns `{ code }` in octo DSL.
+- `POST /api/vision` `{ imageBase64, mediaType, mode? }`: takes an image of a diagram (ChatGPT/Gemini/whiteboard) and returns `{ code, pins?, confidence?, warnings?, diagnostics?, pipeline }`.
+  - `mode: 'auto'` (default) runs the two-pass pipeline (`src/vision.ts`): pass 1 asks for nodes as strict JSON (structured outputs: id, label, shape, bbox normalised 0–1000, parent group), pass 2 sends the image again with the node list and asks for edges (endpoint ids, direction, label, endpoint points), an optional pass 3 repairs edges with the conversion diagnostics. Endpoints are snapped to node ids (exact → case/label match → nearest bbox to the endpoint point). The result is IR → `printOcto`; `pins` are top-left canvas positions from the bboxes (keeps the image's arrangement), `confidence` is 0..1, `warnings` lists dropped/snapped items. `pipeline` is `'two-pass'` or `'single-pass'`.
+  - Sequence diagrams, ERDs, non-diagrams and any two-pass failure fall back to the original single-pass DSL transcription (`mode: 'single'` forces it); that path returns `{ code, diagnostics?, pipeline: 'single-pass' }`.
 - `POST /api/agent` `{ prompt, code }`: returns `{ actions: AgentAction[], code, errors }` using tool use (an `apply_actions` tool whose schema is AgentAction[]).
 - An MCP stdio server (`src/mcp.ts`) with the tools `get_diagram`, `set_diagram`, `apply_actions`, `import_text`, `export_mermaid`. It talks to the running server's document via `GET/PUT /api/doc`. The web app syncs its current code to `/api/doc` when it changes and polls (or uses SSE `GET /api/doc/events`) so that external agents' edits show up live.
 
@@ -87,7 +90,7 @@ Vite + React 19 + zustand + CodeMirror 6.
   - **Freehand layer** (human drawing, not in code):
     - Tools: select (V), hand (H), pen (P, perfect-freehand), rectangle (R), ellipse (O), arrow (A), text (T), eraser (E).
     - Undo/redo (Cmd+Z / Shift+Cmd+Z) covers both code changes and drawing.
-- **Paste:** text runs through `importText` (mermaid, ASCII box art and octo get converted to octo code via `printOcto`). Images go to `/api/vision`.
+- **Paste:** text runs through `importText` (mermaid, ASCII box art and octo get converted to octo code via `printOcto`). Images go to `/api/vision`. When either returns `pins`, merge them into the document's pins (replacing pins for the imported keys) so the canvas keeps the source arrangement; `confidence` < 0.6 or `warnings` should surface as a dismissible review toast.
 - **Persistence:** localStorage.
 - **Agent hooks:**
   - `window.octo = { getCode, setCode, applyActions, getIR, getLayout }`.
