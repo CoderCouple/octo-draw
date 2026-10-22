@@ -1,0 +1,208 @@
+import { useEffect, useRef, useState } from 'react'
+import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot } from 'lucide'
+import { Icon } from './Icon'
+import { useStore } from '../store'
+import { cancelGenerate, generate, importImage } from '../lib/api'
+import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
+import { copyMermaid, copyOcto, downloadJson, downloadPng, downloadSvg } from '../lib/export'
+import { setAgentOpen, useAgent } from '../lib/agent'
+
+function Logo() {
+	return (
+		<div className="logo">
+			<svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+				<rect width="32" height="32" rx="8" fill="var(--primary)" />
+				<circle cx="16" cy="13.5" r="6.5" fill="var(--primary-foreground)" />
+				<path d="M9.5 17.5c0 5.5-3 8-3 8M13 19.5c0 4.5-1 7-1 7M19 19.5c0 4.5 1 7 1 7M22.5 17.5c0 5.5 3 8 3 8" stroke="var(--primary-foreground)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+			</svg>
+			<span>octo-draw</span>
+		</div>
+	)
+}
+
+function Menu({ label, icon, children }: { label: string; icon: unknown; children: (close: () => void) => React.ReactNode }) {
+	const [open, setOpen] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+	useEffect(() => {
+		if (!open) return
+		const onDown = (e: PointerEvent) => {
+			if (!ref.current?.contains(e.target as Node)) setOpen(false)
+		}
+		const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+		window.addEventListener('pointerdown', onDown)
+		window.addEventListener('keydown', onKey)
+		return () => {
+			window.removeEventListener('pointerdown', onDown)
+			window.removeEventListener('keydown', onKey)
+		}
+	}, [open])
+	return (
+		<div className="menu" ref={ref}>
+			<button className={`btn ghost${open ? ' active' : ''}`} onClick={() => setOpen((o) => !o)}>
+				<Icon icon={icon} size={15} />
+				{label}
+				<Icon icon={ChevronDown} size={13} />
+			</button>
+			{open && <div className="menu-pop">{children(() => setOpen(false))}</div>}
+		</div>
+	)
+}
+
+function MenuItem({ icon, label, hint, onClick }: { icon: unknown; label: string; hint?: string; onClick: () => void }) {
+	return (
+		<button className="menu-item" onClick={onClick}>
+			<Icon icon={icon} size={15} />
+			<span>{label}</span>
+			{hint && <kbd>{hint}</kbd>}
+		</button>
+	)
+}
+
+const THEME_NEXT: Record<ThemePref, ThemePref> = { system: 'light', light: 'dark', dark: 'system' }
+const THEME_ICON: Record<ThemePref, unknown> = { system: Monitor, light: Sun, dark: Moon }
+
+function AgentToggle() {
+	const open = useAgent((s) => s.open)
+	const busy = useAgent((s) => s.runs.some((r) => r.status === 'streaming'))
+	return (
+		<button
+			className={`btn ghost${open ? ' active' : ''}`}
+			title="AI agent chat (⌘K)"
+			aria-pressed={open}
+			onClick={() => setAgentOpen(!open)}
+		>
+			<Icon icon={busy ? LoaderCircle : Bot} size={15} className={busy ? 'spin' : ''} />
+			Agent
+		</button>
+	)
+}
+
+function ThemeToggle() {
+	const pref = useThemePref()
+	return (
+		<button
+			className="icon-btn theme-toggle"
+			title={`Theme: ${pref} (click for ${THEME_NEXT[pref]})`}
+			aria-label={`Theme: ${pref}`}
+			onClick={() => setThemePref(THEME_NEXT[pref])}
+		>
+			<Icon icon={THEME_ICON[pref]} size={16} />
+		</button>
+	)
+}
+
+export function TopBar({ onPasteDialog }: { onPasteDialog: () => void }) {
+	const title = useStore((s) => s.title)
+	const aiBusy = useStore((s) => s.aiBusy)
+	const hasCode = useStore((s) => s.code.trim().length > 0)
+	const [prompt, setPrompt] = useState('')
+	const [mode, setMode] = useState<'new' | 'edit'>('new')
+	const fileRef = useRef<HTMLInputElement>(null)
+	const generating = !!aiBusy && aiBusy.startsWith('AI is')
+
+	const submit = () => {
+		if (!prompt.trim() || generating) return
+		void generate(prompt, mode === 'edit' && hasCode)
+	}
+
+	return (
+		<header className="topbar">
+			<Logo />
+			<div className="divider" />
+			<input
+				className="title-input"
+				value={title}
+				spellCheck={false}
+				aria-label="Diagram title"
+				onChange={(e) => useStore.setState({ title: e.target.value })}
+				onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+			/>
+			<form
+				className={`ai-bar${generating ? ' busy' : ''}`}
+				onSubmit={(e) => {
+					e.preventDefault()
+					submit()
+				}}
+			>
+				<Icon icon={Sparkles} size={16} className="ai-spark" />
+				<input
+					value={prompt}
+					onChange={(e) => setPrompt(e.target.value)}
+					placeholder={mode === 'edit' ? 'Describe a change… e.g. "add a Redis cache between API and DB"' : 'Describe a diagram… e.g. "a RAG pipeline with vector store"'}
+					aria-label="AI prompt"
+				/>
+				<div className="seg" role="group" aria-label="AI mode">
+					<button type="button" className={mode === 'new' ? 'on' : ''} onClick={() => setMode('new')}>
+						New
+					</button>
+					<button type="button" className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')} disabled={!hasCode}>
+						Edit
+					</button>
+				</div>
+				{generating ? (
+					<button type="button" className="btn primary" onClick={cancelGenerate}>
+						<Icon icon={X} size={14} /> Stop
+					</button>
+				) : (
+					<button type="submit" className="btn primary" disabled={!prompt.trim()}>
+						{mode === 'edit' && hasCode ? 'Edit' : 'Generate'}
+					</button>
+				)}
+			</form>
+			<div className="spacer" />
+			{aiBusy && (
+				<div className="presence" title={aiBusy}>
+					<Icon icon={LoaderCircle} size={14} className="spin" />
+					{aiBusy}
+				</div>
+			)}
+			<Menu label="Import" icon={Upload}>
+				{(close) => (
+					<>
+						<MenuItem
+							icon={Image}
+							label="Image to diagram…"
+							onClick={() => {
+								close()
+								fileRef.current?.click()
+							}}
+						/>
+						<MenuItem
+							icon={ClipboardPaste}
+							label="Paste mermaid / ASCII…"
+							onClick={() => {
+								close()
+								onPasteDialog()
+							}}
+						/>
+					</>
+				)}
+			</Menu>
+			<Menu label="Export" icon={ImageDown}>
+				{(close) => (
+					<>
+						<MenuItem icon={Copy} label="Copy octo code" onClick={() => (close(), void copyOcto())} />
+						<MenuItem icon={GitFork} label="Copy mermaid" onClick={() => (close(), void copyMermaid())} />
+						<div className="menu-sep" />
+						<MenuItem icon={CodeXml} label="Download SVG" onClick={() => (close(), downloadSvg())} />
+						<MenuItem icon={FileImage} label="Download PNG" onClick={() => (close(), void downloadPng())} />
+						<MenuItem icon={Braces} label="Download JSON (IR)" onClick={() => (close(), downloadJson())} />
+					</>
+				)}
+			</Menu>
+			<AgentToggle />
+			<ThemeToggle />
+			<input
+				ref={fileRef}
+				type="file"
+				accept="image/*"
+				hidden
+				onChange={(e) => {
+					const f = e.target.files?.[0]
+					if (f) void importImage(f)
+					e.target.value = ''
+				}}
+			/>
+		</header>
+	)
+}

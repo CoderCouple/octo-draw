@@ -1,0 +1,653 @@
+{
+	"store": {
+		"shape:node-R": {
+			"id": "shape:node-R",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 846,
+			"y": 185.5,
+			"rotation": 0,
+			"index": "a69bz",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "rectangle",
+				"w": 120,
+				"h": 56,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Redis"
+								}
+							]
+						}
+					]
+				},
+				"color": "blue",
+				"labelColor": "blue",
+				"fill": "semi",
+				"dash": "draw",
+				"size": "s",
+				"font": "sans",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"shape:node-U": {
+			"id": "shape:node-U",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 40,
+			"y": 97.5,
+			"rotation": 0,
+			"index": "a53W6",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "ellipse",
+				"w": 120,
+				"h": 120,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "User"
+								}
+							]
+						}
+					]
+				},
+				"color": "black",
+				"labelColor": "black",
+				"fill": "semi",
+				"dash": "draw",
+				"size": "s",
+				"font": "sans",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"binding:edge-0-end": {
+			"id": "binding:edge-0-end",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-0",
+			"toId": "shape:node-C",
+			"meta": {},
+			"props": {
+				"terminal": "end",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-1-end": {
+			"id": "binding:edge-1-end",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-1",
+			"toId": "shape:node-A",
+			"meta": {},
+			"props": {
+				"terminal": "end",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-2-end": {
+			"id": "binding:edge-2-end",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-2",
+			"toId": "shape:node-R",
+			"meta": {},
+			"props": {
+				"terminal": "end",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-3-end": {
+			"id": "binding:edge-3-end",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-3",
+			"toId": "shape:node-D",
+			"meta": {},
+			"props": {
+				"terminal": "end",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-0-start": {
+			"id": "binding:edge-0-start",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-0",
+			"toId": "shape:node-A",
+			"meta": {},
+			"props": {
+				"terminal": "start",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-1-start": {
+			"id": "binding:edge-1-start",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-1",
+			"toId": "shape:node-U",
+			"meta": {},
+			"props": {
+				"terminal": "start",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-2-start": {
+			"id": "binding:edge-2-start",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-2",
+			"toId": "shape:node-C",
+			"meta": {},
+			"props": {
+				"terminal": "start",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"binding:edge-3-start": {
+			"id": "binding:edge-3-start",
+			"typeName": "binding",
+			"type": "arrow",
+			"fromId": "shape:edge-3",
+			"toId": "shape:node-C",
+			"meta": {},
+			"props": {
+				"terminal": "start",
+				"normalizedAnchor": {
+					"x": 0.5,
+					"y": 0.5
+				},
+				"isExact": false,
+				"isPrecise": false,
+				"snap": "none"
+			}
+		},
+		"shape:node-A": {
+			"id": "shape:node-A",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 286,
+			"y": 129.5,
+			"rotation": 0,
+			"index": "a3q9M",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "rectangle",
+				"w": 120,
+				"h": 56,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "API"
+								}
+							]
+						}
+					]
+				},
+				"color": "black",
+				"labelColor": "black",
+				"fill": "semi",
+				"dash": "draw",
+				"size": "s",
+				"font": "sans",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"shape:node-C": {
+			"id": "shape:node-C",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 490,
+			"y": 112.5,
+			"rotation": 0,
+			"index": "a4z37",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "diamond",
+				"w": 193,
+				"h": 90,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Cache hit?"
+								}
+							]
+						}
+					]
+				},
+				"color": "black",
+				"labelColor": "black",
+				"fill": "semi",
+				"dash": "draw",
+				"size": "s",
+				"font": "sans",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"shape:node-D": {
+			"id": "shape:node-D",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 846,
+			"y": 73.5,
+			"rotation": 0,
+			"index": "a7Pvv",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "rectangle",
+				"w": 120,
+				"h": 56,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "Postgres"
+								}
+							]
+						}
+					]
+				},
+				"color": "blue",
+				"labelColor": "blue",
+				"fill": "semi",
+				"dash": "draw",
+				"size": "s",
+				"font": "sans",
+				"align": "middle",
+				"verticalAlign": "middle",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"shape:edge-0": {
+			"id": "shape:edge-0",
+			"typeName": "shape",
+			"type": "arrow",
+			"x": 346,
+			"y": 157.5,
+			"rotation": 0,
+			"index": "a8hkQ",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"kind": "arc",
+				"labelColor": "black",
+				"color": "grey",
+				"fill": "none",
+				"dash": "solid",
+				"size": "s",
+				"arrowheadStart": "none",
+				"arrowheadEnd": "arrow",
+				"font": "sans",
+				"start": {
+					"x": 0,
+					"y": 0
+				},
+				"end": {
+					"x": 240.5,
+					"y": 0
+				},
+				"bend": 0,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph"
+						}
+					]
+				},
+				"labelPosition": 0.5,
+				"scale": 1,
+				"elbowMidPoint": 0.5
+			}
+		},
+		"page:page": {
+			"meta": {},
+			"id": "page:page",
+			"name": "Page 1",
+			"index": "a1",
+			"typeName": "page"
+		},
+		"document:document": {
+			"gridSize": 10,
+			"name": "",
+			"meta": {},
+			"id": "document:document",
+			"typeName": "document"
+		},
+		"shape:group-app": {
+			"id": "shape:group-app",
+			"typeName": "shape",
+			"type": "geo",
+			"x": 228,
+			"y": 0,
+			"rotation": 0,
+			"index": "a2Yfv",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"geo": "rectangle",
+				"w": 513,
+				"h": 281,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "App servers"
+								}
+							]
+						}
+					]
+				},
+				"color": "grey",
+				"labelColor": "grey",
+				"fill": "none",
+				"dash": "dashed",
+				"size": "s",
+				"font": "sans",
+				"align": "start",
+				"verticalAlign": "start",
+				"growY": 0,
+				"url": "",
+				"scale": 1,
+				"flipX": false,
+				"flipY": false
+			}
+		},
+		"shape:edge-1": {
+			"id": "shape:edge-1",
+			"typeName": "shape",
+			"type": "arrow",
+			"x": 100,
+			"y": 157.5,
+			"rotation": 0,
+			"index": "a9lrE",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"kind": "arc",
+				"labelColor": "black",
+				"color": "grey",
+				"fill": "none",
+				"dash": "solid",
+				"size": "s",
+				"arrowheadStart": "none",
+				"arrowheadEnd": "arrow",
+				"font": "sans",
+				"start": {
+					"x": 0,
+					"y": 0
+				},
+				"end": {
+					"x": 246,
+					"y": 0
+				},
+				"bend": 0,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph"
+						}
+					]
+				},
+				"labelPosition": 0.5,
+				"scale": 1,
+				"elbowMidPoint": 0.5
+			}
+		},
+		"shape:edge-2": {
+			"id": "shape:edge-2",
+			"typeName": "shape",
+			"type": "arrow",
+			"x": 586.5,
+			"y": 157.5,
+			"rotation": 0,
+			"index": "aAK76",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"kind": "arc",
+				"labelColor": "black",
+				"color": "grey",
+				"fill": "none",
+				"dash": "solid",
+				"size": "s",
+				"arrowheadStart": "none",
+				"arrowheadEnd": "arrow",
+				"font": "sans",
+				"start": {
+					"x": 0,
+					"y": 0
+				},
+				"end": {
+					"x": 319.5,
+					"y": 56
+				},
+				"bend": 0,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "yes"
+								}
+							]
+						}
+					]
+				},
+				"labelPosition": 0.5,
+				"scale": 1,
+				"elbowMidPoint": 0.5
+			}
+		},
+		"shape:edge-3": {
+			"id": "shape:edge-3",
+			"typeName": "shape",
+			"type": "arrow",
+			"x": 586.5,
+			"y": 157.5,
+			"rotation": 0,
+			"index": "aBXkQ",
+			"parentId": "page:page",
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"props": {
+				"kind": "arc",
+				"labelColor": "black",
+				"color": "grey",
+				"fill": "none",
+				"dash": "solid",
+				"size": "s",
+				"arrowheadStart": "none",
+				"arrowheadEnd": "arrow",
+				"font": "sans",
+				"start": {
+					"x": 0,
+					"y": 0
+				},
+				"end": {
+					"x": 319.5,
+					"y": -56
+				},
+				"bend": 0,
+				"richText": {
+					"type": "doc",
+					"content": [
+						{
+							"type": "paragraph",
+							"content": [
+								{
+									"type": "text",
+									"text": "no"
+								}
+							]
+						}
+					]
+				},
+				"labelPosition": 0.5,
+				"scale": 1,
+				"elbowMidPoint": 0.5
+			}
+		}
+	},
+	"schema": {
+		"schemaVersion": 2,
+		"sequences": {
+			"com.tldraw.store": 5,
+			"com.tldraw.asset": 1,
+			"com.tldraw.camera": 1,
+			"com.tldraw.document": 2,
+			"com.tldraw.instance": 26,
+			"com.tldraw.instance_page_state": 5,
+			"com.tldraw.page": 1,
+			"com.tldraw.instance_presence": 6,
+			"com.tldraw.pointer": 1,
+			"com.tldraw.shape": 4,
+			"com.tldraw.user": 1,
+			"com.tldraw.asset.image": 6,
+			"com.tldraw.asset.video": 5,
+			"com.tldraw.asset.bookmark": 2,
+			"com.tldraw.shape.arrow": 8,
+			"com.tldraw.shape.bookmark": 2,
+			"com.tldraw.shape.draw": 5,
+			"com.tldraw.shape.embed": 4,
+			"com.tldraw.shape.frame": 1,
+			"com.tldraw.shape.geo": 12,
+			"com.tldraw.shape.group": 0,
+			"com.tldraw.shape.highlight": 4,
+			"com.tldraw.shape.image": 5,
+			"com.tldraw.shape.line": 5,
+			"com.tldraw.shape.note": 13,
+			"com.tldraw.shape.text": 4,
+			"com.tldraw.shape.video": 4,
+			"com.tldraw.binding.arrow": 1
+		}
+	}
+}

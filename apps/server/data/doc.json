@@ -1,0 +1,6 @@
+{
+	"code": "// Welcome to octo-draw: write diagram code, see it drawn live.\n// Drag nodes to pin them, double-click to rename, paste mermaid or ASCII to import.\ntitle Checkout system\ndirection right\ncolorMode pastel\nstyleMode shadow\ntypeface clean\n\nShopper [icon: users, shape: oval, color: purple]\n\nEdge [color: blue] {\n  CDN [icon: globe]\n  API gateway [icon: router]\n}\n\nServices [color: green] {\n  Orders [icon: shopping-cart]\n  Payments [icon: credit-card]\n  Fraud check [shape: diamond, color: orange]\n  Worker [icon: cpu]\n}\n\nDB [shape: cylinder, icon: database, label: \"Postgres 16\", color: blue]\nEvents [shape: cylinder, icon: radio, label: \"Kafka\", color: gray]\n\nShopper > CDN: HTTPS\nCDN > API gateway\nAPI gateway > Orders, Payments\nPayments > Fraud check: score\nFraud check > Worker: approved\nOrders > DB\nWorker --> Events: async\nOrders <> Payments\nWorker -- DB\n",
+	"version": 8,
+	"source": "web:fcr0834gc6",
+	"updatedAt": "2026-10-22T22:29:23.294Z"
+}

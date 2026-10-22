@@ -1,0 +1,425 @@
+{
+	"$comment": "Prompt-quality cases for eval/run.ts. Regexes are \"/pattern/flags\" strings matched against node key or label. kind: generate (POST /api/generate path), agent (streaming chat agent), explain (agent explain mode).",
+	"cases": [
+		{
+			"id": "gen-login-flow",
+			"kind": "generate",
+			"prompt": "a login flowchart with a decision for valid credentials and a retry path",
+			"expect": {
+				"minNodes": 4,
+				"maxNodes": 15,
+				"direction": "down",
+				"nodes": [
+					{
+						"match": "/login|credential|sign in/i"
+					},
+					{
+						"match": "/valid|correct|\\?/i",
+						"shape": "diamond"
+					}
+				],
+				"hasCycle": true
+			}
+		},
+		{
+			"id": "gen-aws-web",
+			"kind": "generate",
+			"prompt": "a web app on AWS: users, CloudFront, an application load balancer, two ECS services, RDS Postgres and S3, grouped by VPC",
+			"expect": {
+				"minNodes": 6,
+				"minGroups": 1,
+				"nodes": [
+					{
+						"match": "/cloudfront/i"
+					},
+					{
+						"match": "/load balancer|alb/i"
+					},
+					{
+						"match": "/rds|postgres/i",
+						"shape": "cylinder"
+					},
+					{
+						"match": "/s3/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/users?/i",
+						"to": "/cloudfront/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "gen-rag",
+			"kind": "generate",
+			"prompt": "a RAG pipeline: documents are chunked, embedded and stored in a vector DB; user queries are embedded, retrieved and sent with context to an LLM",
+			"expect": {
+				"minNodes": 6,
+				"direction": "right",
+				"nodes": [
+					{
+						"match": "/vector/i"
+					},
+					{
+						"match": "/llm|model/i"
+					},
+					{
+						"match": "/embed/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/retriev|search/i",
+						"to": "/llm|model|prompt/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "gen-ci",
+			"kind": "generate",
+			"prompt": "CI/CD pipeline: git push triggers build, unit tests and lint in parallel, then deploy to staging, manual approval, deploy to production",
+			"expect": {
+				"minNodes": 6,
+				"nodes": [
+					{
+						"match": "/approv/i"
+					},
+					{
+						"match": "/staging/i"
+					},
+					{
+						"match": "/prod/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/staging/i",
+						"to": "/approv/i"
+					},
+					{
+						"from": "/approv/i",
+						"to": "/prod/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "gen-org",
+			"kind": "generate",
+			"prompt": "an org chart: CEO with CTO, CFO and COO; the CTO has two engineering managers",
+			"expect": {
+				"minNodes": 6,
+				"maxNodes": 10,
+				"direction": "down",
+				"edges": [
+					{
+						"from": "/ceo/i",
+						"to": "/cto/i"
+					},
+					{
+						"from": "/ceo/i",
+						"to": "/cfo/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "agent-cache-between",
+			"kind": "agent",
+			"prompt": "add a cache between API and DB",
+			"code": "direction right\nUsers > API\nAPI > DB\nDB [shape: cylinder]\n",
+			"expect": {
+				"nodes": [
+					{
+						"match": "/cache|redis/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/^api$/i",
+						"to": "/cache|redis/i"
+					},
+					{
+						"from": "/cache|redis/i",
+						"to": "/^db$/i"
+					}
+				],
+				"absentEdges": [
+					{
+						"from": "/^api$/i",
+						"to": "/^db$/i"
+					}
+				],
+				"keepNodes": [
+					"Users",
+					"API",
+					"DB"
+				]
+			}
+		},
+		{
+			"id": "agent-left-to-right",
+			"kind": "agent",
+			"prompt": "make it left to right",
+			"code": "direction down\nStart > Step 1 > Step 2 > End\n",
+			"expect": {
+				"direction": "right",
+				"keepNodes": [
+					"Start",
+					"Step 1",
+					"Step 2",
+					"End"
+				],
+				"edgeCount": 3
+			}
+		},
+		{
+			"id": "agent-group-backend",
+			"kind": "agent",
+			"prompt": "group API, Worker and Queue into a Backend group",
+			"code": "Users > API\nAPI > Queue > Worker\nWorker > DB\n",
+			"expect": {
+				"minGroups": 1,
+				"nodes": [
+					{
+						"match": "/backend/i",
+						"container": true
+					}
+				],
+				"parentOf": [
+					{
+						"child": "/^api$/i",
+						"parent": "/backend/i"
+					},
+					{
+						"child": "/^worker$/i",
+						"parent": "/backend/i"
+					}
+				],
+				"keepNodes": [
+					"Users",
+					"DB"
+				]
+			}
+		},
+		{
+			"id": "agent-selected-color",
+			"kind": "agent",
+			"prompt": "make this red and use a database icon",
+			"code": "App > Store\nApp > Logs\n",
+			"selection": [
+				"Store"
+			],
+			"expect": {
+				"nodes": [
+					{
+						"match": "/^store$/i",
+						"color": "/red|#/i",
+						"icon": "/database|db/i"
+					}
+				],
+				"keepNodes": [
+					"App",
+					"Logs"
+				],
+				"edgeCount": 2
+			}
+		},
+		{
+			"id": "agent-remove-node",
+			"kind": "agent",
+			"prompt": "remove the legacy service and connect the gateway straight to orders",
+			"code": "Gateway > Legacy service > Orders\nOrders > DB\n",
+			"expect": {
+				"absentNodes": [
+					"/legacy/i"
+				],
+				"edges": [
+					{
+						"from": "/gateway/i",
+						"to": "/orders/i"
+					}
+				],
+				"keepNodes": [
+					"Gateway",
+					"Orders",
+					"DB"
+				]
+			}
+		},
+		{
+			"id": "agent-add-auth",
+			"kind": "agent",
+			"prompt": "add an auth service that the API calls before handling requests, with a dotted line to an audit log",
+			"code": "Client > API\nAPI > DB\n",
+			"expect": {
+				"nodes": [
+					{
+						"match": "/auth/i"
+					},
+					{
+						"match": "/audit/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/^api$/i",
+						"to": "/auth/i"
+					},
+					{
+						"from": "/auth/i",
+						"to": "/audit/i",
+						"dash": "dotted"
+					}
+				]
+			}
+		},
+		{
+			"id": "agent-rename-label",
+			"kind": "agent",
+			"prompt": "label the DB as \"Postgres 16\" and make it a cylinder",
+			"code": "API > DB\n",
+			"expect": {
+				"nodes": [
+					{
+						"match": "/postgres 16/i",
+						"shape": "cylinder"
+					}
+				],
+				"keepNodes": [
+					"API",
+					"DB"
+				],
+				"edgeCount": 1
+			}
+		},
+		{
+			"id": "agent-empty-start",
+			"kind": "agent",
+			"prompt": "draw a simple checkout flow: cart, shipping, payment, confirmation",
+			"code": "",
+			"expect": {
+				"minNodes": 4,
+				"nodes": [
+					{
+						"match": "/cart/i"
+					},
+					{
+						"match": "/payment/i"
+					},
+					{
+						"match": "/confirm/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/shipping/i",
+						"to": "/payment/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "explain-arch",
+			"kind": "explain",
+			"prompt": "explain this diagram",
+			"code": "DB [shape: cylinder]\nUsers > CDN > Web\nWeb > API\nAPI > DB\nAPI > Queue > Worker\n",
+			"expect": {
+				"text": [
+					"/cdn/i",
+					"/queue|worker|background|async/i"
+				],
+				"unchanged": true,
+				"maxWords": 260
+			}
+		},
+		{
+			"id": "explain-spof",
+			"kind": "explain",
+			"prompt": "what is the single point of failure here?",
+			"code": "Web 1 > LB\nWeb 2 > LB\nLB > DB\n",
+			"expect": {
+				"text": [
+					"/db|database/i"
+				],
+				"unchanged": true,
+				"maxWords": 260
+			}
+		},
+		{
+			"id": "gen-sequence-login",
+			"kind": "generate",
+			"prompt": "login flow between browser, API and DB, including the wrong-password case",
+			"expect": {
+				"diagramKind": "sequence",
+				"minNodes": 3,
+				"maxNodes": 6,
+				"nodes": [
+					{
+						"match": "/browser|client|user/i"
+					},
+					{
+						"match": "/api|server|backend/i"
+					},
+					{
+						"match": "/db|database/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "gen-erd-blog",
+			"kind": "generate",
+			"prompt": "database schema for a blog with users, posts, comments and tags",
+			"expect": {
+				"diagramKind": "erd",
+				"minNodes": 4,
+				"nodes": [
+					{
+						"match": "/users?/i",
+						"fields": [
+							"/^id$/i"
+						]
+					},
+					{
+						"match": "/posts?/i"
+					},
+					{
+						"match": "/comments?/i"
+					},
+					{
+						"match": "/tags?/i"
+					}
+				],
+				"edges": [
+					{
+						"from": "/users?/i",
+						"to": "/posts?/i"
+					}
+				]
+			}
+		},
+		{
+			"id": "agent-sequence-edit",
+			"kind": "agent",
+			"prompt": "add a cache lookup before the API queries the DB",
+			"code": "sequence\nBrowser > API: GET /profile\nAPI > DB: select user\nDB --> API: row\nAPI --> Browser: 200\n",
+			"expect": {
+				"diagramKind": "sequence",
+				"nodes": [
+					{
+						"match": "/cache|redis/i"
+					}
+				],
+				"keepNodes": [
+					"Browser",
+					"API",
+					"DB"
+				]
+			}
+		}
+	]
+}

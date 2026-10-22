@@ -1,0 +1,25 @@
+{
+	"name": "@octo-draw/cli",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"description": "octo-draw command line: convert, render, push and pull diagrams",
+	"bin": {
+		"octo-draw": "./bin/octo-draw.mjs"
+	},
+	"scripts": {
+		"start": "node bin/octo-draw.mjs",
+		"typecheck": "tsc -p tsconfig.json",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@octo-draw/core": "workspace:*",
+		"tsx": "4.23.15",
+		"lucide": "1.61.0"
+	},
+	"devDependencies": {
+		"@types/node": "22.20.5",
+		"typescript": "5.9.3",
+		"vitest": "5.0.5"
+	}
+}

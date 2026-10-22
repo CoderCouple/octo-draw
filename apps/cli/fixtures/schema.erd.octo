@@ -1,0 +1,11 @@
+erd
+users [icon: user] {
+  id string pk
+  name string
+  teamId string fk
+}
+teams [color: blue] {
+  id string pk
+  title string
+}
+users.teamId > teams.id

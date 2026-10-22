@@ -1,0 +1,12 @@
+sequence
+autoNumber on
+User [icon: user] > API: login
+activate API
+API > DB: query
+DB --> API: rows
+alt [label: ok] {
+  API --> User: token
+} else [label: bad] {
+  note over User, API: retry
+}
+deactivate API

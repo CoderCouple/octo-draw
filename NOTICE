@@ -1,0 +1,38 @@
+octo-draw
+Copyright (c) 2026 Sunil Tiwari. Licensed under the MIT License (see LICENSE).
+
+This product depends on third-party software. Each component keeps its own
+license; the list below covers runtime dependencies that ship with the apps.
+
+Component                     Version   License                    Used by
+----------------------------  --------  -------------------------  ----------------------
+elkjs                         0.12.0    EPL-2.0 OR GPL-3.0-or-later @octo-draw/core (layout)
+perfect-freehand              1.2.3     MIT                        @octo-draw/web (pen strokes)
+lucide                        1.61.0    ISC                        @octo-draw/web, @octo-draw/cli (icons)
+@codemirror/* and @lezer/*    6.x/1.x   MIT                        @octo-draw/web (code editor)
+react, react-dom              19.3.1    MIT                        @octo-draw/web
+zustand                       5.0.16    MIT                        @octo-draw/web
+@anthropic-ai/sdk             1.1.0     Apache-2.0                 @octo-draw/server
+@modelcontextprotocol/sdk     1.32.1    MIT                        @octo-draw/server (MCP)
+zod                           4.6.7     MIT                        @octo-draw/server
+tsx                           4.23.15   MIT                        @octo-draw/cli, @octo-draw/server (runtime loader)
+
+Notes
+
+- elkjs (Eclipse Layout Kernel, compiled to JavaScript) is dual licensed
+  EPL-2.0 OR GPL-3.0-or-later. octo-draw uses it under EPL-2.0. EPL-2.0 is a
+  weak, file-level copyleft: octo-draw's own code stays MIT, but if you
+  distribute a modified copy of elkjs itself you must make those modified elkjs
+  source files available under EPL-2.0. octo-draw uses elkjs unmodified as an
+  npm dependency. Source: https://github.com/kieler/elkjs
+
+- lucide icon data is ISC licensed; Copyright (c) for portions of Lucide are
+  held by Cole Bemis 2013-2022 as part of Feather (MIT), and all other
+  copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+- Development-only dependencies (not shipped): typescript, vitest, vite,
+  @vitejs/plugin-react, and @tldraw/tlschema + @tldraw/store (MIT, used only in
+  tests to check that the tldraw snapshot converter emits records tldraw
+  accepts). No code from tldraw's proprietary packages (tldraw, @tldraw/editor,
+  @tldraw/sync, @tldraw/mermaid) is used or copied; the tldraw interop in
+  packages/core/src/interop is written from the JSON record format.

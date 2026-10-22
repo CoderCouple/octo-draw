@@ -1,0 +1,7 @@
+flowchart LR
+  subgraph app [App servers]
+    A[API] --> C{Cache hit?}
+  end
+  U((User)) --> A
+  C -->|yes| R[(Redis)]
+  C -- no --> D[(Postgres)]

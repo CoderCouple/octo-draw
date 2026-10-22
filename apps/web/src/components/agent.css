@@ -1,0 +1,355 @@
+/* Agent panel + canvas presence. Monochrome, uses the app's tokens. */
+
+/* ---- presence (canvas) */
+.agent-cursor {
+	opacity: 0;
+	transition: transform 420ms var(--ease-emphasized), opacity 260ms var(--ease-standard);
+}
+.agent-cursor.on {
+	opacity: 1;
+}
+.agent-cursor.instant {
+	transition: opacity 260ms var(--ease-standard);
+}
+/* the older single-point "AI is drawing" cursor yields to the presence cursor */
+.canvas-root:has(.agent-cursor.on) .ai-cursor {
+	display: none;
+}
+.agent-fade-in {
+	animation: agent-fade-in 520ms var(--ease-emphasized) both;
+}
+.agent-mark-add,
+.agent-mark-pulse {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+.agent-mark-add {
+	animation: agent-scale-in 640ms var(--ease-emphasized) forwards;
+}
+.agent-mark-pulse {
+	animation: agent-pulse 820ms ease-out forwards;
+}
+@keyframes agent-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes agent-scale-in {
+	0% {
+		transform: scale(1.22);
+		opacity: 0;
+	}
+	35% {
+		opacity: 0.9;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 0;
+	}
+}
+@keyframes agent-pulse {
+	0% {
+		transform: scale(1);
+		opacity: 0.9;
+	}
+	100% {
+		transform: scale(1.14);
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.agent-cursor,
+	.agent-cursor.instant {
+		transition: opacity 120ms linear;
+	}
+	.agent-fade-in,
+	.agent-mark-add,
+	.agent-mark-pulse {
+		animation-duration: 1ms;
+	}
+}
+
+/* ---- panel */
+.agent-panel {
+	width: 340px;
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-left: 1px solid var(--border);
+	background: var(--background);
+	color: var(--foreground);
+}
+.agent-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	padding: 0 8px 0 12px;
+	border-bottom: 1px solid var(--border);
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--foreground-strong);
+}
+.agent-head .spacer {
+	flex: 1;
+}
+.agent-log {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.agent-empty {
+	margin: auto 0;
+	color: var(--muted-foreground);
+	font-size: 13px;
+	line-height: 1.5;
+}
+.agent-empty p {
+	margin: 0 0 10px;
+}
+.agent-suggest {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.agent-suggest button {
+	text-align: left;
+	padding: 7px 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--background);
+	color: var(--foreground);
+	font: inherit;
+	font-size: 12.5px;
+	cursor: pointer;
+}
+.agent-suggest button:hover {
+	background: var(--accent);
+}
+.agent-user {
+	align-self: flex-end;
+	max-width: 88%;
+	padding: 7px 11px;
+	border-radius: 12px 12px 4px 12px;
+	background: var(--foreground-strong);
+	color: var(--background);
+	font-size: 13px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.agent-user .agent-sel {
+	display: block;
+	margin-top: 3px;
+	font-size: 11px;
+	opacity: 0.7;
+}
+.agent-reply {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	line-height: 1.55;
+}
+.agent-text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.agent-status {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted-foreground);
+	font-size: 12px;
+}
+.agent-error {
+	color: var(--destructive);
+	font-size: 12.5px;
+}
+.agent-run {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.agent-run.undone {
+	opacity: 0.55;
+}
+.agent-run-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px 6px 10px;
+	background: var(--muted);
+	font-size: 12px;
+	color: var(--foreground-strong);
+	font-weight: 600;
+}
+.agent-run-head > span:first-child {
+	white-space: nowrap;
+}
+.agent-run-head .diff {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 500;
+	color: var(--muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+.agent-run-head .spacer {
+	flex: 1;
+}
+.agent-undo {
+	flex: none;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--background);
+	color: var(--foreground-strong);
+	font: inherit;
+	font-size: 11.5px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.agent-undo:hover:not(:disabled) {
+	background: var(--accent);
+}
+.agent-undo:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+.agent-actions {
+	list-style: none;
+	margin: 0;
+	padding: 4px 0;
+	max-height: 220px;
+	overflow-y: auto;
+}
+.agent-action {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 2px 10px;
+	font-size: 12px;
+	line-height: 1.5;
+	animation: agent-fade-in 260ms var(--ease-standard) both;
+}
+.agent-action .sym {
+	width: 10px;
+	flex: none;
+	text-align: center;
+	font-family: var(--font-family-mono);
+	font-weight: 700;
+	color: var(--foreground-strong);
+}
+.agent-action .what {
+	color: var(--muted-foreground);
+	flex: none;
+}
+.agent-action .name {
+	color: var(--foreground-strong);
+	font-weight: 500;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.agent-run-errors {
+	padding: 4px 10px 6px;
+	font-size: 11.5px;
+	color: var(--destructive);
+	border-top: 1px solid var(--border);
+}
+.agent-compose {
+	border-top: 1px solid var(--border);
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.agent-context {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	font-size: 11px;
+	color: var(--muted-foreground);
+}
+.agent-chip {
+	padding: 1px 7px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	color: var(--foreground);
+}
+.agent-input {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	border: 1px solid var(--input);
+	border-radius: 10px;
+	padding: 6px 6px 6px 10px;
+	background: var(--background);
+}
+.agent-input:focus-within {
+	border-color: var(--foreground-strong);
+	box-shadow: 0 0 0 3px var(--focus-ring, rgba(0, 0, 0, 0.08));
+}
+.agent-input textarea {
+	flex: 1;
+	resize: none;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: var(--foreground);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.45;
+	max-height: 140px;
+	padding: 3px 0;
+}
+.agent-send {
+	width: 28px;
+	height: 28px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	border: none;
+	border-radius: 7px;
+	background: var(--primary);
+	color: var(--primary-foreground);
+	cursor: pointer;
+}
+.agent-send:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+.agent-hint {
+	font-size: 11px;
+	color: var(--muted-foreground);
+}
+.agent-hint kbd {
+	font-family: var(--font-family-mono);
+	font-size: 10.5px;
+}
+@media (max-width: 900px) {
+	.agent-panel {
+		position: absolute;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 20;
+		width: min(340px, 100%);
+		box-shadow: var(--shadow-lg);
+	}
+}

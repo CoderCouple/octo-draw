@@ -1,0 +1,14 @@
+title My system
+direction right
+colorMode pastel
+
+Users [icon: users, shape: oval]
+Backend [color: blue] {
+  API gateway [icon: server]
+  Worker [icon: cpu]
+}
+DB [shape: cylinder, icon: database, label: "Postgres 16"]
+
+Users > API gateway: HTTPS
+API gateway > Worker
+Worker > DB
