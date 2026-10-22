@@ -1,0 +1,5 @@
+export * from './textOp'
+export * from './records'
+export * from './protocol'
+export { ClientDoc, SyncProtocolError, type PersistedClientState, type RemoteUpdate, type Pending, type InflightPush } from './clientDoc'
+export { createSyncClient, type SyncClient, type SyncClientOptions, type SyncStorage, type SyncStatus, type RemoteEvent, type PresenceEvent, type SocketLike, type SocketCtor } from './client'
