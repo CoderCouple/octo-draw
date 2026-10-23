@@ -11,6 +11,7 @@ import { dismissToast, redo, requestFit, undo, useStore } from './store'
 import { deleteSelection } from './lib/actions'
 import { handlePaste } from './lib/importing'
 import { zoomAt, useCamera } from './canvas/camera'
+import { usePeers, type ConnState } from './lib/sync'
 
 const SPLIT_KEY = 'octo-draw:split'
 
@@ -21,6 +22,27 @@ function readSplit() {
 	} catch {
 		return 34
 	}
+}
+
+const CONN_LABEL: Record<ConnState, string> = { off: '', connecting: 'Connecting…', synced: 'Synced', syncing: 'Syncing…', reconnecting: 'Reconnecting…', offline: 'Offline' }
+const CONN_TITLE: Record<ConnState, string> = {
+	off: '',
+	connecting: 'Connecting to the live document',
+	synced: 'All changes saved to the live document',
+	syncing: 'Sending changes',
+	reconnecting: 'Connection lost; your edits are kept and will be sent when it is back',
+	offline: 'Offline; your edits are kept locally and sent when the server is back',
+}
+
+function ConnStatus() {
+	const conn = usePeers((s) => s.conn)
+	if (conn === 'off') return null
+	return (
+		<span className={`conn ${conn}`} title={CONN_TITLE[conn]}>
+			<span className="conn-dot" />
+			{CONN_LABEL[conn]}
+		</span>
+	)
 }
 
 function StatusBar() {
@@ -38,10 +60,13 @@ function StatusBar() {
 			) : (
 				<span className="status-ok">
 					<Icon icon={pending ? LoaderCircle : CircleCheck} size={13} className={pending ? 'spin' : ''} />
-					{warnings ? `${warnings} warning${warnings > 1 ? 's' : ''}` : 'Synced'}
+					{warnings ? `${warnings} warning${warnings > 1 ? 's' : ''}` : 'No errors'}
 				</span>
 			)}
-			<span className="muted">{counts}</span>
+			<span className="muted statusbar-right">
+				{counts}
+				<ConnStatus />
+			</span>
 		</div>
 	)
 }

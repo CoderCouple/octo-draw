@@ -70,6 +70,13 @@ Notes
     License: https://github.com/lucide-icons/lucide/blob/main/LICENSE
   * AWS Architecture Icons, Google Cloud icons and Azure architecture icons are
     NOT included: their terms allow use in diagrams/documentation but not
-    redistribution inside a third-party software package. The aws-*, gcp-* and
-    azure-* names draw generic lucide glyphs with a short service badge.
-    Product names are trademarks of their respective owners.
+    redistribution inside a third-party software package. By default the aws-*,
+    gcp-* and azure-* names draw generic lucide glyphs with a short service
+    badge. `pnpm icons:fetch --accept-terms` (packages/core/scripts/
+    fetch-cloud-icons.ts) lets each user download the official packs from the
+    vendors into a local cache outside the repo (~/.cache/octo-draw/icons) for
+    their own use under the vendors' terms; octo-draw then renders them
+    unmodified. The repository and its builds never contain these files. The
+    test fixture in packages/core/node/fixtures/icon-cache holds hand-made
+    placeholder SVGs, not vendor icons.
+    Product names and icons are trademarks of their respective owners.

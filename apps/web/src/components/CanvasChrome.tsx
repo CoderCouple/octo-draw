@@ -1,5 +1,6 @@
 import { StickyNote, Circle, Eraser, Hand, Maximize, Minus, MousePointer2, MoveUpRight, Pencil, Plus, Redo2, Square, Type, Undo2, WandSparkles, Trash } from 'lucide'
 import { Icon } from './Icon'
+import { IconPickerButton } from './IconPicker'
 import { pushHistory, redo, requestFit, selectedIds, setCode, undo, useStore, type Tool } from '../store'
 import { useCamera, zoomAt } from '../canvas/camera'
 import { setEdgeProp, setNodeProp } from '@octo-draw/core'
@@ -62,6 +63,8 @@ export function Toolbar() {
 							/>
 						))}
 					</div>
+					<div className="tool-sep" />
+					<IconPickerButton nodeKey={nodeKey} />
 				</>
 			)}
 			{edgeKey && (

@@ -109,6 +109,10 @@ export interface ConvertOptions {
 	scale?: number
 	/** Draw vector icons (default true); false keeps text badges. */
 	icons?: boolean
+	/** Official vendor icons: full color (default) or grayscale. */
+	officialIcons?: 'color' | 'grayscale'
+	/** Official icon cache directory (default $OCTO_ICONS_DIR or ~/.cache/octo-draw/icons). */
+	iconsDir?: string
 }
 
 export async function convertDoc(doc: OctoDocument, to: OutputFormat, opts: ConvertOptions = {}): Promise<string> {
@@ -120,7 +124,7 @@ export async function convertDoc(doc: OctoDocument, to: OutputFormat, opts: Conv
 		case 'json':
 			return serializeDocument(doc)
 		case 'svg':
-			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? false : await loadIconResolver() })) + '\n'
+			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? false : await loadIconResolver({ iconsDir: opts.iconsDir }), officialIcons: opts.officialIcons })) + '\n'
 		case 'tldraw': {
 			const layout = await layoutDiagram(parseOcto(doc.code).ir, { pinned: doc.pins })
 			return JSON.stringify(toTldrawSnapshot(doc, layout), null, '\t') + '\n'

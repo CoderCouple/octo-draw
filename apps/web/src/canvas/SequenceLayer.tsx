@@ -19,7 +19,7 @@ const NUM_W = 22
 
 /** Sequence diagram: participant boxes (head + foot), lifelines, activations, block frames, notes, messages. */
 export const SequenceLayer = memo(function SequenceLayer({ ir, layout, theme, selectedKey, editingKey }: Props) {
-	useIcons((s) => s.loaded)
+	useIcons((s) => s.version)
 	const seq = layout.sequence!
 	const s = SURFACE[theme]
 	const measure = makeMeasure(ir.style.typeface)
@@ -119,7 +119,7 @@ function Participant({
 	return (
 		<g data-node={foot ? undefined : node.key} transform={`translate(${box.x},${box.y})`} style={{ cursor: 'pointer' }}>
 			<path d={roundedRect(box.w, box.h, 8)} fill={c.fill === 'none' ? s.bg : c.fill} fillOpacity={c.fill === 'none' ? 0.001 : 1} stroke={c.stroke} strokeWidth={mode === 'outline' ? 2 : 1.5} filter={filter} />
-			{node.icon && <IconGlyph name={node.icon} x={sx} y={box.h / 2 - ICON_SIZE / 2} size={ICON_SIZE} color={c.icon} />}
+			{node.icon && <IconGlyph name={node.icon} x={sx} y={box.h / 2 - ICON_SIZE / 2} size={ICON_SIZE} color={c.icon} brand={node.style?.color === 'brand'} surface={c.fill === 'none' ? s.bg : c.fill} />}
 			{!editing && (
 				<text x={node.icon ? sx + ICON_SIZE + 8 : box.w / 2} y={box.h / 2} textAnchor={node.icon ? 'start' : 'middle'} fontSize={14} fontWeight={500} fill={c.text} dominantBaseline="central">
 					{label}

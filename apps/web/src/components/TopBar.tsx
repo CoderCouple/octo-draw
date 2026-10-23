@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot } from 'lucide'
+import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot, LayoutTemplate, Workflow, Cloud, ArrowLeftRight, Table } from 'lucide'
 import { Icon } from './Icon'
-import { useStore } from '../store'
+import { pushHistory, requestFit, useStore } from '../store'
+import { EXAMPLES, type Example } from '../examples'
 import { cancelGenerate, generate, importImage } from '../lib/api'
 import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
 import { copyMermaid, copyOcto, downloadJson, downloadPng, downloadSvg } from '../lib/export'
 import { setAgentOpen, useAgent } from '../lib/agent'
+import { peerColor, peerName, usePeers } from '../lib/sync'
 
 function Logo() {
 	return (
@@ -58,8 +60,51 @@ function MenuItem({ icon, label, hint, onClick }: { icon: unknown; label: string
 	)
 }
 
+const EXAMPLE_ICONS: Record<string, unknown> = { flowchart: Workflow, architecture: Cloud, sequence: ArrowLeftRight, erd: Table }
+
+/** Replaces the document with an example (undoable). */
+function openExample(e: Example) {
+	pushHistory()
+	const prev = useStore.getState().layout
+	useStore.setState({ code: e.code, pins: {}, selection: null })
+	// fit once the new layout lands (layout runs off-thread)
+	const unsub = useStore.subscribe((s) => {
+		if (s.layout === prev) return
+		unsub()
+		requestFit()
+	})
+	setTimeout(unsub, 4000)
+}
+
 const THEME_NEXT: Record<ThemePref, ThemePref> = { system: 'light', light: 'dark', dark: 'system' }
 const THEME_ICON: Record<ThemePref, unknown> = { system: Monitor, light: Sun, dark: Moon }
+
+/** Who else is in the document, plus what any agent is doing right now. */
+function Peers() {
+	const peers = usePeers((s) => s.peers)
+	if (!peers.length) return null
+	const busy = peers.find((p) => p.state.status === 'thinking' || p.state.status === 'drawing')
+	return (
+		<div className="peers">
+			{busy && (
+				<span className="peer-status" title={typeof busy.state.message === 'string' ? busy.state.message : undefined}>
+					<Icon icon={LoaderCircle} size={13} className="spin" />
+					{busy.origin.kind === 'agent' ? peerName(busy) : `${peerName(busy)}'s AI`} is {busy.state.status}…
+				</span>
+			)}
+			<div className="peer-avatars">
+				{peers.slice(0, 5).map((p) => {
+					const name = peerName(p)
+					return (
+						<span key={p.sessionId} className="peer-avatar" title={`${name}${p.origin.kind === 'agent' ? ' (agent)' : ''}`} style={{ background: typeof p.state.color === 'string' ? p.state.color : peerColor(p.clientId) }}>
+							{p.origin.kind === 'agent' ? <Icon icon={Bot} size={12} /> : name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+						</span>
+					)
+				})}
+			</div>
+		</div>
+	)
+}
 
 function AgentToggle() {
 	const open = useAgent((s) => s.open)
@@ -150,12 +195,22 @@ export function TopBar({ onPasteDialog }: { onPasteDialog: () => void }) {
 				)}
 			</form>
 			<div className="spacer" />
+			<Peers />
 			{aiBusy && (
 				<div className="presence" title={aiBusy}>
 					<Icon icon={LoaderCircle} size={14} className="spin" />
 					{aiBusy}
 				</div>
 			)}
+			<Menu label="Examples" icon={LayoutTemplate}>
+				{(close) => (
+					<>
+						{EXAMPLES.map((ex) => (
+							<MenuItem key={ex.id} icon={EXAMPLE_ICONS[ex.id] ?? LayoutTemplate} label={ex.label} onClick={() => (close(), openExample(ex))} />
+						))}
+					</>
+				)}
+			</Menu>
 			<Menu label="Import" icon={Upload}>
 				{(close) => (
 					<>
@@ -184,7 +239,7 @@ export function TopBar({ onPasteDialog }: { onPasteDialog: () => void }) {
 						<MenuItem icon={Copy} label="Copy octo code" onClick={() => (close(), void copyOcto())} />
 						<MenuItem icon={GitFork} label="Copy mermaid" onClick={() => (close(), void copyMermaid())} />
 						<div className="menu-sep" />
-						<MenuItem icon={CodeXml} label="Download SVG" onClick={() => (close(), downloadSvg())} />
+						<MenuItem icon={CodeXml} label="Download SVG" onClick={() => (close(), void downloadSvg())} />
 						<MenuItem icon={FileImage} label="Download PNG" onClick={() => (close(), void downloadPng())} />
 						<MenuItem icon={Braces} label="Download JSON (IR)" onClick={() => (close(), downloadJson())} />
 					</>

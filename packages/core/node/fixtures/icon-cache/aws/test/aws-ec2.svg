@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- placeholder art for tests, not a vendor icon -->
+<svg xmlns="http://www.w3.org/2000/svg" width="80px" height="80px" viewBox="0 0 80 80"><title>placeholder</title><g id="unused"><rect id="bg" width="80" height="80" fill="#ff8800"/><circle cx="40" cy="40" r="20" fill="#ffffff" onclick="alert(1)"/></g><script>alert(1)</script></svg>

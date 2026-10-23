@@ -1,7 +1,9 @@
 /** HTTP routes (plain node:http). `createApp` is dependency-injected for tests. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { applyActions, renderDocumentSvg } from '@octo-draw/core'
+import { readFileSync } from 'node:fs'
+import { applyActions, renderDocumentSvg, type IconCacheManifest } from '@octo-draw/core'
+import { iconFilePath } from '@octo-draw/core/node/iconCache'
 import { generate, IMAGE_MEDIA_TYPES, runAgent, type ImageMediaType } from './ai'
 import { errorMessage, NO_CREDENTIALS, type StreamFn } from './claude'
 import type { DocStoreLike } from './sync/docStoreAdapter'
@@ -19,6 +21,10 @@ export interface AppDeps {
 	storeForRoom?: (docId: string) => DocStoreLike
 	/** Returns null when no Anthropic credentials are configured. */
 	getStream: () => StreamFn | null
+	/** Official cloud icon cache (`pnpm icons:fetch`): serves /api/icons/*. Absent or null manifest → empty manifest, 404 for icons. */
+	icons?: { dir: string; manifest: IconCacheManifest | null }
+	/** Headless SVG renders draw official icons in grayscale (OCTO_ICONS_GRAYSCALE=1). */
+	officialIcons?: 'color' | 'grayscale'
 }
 
 const MAX_BODY = 20 * 1024 * 1024
@@ -89,7 +95,20 @@ function requireString(body: Record<string, unknown>, key: string, optional = fa
 	return v
 }
 
-export function createApp({ store: defaultStore, rooms, storeForRoom, getStream }: AppDeps) {
+/** The public part of the icon manifest: names, labels, aliases (no file paths). */
+function publicIconManifest(m: IconCacheManifest | null | undefined) {
+	const packs: Record<string, unknown> = {}
+	for (const [vendor, p] of Object.entries(m?.packs ?? {})) {
+		if (!p) continue
+		const icons: Record<string, { label: string; kind?: string; category?: string }> = {}
+		for (const [name, i] of Object.entries(p.icons)) icons[name] = { label: i.label, kind: i.kind, category: i.category }
+		packs[vendor] = { vendor: p.vendor, version: p.version, label: p.label, terms: p.terms, icons, aliases: p.aliases ?? {} }
+	}
+	return { schema: 1, packs }
+}
+
+export function createApp({ store: defaultStore, rooms, storeForRoom, getStream, icons, officialIcons }: AppDeps) {
+	let iconManifestJson: string | null = null
 	/** `?docId=` (or body.docId) picks a room; absent means the default document. */
 	function pickStore(url: URL, body?: Record<string, unknown>): DocStoreLike {
 		const id = url.searchParams.get('docId') ?? (typeof body?.docId === 'string' ? body.docId : null)
@@ -115,6 +134,25 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream 
 		const method = req.method ?? 'GET'
 
 		if (method === 'GET' && path === '/api/health') return json(res, 200, { ok: true, ai: getStream() !== null })
+
+		// ---- official cloud icons (local cache from `pnpm icons:fetch`; never bundled)
+		if (method === 'GET' && path === '/api/icons/manifest') {
+			iconManifestJson ??= JSON.stringify(publicIconManifest(icons?.manifest))
+			res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' })
+			return res.end(iconManifestJson)
+		}
+		const iconMatch = /^\/api\/icons\/(aws|gcp|azure)\/([a-z0-9-]+)\.svg$/.exec(path)
+		if (method === 'GET' && iconMatch) {
+			const file = icons?.manifest ? iconFilePath(icons.dir, icons.manifest, iconMatch[1], iconMatch[2]) : null
+			if (!file) return json(res, 404, { error: 'Icon not found. Run `pnpm icons:fetch --accept-terms` to download the official icon packs.' })
+			res.writeHead(200, {
+				'Content-Type': 'image/svg+xml; charset=utf-8',
+				'Cache-Control': 'public, max-age=86400',
+				'X-Content-Type-Options': 'nosniff',
+				'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+			})
+			return res.end(readFileSync(file))
+		}
 
 		// ---- documents (rooms)
 		if (rooms && method === 'GET' && path === '/api/docs') return json(res, 200, { docs: rooms.list() })
@@ -164,7 +202,7 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream 
 			const id = url.searchParams.get('docId')
 			const store = pickStore(url)
 			const doc = id && rooms ? rooms.get(id).snapshot() : { code: store.get().code, pins: {}, shapes: [], title: '' }
-			const svg = await renderDocumentSvg(doc, { theme, scale, background })
+			const svg = await renderDocumentSvg(doc, { theme, scale, background, officialIcons: url.searchParams.get('icons') === 'grayscale' ? 'grayscale' : officialIcons })
 			res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-cache' })
 			return res.end(svg)
 		}

@@ -2,7 +2,7 @@ import { createElement, memo } from 'react'
 import type { DiagramIR, DiagramLayout, IREdge, IRNode, LaidOutEdge, LaidOutNode } from '@octo-draw/core'
 import { ICON_SIZE, iconPlacement } from '@octo-draw/core/src/layout/sizing'
 import { edgeColor, groupColors, nodeColors, SURFACE, type Theme } from '../lib/colors'
-import { getIcon, useIcons } from '../lib/icons'
+import { getIcon, iconCatalog, useIcons } from '../lib/icons'
 import { fontFor, makeMeasure } from '../lib/text'
 import { SequenceLayer } from './SequenceLayer'
 import { ErdLayer } from './ErdLayer'
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, selectedKey, editingKey }: Props) {
-	const iconsReady = useIcons((s) => s.loaded)
+	const iconsReady = useIcons((s) => s.version)
 	// other diagram kinds have their own renderers
 	if (ir.kind === 'sequence' && layout.sequence) return <SequenceLayer ir={ir} layout={layout} theme={theme} selectedKey={selectedKey} editingKey={editingKey} />
 	if (ir.kind === 'erd') return <ErdLayer ir={ir} layout={layout} theme={theme} selectedKey={selectedKey} editingKey={editingKey} />
@@ -73,35 +73,55 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 
 type Measure = (t: string, s: number) => { w: number; h: number }
 
-export function IconGlyph({ name, x, y, size, color }: { name: string; x: number; y: number; size: number; color: string }) {
-	const icon = getIcon(name)
-	if (!icon) {
-		const text = name.replace(/^(aws|gcp|azure)-/, '').slice(0, 5).toUpperCase()
+const camel = (k: string) => k.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+
+/**
+ * A diagram icon at (x, y): catalog icons (brand logos, glyphs, vendor badges)
+ * in the node's monochrome icon color, or the brand color for `color: brand`;
+ * full-lucide fallback; a text badge for unknown names. Plain SVG, so exports keep it.
+ */
+export function IconGlyph({ name, x, y, size, color, brand, surface }: { name: string; x: number; y: number; size: number; color: string; brand?: boolean; surface?: string }) {
+	const hit = getIcon(name)
+	const cat = iconCatalog()
+	if (hit?.kind === 'catalog' && cat) {
+		const { icon } = hit
+		if (icon.svg !== undefined) {
+			// official vendor icon: sanitized, id-scoped markup that carries its own colors
+			return <svg x={x} y={y} width={size} height={size} viewBox={icon.viewBox} overflow="visible" data-icon={icon.name} dangerouslySetInnerHTML={{ __html: icon.svg }} />
+		}
+		const bg = surface ?? '#ffffff'
+		const ink = cat.iconColor(icon, color, { brand, background: bg })
+		const paint = Object.fromEntries(Object.entries(cat.iconPaint(icon, ink)).map(([k, v]) => [camel(k), v]))
+		const b = icon.badge ? cat.badgeBox(icon.badge) : null
 		return (
-			<g transform={`translate(${x},${y})`}>
-				<rect width={size} height={size} rx={4} fill="none" stroke={color} strokeWidth={1.2} />
-				<text x={size / 2} y={size / 2 + 2.6} textAnchor="middle" fontSize={text.length > 3 ? 6 : 7.5} fontWeight={700} fill={color}>
-					{text}
-				</text>
-			</g>
+			<svg x={x} y={y} width={size} height={size} viewBox={icon.viewBox} overflow="visible" data-icon={icon.name} {...paint}>
+				{icon.nodes.map(([tag, attrs], i) => createElement(tag, { key: i, ...attrs }))}
+				{b && (
+					<>
+						<rect x={b.x} y={b.y} width={b.w} height={b.h} rx={b.rx} fill={bg} stroke={ink} strokeWidth={1.2} />
+						<text x={b.textX} y={b.textY} textAnchor="middle" dominantBaseline="central" fontSize={b.fontSize} fontWeight={700} fill={ink} stroke="none">
+							{icon.badge}
+						</text>
+					</>
+				)}
+			</svg>
 		)
 	}
+	if (hit?.kind === 'lucide') {
+		return (
+			<svg x={x} y={y} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" overflow="visible">
+				{hit.nodes.map(([tag, attrs], i) => createElement(tag, { key: i, ...attrs }))}
+			</svg>
+		)
+	}
+	const text = name.replace(/^(aws|gcp|azure)-/, '').slice(0, 5).toUpperCase()
 	return (
-		<svg
-			x={x}
-			y={y}
-			width={size}
-			height={size}
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke={color}
-			strokeWidth={2}
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			overflow="visible"
-		>
-			{icon.map(([tag, attrs], i) => createElement(tag, { key: i, ...attrs }))}
-		</svg>
+		<g transform={`translate(${x},${y})`}>
+			<rect width={size} height={size} rx={4} fill="none" stroke={color} strokeWidth={1.2} />
+			<text x={size / 2} y={size / 2 + 2.6} textAnchor="middle" fontSize={text.length > 3 ? 6 : 7.5} fontWeight={700} fill={color}>
+				{text}
+			</text>
+		</g>
 	)
 }
 
@@ -130,7 +150,7 @@ const NodeView = memo(function NodeView({
 	editing,
 	measure,
 }: {
-	iconsReady: boolean
+	iconsReady: number
 	node: IRNode
 	box: LaidOutNode
 	mode: DiagramIR['style']['colorMode']
@@ -141,6 +161,8 @@ const NodeView = memo(function NodeView({
 	measure: Measure
 }) {
 	const c = nodeColors(node.style?.color, mode, theme)
+	const brand = node.style?.color === 'brand'
+	const surface = c.fill === 'none' ? SURFACE[theme].bg : c.fill
 	const { d, detail } = shapePath(node.shape, box.w, box.h)
 	const label = node.label ?? node.key
 	const cy = contentCenterY(node.shape, box.h)
@@ -153,7 +175,7 @@ const NodeView = memo(function NodeView({
 		const sx = box.w / 2 - total / 2
 		content = (
 			<>
-				<IconGlyph name={node.icon} x={sx} y={cy - ICON_SIZE / 2} size={ICON_SIZE} color={c.icon} />
+				<IconGlyph name={node.icon} x={sx} y={cy - ICON_SIZE / 2} size={ICON_SIZE} color={c.icon} brand={brand} surface={surface} />
 				{!editing && <Lines text={label} x={sx + ICON_SIZE + 8} y={cy} size={fontSize} weight={500} fill={c.text} anchor="start" />}
 			</>
 		)
@@ -163,7 +185,7 @@ const NodeView = memo(function NodeView({
 		const top = cy - total / 2
 		content = (
 			<>
-				<IconGlyph name={node.icon} x={box.w / 2 - ICON_SIZE / 2} y={top} size={ICON_SIZE} color={c.icon} />
+				<IconGlyph name={node.icon} x={box.w / 2 - ICON_SIZE / 2} y={top} size={ICON_SIZE} color={c.icon} brand={brand} surface={surface} />
 				{!editing && <Lines text={label} x={box.w / 2} y={top + ICON_SIZE + 6 + textH / 2} size={fontSize} weight={500} fill={c.text} />}
 			</>
 		)
@@ -196,7 +218,7 @@ const GroupView = memo(function GroupView({
 	selected,
 	editing,
 }: {
-	iconsReady: boolean
+	iconsReady: number
 	node: IRNode
 	box: LaidOutNode
 	mode: DiagramIR['style']['colorMode']
@@ -210,9 +232,9 @@ const GroupView = memo(function GroupView({
 	return (
 		<g data-node={node.key} transform={`translate(${box.x},${box.y})`}>
 			<path d={roundedRect(box.w, box.h, 12)} fill={c.fill === 'none' ? SURFACE[theme].bg : c.fill} fillOpacity={c.fill === 'none' ? 0.001 : 1} stroke={c.stroke} strokeWidth={1.2} strokeDasharray={node.style?.dash === 'dotted' || node.ext?.dash === 'dotted' ? '4 4' : undefined} />
-			<g style={{ cursor: 'pointer' }}>
+			<g data-group-header="" style={{ cursor: 'pointer' }}>
 				<rect x={0} y={0} width={box.w} height={36} fill="transparent" />
-				{node.icon && <IconGlyph name={node.icon} x={14} y={11} size={16} color={c.text} />}
+				{node.icon && <IconGlyph name={node.icon} x={14} y={11} size={16} color={c.text} brand={node.style?.color === 'brand'} surface={c.fill === 'none' ? SURFACE[theme].bg : c.fill} />}
 				{!editing && (
 					<text x={14 + iconOffset} y={19} fontSize={13} fontWeight={600} fill={c.text} dominantBaseline="central">
 						{label}

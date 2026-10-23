@@ -1,14 +1,28 @@
 /**
- * Resolves DSL icon names for headless rendering: the core icon catalog first
- * (brand logos, aws-/gcp-/azure- names, generic glyphs — see docs/ICONS.md),
- * then any other lucide icon by name.
+ * Resolves DSL icon names for headless rendering: official AWS / Google Cloud /
+ * Azure icons from the local cache (`pnpm icons:fetch`, read directly from
+ * disk), then the core icon catalog (brand logos, generic badges for vendor
+ * names, glyphs — see docs/ICONS.md), then any other lucide icon by name.
  */
 
-import { iconCandidates, resolveIcon, type IconResolver, type IconNode } from '@octo-draw/core'
+import { clearIconPacks, iconCandidates, registerIconPack, resolveIcon, type IconResolver, type IconNode } from '@octo-draw/core'
+import { defaultIconsDir, iconPacksFromCache } from '@octo-draw/core/node/iconCache'
 
 let table: Record<string, IconNode> | null = null
+let packsDir: string | null = null
 
-export async function loadIconResolver(): Promise<IconResolver> {
+/** Register the official icon packs found in `dir` (default: $OCTO_ICONS_DIR or ~/.cache/octo-draw/icons). Returns how many packs loaded. */
+export function loadOfficialIcons(dir = defaultIconsDir()): number {
+	if (packsDir === dir) return -1
+	clearIconPacks()
+	const packs = iconPacksFromCache(dir)
+	for (const p of packs) registerIconPack(p)
+	packsDir = dir
+	return packs.length
+}
+
+export async function loadIconResolver(opts: { iconsDir?: string } = {}): Promise<IconResolver> {
+	loadOfficialIcons(opts.iconsDir)
 	if (!table) {
 		try {
 			table = (await import('lucide/dist/esm/iconsAndAliases.mjs')) as unknown as Record<string, IconNode>

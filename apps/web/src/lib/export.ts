@@ -4,6 +4,7 @@ import { shapeBounds } from '../canvas/freehand'
 import { SURFACE } from './colors'
 import { currentTheme } from './theme'
 import { showToast } from '../store'
+import { iconCatalog, loadIcons, loadLucide, useIcons } from './icons'
 
 function contentBounds() {
 	const s = useStore.getState()
@@ -17,6 +18,16 @@ function contentBounds() {
 	const x = Math.min(...boxes.map((b) => b.x))
 	const y = Math.min(...boxes.map((b) => b.y))
 	return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x, h: Math.max(...boxes.map((b) => b.y + b.h)) - y }
+}
+
+/** Make sure every node icon's data is loaded and rendered before the canvas DOM is cloned. */
+async function iconsRendered() {
+	const before = useIcons.getState().version
+	await loadIcons()
+	const cat = iconCatalog()
+	const names = (useStore.getState().ir?.nodes ?? []).map((n) => n.icon).filter((n): n is string => !!n)
+	if (cat && names.some((n) => !cat.resolveIcon(n))) await loadLucide()
+	if (useIcons.getState().version !== before) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)))
 }
 
 export function buildSvg(): { svg: string; width: number; height: number } {
@@ -67,12 +78,14 @@ const fileBase = () =>
 		.replace(/\s+/g, '-')
 		.toLowerCase() || 'diagram'
 
-export function downloadSvg() {
+export async function downloadSvg() {
+	await iconsRendered()
 	const { svg } = buildSvg()
 	download(`${fileBase()}.svg`, new Blob([svg], { type: 'image/svg+xml' }))
 }
 
 export async function downloadPng(scale = 2) {
+	await iconsRendered()
 	const { svg, width, height } = buildSvg()
 	const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
 	try {

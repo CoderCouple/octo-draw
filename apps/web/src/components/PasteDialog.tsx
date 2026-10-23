@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { detectFormat } from '@octo-draw/core'
 import { X } from 'lucide'
 import { Icon } from './Icon'
-import { applyImportedCode, convertText } from '../lib/importing'
+import { FORMAT_NAME, applyImportedCode, convertText, importMessage, warningsAction } from '../lib/importing'
 import { showToast } from '../store'
 
 const SAMPLE = `flowchart LR
@@ -22,8 +22,8 @@ export function PasteDialog({ onClose }: { onClose: () => void }) {
 			showToast('Could not find a diagram in that text')
 			return
 		}
-		applyImportedCode(conv.code, how)
-		showToast(`Converted ${conv.format} → diagram`)
+		applyImportedCode(conv.code, how, conv.pins)
+		showToast(importMessage(`Converted ${FORMAT_NAME[conv.format] ?? conv.format} diagram`, conv), warningsAction(conv.warnings), conv.warnings.length ? 9000 : undefined)
 		onClose()
 	}
 
@@ -46,6 +46,8 @@ export function PasteDialog({ onClose }: { onClose: () => void }) {
 							<>
 								Detected: <b>{format}</b>
 								{conv ? ` · ${conv.code.split('\n').filter(Boolean).length} lines of octo` : ' · nothing to convert'}
+								{conv && typeof conv.confidence === 'number' ? ` · ${Math.round(conv.confidence * 100)}% confident` : ''}
+								{conv?.warnings.length ? ` · ${conv.warnings.length} warning${conv.warnings.length > 1 ? 's' : ''}` : ''}
 							</>
 						) : (
 							'Tip: you can also paste straight onto the canvas or into the editor.'

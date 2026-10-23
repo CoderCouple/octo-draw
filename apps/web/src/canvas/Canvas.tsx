@@ -6,7 +6,7 @@ import { SURFACE, inkColor } from '../lib/colors'
 import { useTheme } from '../lib/theme'
 import { fitBounds, panBy, screenToWorld, setViewport, useCamera, zoomAt } from './camera'
 import { DiagramLayer } from './DiagramLayer'
-import { AgentPresence } from './AgentPresence'
+import { AgentPresence, PeerCursors } from './AgentPresence'
 import { ShapeView, STICKY_SIZE, resizeShape, shapeBounds, sizeFor, stickyLayout, textSize, translateShape, type Box } from './freehand'
 import { hitEdge, marqueeHits, normBox, selectionBounds, withoutDescendants } from './selection'
 import { resizeBox, snapMove, snapResize, snapTargets, type Guide, type HandleId } from './snap'
@@ -15,6 +15,7 @@ import { insertImage } from '../lib/images'
 import { duplicateSelection, handleCopy, isTypingTarget, selectAll } from '../lib/clipboard'
 import { renameNode } from '../lib/actions'
 import { makeMeasure, FONT_STACK } from '../lib/text'
+import { setLocalCursor } from '../lib/sync'
 
 type Gesture =
 	| { type: 'pan'; sx: number; sy: number; cx: number; cy: number }
@@ -34,7 +35,7 @@ type Gesture =
 			clicked: { id?: string; key?: string }
 			shift: boolean
 	  }
-	| { type: 'marquee'; start: Point; sx: number; sy: number; baseIds: string[]; baseKeys: string[]; active: boolean }
+	| { type: 'marquee'; start: Point; sx: number; sy: number; baseIds: string[]; baseKeys: string[]; active: boolean; clickKey?: string; shift?: boolean }
 	| { type: 'resize'; handle: HandleId; ids: string[]; startBox: Box; start: Point; orig: FreeShape[]; targets: Box[]; before: Snapshot; moved: boolean }
 	| { type: 'endpoint'; id: string; which: 0 | 1; targets: Box[]; before: Snapshot; moved: boolean }
 	| { type: 'draw'; start: Point }
@@ -308,6 +309,12 @@ export function Canvas() {
 					}
 					return
 				}
+				// press-drag on an unselected group's background draws a marquee (a click still selects
+				// the group); its header, or the group once selected, drags it
+				if (!shapeId && nodeKey && s.layout?.nodes[nodeKey]?.isContainer && !keys.includes(nodeKey) && !target.closest('[data-group-header]')) {
+					gesture.current = { type: 'marquee', start: p, sx: e.clientX, sy: e.clientY, baseIds: e.shiftKey ? ids : [], baseKeys: e.shiftKey ? keys : [], active: false, clickKey: nodeKey, shift: e.shiftKey }
+					return
+				}
 				if (shapeId || (nodeKey && s.layout?.nodes[nodeKey])) {
 					const isShape = !!shapeId
 					const already = isShape ? ids.includes(shapeId!) : keys.includes(nodeKey!)
@@ -387,6 +394,7 @@ export function Canvas() {
 	}
 
 	const onPointerMove = (e: React.PointerEvent) => {
+		setLocalCursor(screenToWorld(e.clientX, e.clientY))
 		const g = gesture.current
 		if (!g) return
 		const noSnap = e.metaKey || e.ctrlKey
@@ -548,6 +556,11 @@ export function Canvas() {
 				return
 			case 'marquee':
 				setMarquee(null)
+				if (!g.active && g.clickKey) {
+					const ids = g.shift ? selectedIds(s.selection) : []
+					const keys = g.shift ? [...selectedKeys(s.selection), g.clickKey] : [g.clickKey]
+					useStore.setState({ selection: makeSelection(ids, keys) })
+				}
 				return
 			case 'resize':
 			case 'endpoint':
@@ -628,6 +641,7 @@ export function Canvas() {
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}
 			onPointerCancel={onPointerUp}
+			onPointerLeave={() => setLocalCursor(null)}
 			onDoubleClick={onDoubleClick}
 			onDragOver={onDragOver}
 			onDrop={onDrop}
@@ -665,6 +679,7 @@ export function Canvas() {
 					)}
 					<g data-export="skip" pointerEvents="none">
 						<AgentPresence />
+						<PeerCursors />
 						{aiCursor && (
 							<g className="ai-cursor" style={{ transform: `translate(${aiCursor.x}px, ${aiCursor.y}px)` }}>
 								<path d="M0,0 L0,18 L5,13.5 L8.5,21 L11.5,19.6 L8,12.4 L14.5,12 Z" fill={surf.text} stroke={surf.bg} strokeWidth={1.4} strokeLinejoin="round" />
@@ -853,14 +868,17 @@ function StickyEditor({ shape, onDone }: { shape: FreeShape; onDone: (v: string 
 		done.current = true
 		onDone(v)
 	}
-	const { size, pad } = stickyLayout({ ...shape, text: value })
+	const { size, pad, lines } = stickyLayout({ ...shape, text: value })
+	// center the text block vertically like the rendered note (padding-top tracks the line count)
+	const textH = Math.max(1, lines.length) * size * 1.3
+	const padTop = Math.max(pad, (shape.h - textH) / 2)
 	return (
 		<foreignObject x={shape.x} y={shape.y} width={shape.w} height={shape.h}>
 			<textarea
 				ref={ref}
 				className="inline-sticky-editor"
 				value={value}
-				style={{ fontSize: size, padding: pad }}
+				style={{ fontSize: size, padding: `${padTop}px ${pad}px ${pad}px` }}
 				onChange={(e) => setValue(e.target.value)}
 				onKeyDown={(e) => {
 					e.stopPropagation()

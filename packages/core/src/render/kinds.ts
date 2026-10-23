@@ -18,6 +18,7 @@ export interface KindCtx {
 	measure: Measure
 	filter?: string
 	icon?: IconResolver
+	grayscale?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ function participant(node: IRNode, box: LaidOutNode, c: KindCtx, foot: boolean) 
 	const out = [
 		el('path', { d: roundedRect(box.w, box.h, 8), fill: col.fill === 'none' ? s.bg : col.fill, 'fill-opacity': col.fill === 'none' ? 0.001 : undefined, stroke: col.stroke, 'stroke-width': c.mode === 'outline' ? 2 : 1.5, filter: c.filter }),
 	]
-	if (node.icon) out.push(iconGlyph(node.icon, sx, box.h / 2 - ICON_SIZE / 2, ICON_SIZE, col.icon, c.icon))
+	if (node.icon) out.push(iconGlyph(node.icon, sx, box.h / 2 - ICON_SIZE / 2, ICON_SIZE, col.icon, c.icon, { grayscale: c.grayscale }))
 	out.push(el('text', { x: node.icon ? sx + ICON_SIZE + 8 : box.w / 2, y: box.h / 2, 'text-anchor': node.icon ? 'start' : 'middle', 'font-size': 14, 'font-weight': 500, fill: col.text, 'dominant-baseline': 'central' }, escapeXml(label)))
 	return el('g', { 'data-node': foot ? undefined : node.key, 'data-foot': foot ? node.key : undefined, transform: `translate(${f(box.x)},${f(box.y)})` }, out)
 }
@@ -153,7 +154,7 @@ function entity(node: IRNode, box: LaidOutNode, c: KindCtx) {
 	]
 	if (hasRows) out.push(el('line', { x1: 0, y1: ERD_HEAD_H, x2: box.w, y2: ERD_HEAD_H, stroke, 'stroke-width': 1.2 }))
 	out.push(el('path', { d: roundedRect(box.w, box.h, r), fill: 'none', stroke, 'stroke-width': 1.4 }))
-	if (node.icon) out.push(iconGlyph(node.icon, 12, ERD_HEAD_H / 2 - 9, 18, tinted ? col.icon : headText, c.icon))
+	if (node.icon) out.push(iconGlyph(node.icon, 12, ERD_HEAD_H / 2 - 9, 18, tinted ? col.icon : headText, c.icon, { grayscale: c.grayscale }))
 	out.push(el('text', { x: node.icon ? 38 : 14, y: ERD_HEAD_H / 2, 'font-size': ERD_HEAD_FONT, 'font-weight': 650, fill: headText, 'dominant-baseline': 'central' }, escapeXml(node.label ?? node.key)))
 	rows.forEach((row, i) => {
 		const fld = fields.find((x) => x.name === row.name) ?? fields[i]

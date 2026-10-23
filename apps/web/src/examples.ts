@@ -1,5 +1,3 @@
-import { STARTER } from './starter'
-
 export interface Example {
 	id: string
 	label: string
@@ -22,6 +20,49 @@ Reproducible? > Bug: yes
 Reproducible? > Needs info: no
 Needs info --> New issue: reporter replies
 Bug > Prioritize > Done
+`
+
+const ARCHITECTURE = `// Architecture: catalog icons for cloud services and tools.
+// Icons are monochrome; \`color: brand\` draws a logo in its brand color.
+title Event-driven checkout
+direction right
+colorMode pastel
+styleMode shadow
+typeface clean
+
+Web app [icon: react, color: brand]
+Mobile [icon: smartphone]
+
+AWS [icon: aws, color: orange] {
+  CDN [icon: aws-cloudfront]
+  API gateway [icon: aws-api-gateway]
+  Auth [icon: aws-cognito]
+  Orders [icon: aws-lambda]
+  Payments [icon: aws-lambda]
+  Receipts [icon: aws-s3]
+}
+
+Data [color: blue] {
+  DB [icon: postgres, label: "Postgres 16", color: brand]
+  Cache [icon: redis, color: brand]
+}
+
+Events [icon: kafka, label: "Kafka"]
+Stripe [icon: stripe, color: brand]
+Warehouse [icon: snowflake]
+Dashboards [icon: grafana]
+
+Web app, Mobile > CDN: HTTPS
+CDN > API gateway
+API gateway -- Auth
+API gateway > Orders, Payments
+Orders > DB
+Orders <> Cache
+Payments > Stripe: charge
+Payments --> Receipts: PDF
+Orders --> Events: order.placed
+Payments --> Events: payment.settled
+Events > Warehouse > Dashboards
 `
 
 const SEQUENCE = `// Sequence diagram: messages in time order, blocks, notes, activations
@@ -87,10 +128,10 @@ users.id < posts.authorId: writes
 posts <> tags
 `
 
-/** Starter diagrams, one per kind. Not wired to any UI here (the top bar is owned elsewhere). */
+/** Starter diagrams, one per kind: the top bar's Examples menu and `?example=<id>`. */
 export const EXAMPLES: Example[] = [
 	{ id: 'flowchart', label: 'Flowchart', code: FLOWCHART },
-	{ id: 'architecture', label: 'Architecture', code: STARTER },
+	{ id: 'architecture', label: 'Cloud architecture', code: ARCHITECTURE },
 	{ id: 'sequence', label: 'Sequence diagram', code: SEQUENCE },
 	{ id: 'erd', label: 'Entity relationship', code: ERD },
 ]

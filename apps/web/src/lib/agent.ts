@@ -3,7 +3,7 @@ import { parseOcto, type AgentAction } from '@octo-draw/core'
 import { pushHistory, requestFit, snapshot, undo, useStore, type Snapshot } from '../store'
 import { shortError, sseEvents } from './api'
 import { diffIR, endPresence, expectPresence, type IRDiff } from './presence'
-import { syncSource } from './sync'
+import { setAgentStatus, syncOnline } from './sync'
 
 /**
  * Agent chat panel state and the client side of POST /api/agent/stream.
@@ -155,11 +155,12 @@ export async function sendAgent(prompt: string) {
 	const startCode = st.code
 	let before: Snapshot | undefined
 	expectPresence('AI')
+	setAgentStatus('thinking', text.slice(0, 120))
 	try {
 		const res = await fetch('/api/agent/stream', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ prompt: text, code: startCode, history, selection, source: syncSource() }),
+			body: JSON.stringify({ prompt: text, code: startCode, history, selection, source: 'agent:AI' }),
 			signal: ctrl.signal,
 		})
 		if (!res.ok || !res.body) throw new Error(await res.text().catch(() => res.statusText))
@@ -183,7 +184,11 @@ export async function sendAgent(prompt: string) {
 							before = snapshot()
 							pushHistory(before)
 						}
-						useStore.setState({ code, selection: null })
+						setAgentStatus('drawing', text.slice(0, 120))
+						// with live sync the server writes each step into the room and it arrives as a
+						// remote change; writing it here too would apply the same edit twice
+						if (syncOnline()) useStore.setState({ selection: null })
+						else useStore.setState({ code, selection: null })
 					}
 					patchRun(id, (r) => ({ actions: [...r.actions, ...actions], errors: (ev.errors as string[]) ?? [], pending: 0, before }))
 					break
@@ -202,6 +207,7 @@ export async function sendAgent(prompt: string) {
 	} finally {
 		if (aborter === ctrl) aborter = null
 		endPresence()
+		setAgentStatus('idle')
 		const after = useStore.getState().code
 		if (before) {
 			patchRun(id, { after, diff: diffIR(parseOcto(before.code).ir, parseOcto(after).ir) })

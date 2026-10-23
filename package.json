@@ -10,6 +10,7 @@
     "test:packages": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "cli": "node apps/cli/bin/octo-draw.mjs",
+    "icons:fetch": "node --experimental-strip-types --no-warnings packages/core/scripts/fetch-cloud-icons.ts",
     "mcp": "pnpm --silent --dir apps/server mcp"
   },
   "engines": {

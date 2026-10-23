@@ -1,13 +1,13 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
 import { NODE_SHAPES } from '@octo-draw/core'
 import { COLOR_NAMES } from '../lib/colors'
-import { aliasNames, iconNames, loadIcons } from '../lib/icons'
+import { iconSvgString, loadIcons, loadLucide, searchIconNames } from '../lib/icons'
 import { useStore } from '../store'
 import { DIRECTIVES, KIND_HEADERS, SEQ_BLOCK_KEYWORDS, SEQ_CONT_KEYWORDS } from './language'
 
 const NODE_PROPS: Completion[] = [
 	{ label: 'shape', type: 'property', apply: 'shape: ', detail: 'rectangle, oval, diamond…' },
-	{ label: 'icon', type: 'property', apply: 'icon: ', detail: 'lucide icon name' },
+	{ label: 'icon', type: 'property', apply: 'icon: ', detail: 'aws-lambda, postgres, kafka…' },
 	{ label: 'color', type: 'property', apply: 'color: ', detail: 'palette name or #hex' },
 	{ label: 'label', type: 'property', apply: 'label: ', detail: 'display text' },
 	{ label: 'link', type: 'property', apply: 'link: ', detail: 'URL' },
@@ -50,17 +50,47 @@ const PROP_VALUES = (prop: string): Completion[] | null => {
 			return COLOR_NAMES.map((c) => ({ label: c, type: 'constant' }))
 		case 'dash':
 			return ['solid', 'dotted', 'dashed'].map((d) => ({ label: d, type: 'enum' }))
-		case 'icon': {
-			void loadIcons()
-			const all = new Set([...aliasNames(), ...iconNames()])
-			return [...all].map((i) => ({ label: i, type: 'variable', boost: aliasNames().includes(i) ? 1 : 0 }))
-		}
 		default:
 			return null
 	}
 }
 
-export function octoCompletions(ctx: CompletionContext): CompletionResult | null {
+/** Completion type for icon names; `iconPreview` renders their glyph in the list. */
+export const ICON_COMPLETION = 'octo-icon'
+
+/** Ranked icon names for the text after `icon:` — catalog search (names, aliases, labels, tags), then lucide. */
+async function iconCompletions(ctx: CompletionContext): Promise<CompletionResult> {
+	// the query may contain spaces ("aws lam"); it starts after the spaces following `icon:`
+	const word = ctx.matchBefore(/[\w.\- ]*$/)
+	const lead = word ? word.text.length - word.text.trimStart().length : 0
+	const from = word ? word.from + lead : ctx.pos
+	await loadIcons()
+	void loadLucide()
+	const query = ctx.state.sliceDoc(from, ctx.pos)
+	const options: Completion[] = searchIconNames(query, 60).map((h, i) => ({
+		label: h.name,
+		detail: h.matched ? `${h.label} · ${h.matched}` : h.label,
+		type: ICON_COMPLETION,
+		boost: 60 - i,
+	}))
+	// results are ranked by searchIcons; re-query on each keystroke instead of fuzzy-filtering
+	return { from, options, filter: false }
+}
+
+/** `addToOptions` renderer: a small glyph before each icon completion. */
+export const iconPreview = {
+	position: 20,
+	render(c: Completion): Node | null {
+		if (c.type !== ICON_COMPLETION) return null
+		const el = document.createElement('span')
+		el.className = 'cm-octo-icon-preview'
+		const svg = iconSvgString(c.label, 16)
+		if (svg) el.innerHTML = svg
+		return el
+	},
+}
+
+export function octoCompletions(ctx: CompletionContext): CompletionResult | Promise<CompletionResult> | null {
 	const line = ctx.state.doc.lineAt(ctx.pos)
 	const before = line.text.slice(0, ctx.pos - line.from)
 
@@ -74,6 +104,7 @@ export function octoCompletions(ctx: CompletionContext): CompletionResult | null
 		const isEdge = /\s(<>|-->|--|>|<|-)\s/.test(before.slice(0, open)) || /:\s*[^[]*$/.test(before.slice(0, open))
 		if (colon >= 0) {
 			const prop = seg.slice(0, colon).trim()
+			if (prop === 'icon') return iconCompletions(ctx)
 			const values = PROP_VALUES(prop)
 			if (!values) return null
 			const word = ctx.matchBefore(/[\w#-]*$/)

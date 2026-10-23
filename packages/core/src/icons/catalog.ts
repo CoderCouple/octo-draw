@@ -10,6 +10,8 @@
  * - `glyph` entries draw a lucide glyph, optionally with a short text badge.
  *   AWS, Google Cloud and Azure service icons are glyph entries: the vendors'
  *   official icon sets can't be redistributed in an MIT package (docs/ICONS.md).
+ *   Users can download them locally (`pnpm icons:fetch`); registered packs
+ *   (`registerIconPack`) then take over these names at runtime.
  */
 
 export type IconVendor = 'aws' | 'gcp' | 'azure'

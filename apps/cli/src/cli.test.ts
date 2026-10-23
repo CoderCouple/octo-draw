@@ -10,7 +10,11 @@ import { loadInput } from './convert'
 const FIX = join(import.meta.dirname, '..', 'fixtures')
 const fixture = (name: string) => readFileSync(join(FIX, name), 'utf8')
 
-function memIO(files: Record<string, string> = {}, stdin = '', env: Record<string, string> = {}) {
+/** Official icon cache: tests never read the user's real cache. */
+const NO_ICONS = { OCTO_ICONS_DIR: join(FIX, 'no-icon-cache') }
+const ICON_FIXTURE = join(import.meta.dirname, '../../../packages/core/node/fixtures/icon-cache')
+
+function memIO(files: Record<string, string> = {}, stdin = '', env: Record<string, string> = NO_ICONS) {
 	const out: string[] = []
 	const err: string[] = []
 	const written: Record<string, string> = {}
@@ -149,6 +153,22 @@ describe('render', () => {
 		expect(svg).toContain('data-theme="dark"')
 		expect(svg).toMatch(/<svg x="[\d.]+" y="[\d.]+" width="20" height="20" viewBox="0 0 24 24"[^>]*data-icon="server">/)
 		expect(svg).toContain('data-group="Backend"')
+	})
+
+	it('uses official icons from the local cache (fake fixture pack), color or grayscale', async () => {
+		const files = { 'cloud.octo': 'Web [icon: aws-ec2]\nRun [icon: gcp-cloud-run]\nFn [icon: aws-lambda]\nWeb > Run > Fn\n' }
+		const m = memIO(files, '', { OCTO_ICONS_DIR: ICON_FIXTURE })
+		expect(await run(['render', 'cloud.octo', '-o', 'c.svg'], m.io)).toBe(0)
+		const svg = m.written['c.svg']
+		expect(svg).toMatch(/viewBox="0 0 80 80" overflow="visible" data-icon="aws-ec2"/)
+		expect(svg).toContain('od-gcp-gcp-cloud-run-cls-1')
+		expect(svg).toMatch(/data-icon="aws-lambda"[\s\S]*?>λ<\/text>/) // not in the fake pack: badge fallback
+		expect(await run(['render', 'cloud.octo', '-o', 'g.svg', '--icons', 'grayscale'], m.io)).toBe(0)
+		expect(m.written['g.svg']).toContain('feColorMatrix')
+		// no cache: generic badge icons
+		const bare = memIO(files)
+		await run(['render', 'cloud.octo', '-o', 'c.svg'], bare.io)
+		expect(bare.written['c.svg']).toMatch(/data-icon="aws-ec2"[\s\S]*?>EC2<\/text>/)
 	})
 
 	it('prints to stdout without -o', async () => {

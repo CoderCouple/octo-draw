@@ -1,4 +1,5 @@
 import { pushHistory, requestFit, showToast, snapshot, useStore } from '../store'
+import { importMessage, warningsAction } from './importing'
 import { endPresence, expectPresence } from './presence'
 
 /** Reads `data: {...}` lines from a fetch Response body. */
@@ -118,11 +119,17 @@ export async function importImage(file: Blob) {
 			body: JSON.stringify({ imageBase64, mediaType: file.type || 'image/png' }),
 		})
 		if (!res.ok) throw new Error(await res.text().catch(() => res.statusText))
-		const data = (await res.json()) as { code?: string; error?: string }
+		const data = (await res.json()) as { code?: string; error?: string; pins?: Record<string, { x: number; y: number }>; confidence?: number; warnings?: string[] }
 		if (!data.code) throw new Error(data.error ?? 'no code returned')
 		pushHistory(snapshot())
-		useStore.setState({ code: data.code, pins: {}, selection: null })
-		showToast('Imported diagram from image')
+		// pins keep the image's arrangement; Tidy clears them
+		useStore.setState({ code: data.code, pins: data.pins && typeof data.pins === 'object' ? { ...data.pins } : {}, selection: null })
+		const warnings = Array.isArray(data.warnings) ? data.warnings.filter((w): w is string => typeof w === 'string') : []
+		showToast(
+			importMessage('Imported diagram from image', { confidence: data.confidence, warnings }),
+			warningsAction(warnings),
+			warnings.length || (data.confidence ?? 1) < 0.6 ? 12000 : undefined,
+		)
 		setTimeout(requestFit, 300)
 	} catch (err) {
 		showToast(`Image import failed: ${shortError(err)}`)

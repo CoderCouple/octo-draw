@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react'
 import { Annotation, EditorState, StateEffect, StateField, type Extension } from '@codemirror/state'
-import { Decoration, EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder, type DecorationSet } from '@codemirror/view'
+import { Decoration, EditorView, drawSelection, hoverTooltip, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder, type DecorationSet } from '@codemirror/view'
 import { defaultKeymap, indentWithTab } from '@codemirror/commands'
 import { bracketMatching, indentOnInput } from '@codemirror/language'
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
 import { linter, lintGutter, type Diagnostic as CMDiagnostic } from '@codemirror/lint'
 import { detectFormat, importText, parseOcto, printOcto } from '@octo-draw/core'
 import { octoHighlight, octoLanguage } from './language'
-import { octoCompletions } from './completion'
+import { iconPreview, octoCompletions } from './completion'
+import { getIcon, iconSvgString, loadIcons } from '../lib/icons'
 import { redo, setCode, showToast, undo, useStore } from '../store'
+import { bindEditor, localCodeEdit } from '../lib/sync'
+import { importMessage, mergeImportPins, warningsAction } from '../lib/importing'
 
 const External = Annotation.define<boolean>()
 
@@ -65,7 +68,11 @@ const convertingPaste = EditorView.domEventHandlers({
 				? { changes: { from: 0, to: view.state.doc.length, insert: code } }
 				: { changes: { from: sel.from, to: sel.to, insert: code }, selection: { anchor: sel.from + code.length } },
 		)
-		showToast(`Converted ${fmt} → octo code`, [
+		// keep the source arrangement: blank editor → just these pins, otherwise override the imported keys
+		mergeImportPins(res.pins, blank ? 'replace' : 'append')
+		const warnings = res.diagnostics.filter((d) => d.severity === 'warning').map((d) => d.message)
+		showToast(importMessage(`Converted ${fmt === 'ascii' ? 'ASCII' : fmt} diagram`, { confidence: res.confidence, warnings }), [
+			...warningsAction(warnings),
 			{
 				label: 'Paste raw instead',
 				run: () => {
@@ -77,6 +84,51 @@ const convertingPaste = EditorView.domEventHandlers({
 		])
 		return true
 	},
+})
+
+/** Hovering an `icon: name` value shows the icon, its label and canonical name. */
+const iconHover = hoverTooltip(async (view, pos) => {
+	const line = view.state.doc.lineAt(pos)
+	const re = /\bicon\s*:\s*("?)([^,\]"]+)\1/g
+	for (let m = re.exec(line.text); m; m = re.exec(line.text)) {
+		const name = m[2].trim()
+		const start = line.from + m.index + m[0].indexOf(m[2])
+		const end = start + m[2].length
+		if (pos < start || pos > end || !name) continue
+		await loadIcons()
+		const hit = getIcon(name)
+		return {
+			pos: start,
+			end,
+			above: true,
+			create: () => {
+				const dom = document.createElement('div')
+				dom.className = 'cm-octo-icon-tip'
+				const svg = iconSvgString(name, 32)
+				const glyph = document.createElement('span')
+				glyph.className = 'cm-octo-icon-tip-glyph'
+				if (svg) glyph.innerHTML = svg
+				else glyph.textContent = '?'
+				const text = document.createElement('div')
+				const title = document.createElement('strong')
+				const sub = document.createElement('span')
+				if (hit?.kind === 'catalog') {
+					title.textContent = hit.icon.label
+					sub.textContent = hit.icon.name + (hit.icon.brandColor ? ' · brand logo' : hit.icon.badge ? ` · ${hit.icon.badge} badge` : '')
+				} else if (hit) {
+					title.textContent = name
+					sub.textContent = 'lucide glyph'
+				} else {
+					title.textContent = 'Unknown icon'
+					sub.textContent = 'drawn as a text badge'
+				}
+				text.append(title, sub)
+				dom.append(glyph, text)
+				return { dom }
+			},
+		}
+	}
+	return null
 })
 
 const theme = EditorView.theme({
@@ -94,6 +146,11 @@ const theme = EditorView.theme({
 	'.cm-tooltip-autocomplete > ul > li': { padding: '3px 10px' },
 	'.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' },
 	'.cm-completionDetail': { opacity: 0.6, marginLeft: '8px', fontStyle: 'normal' },
+	'.cm-octo-icon-preview': { display: 'inline-flex', width: '16px', height: '16px', marginRight: '8px', verticalAlign: '-3px' },
+	'.cm-octo-icon-tip': { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px 8px 10px', fontFamily: 'var(--font-family-sans)', fontSize: '12px' },
+	'.cm-octo-icon-tip-glyph': { display: 'inline-flex', width: '32px', height: '32px', alignItems: 'center', justifyContent: 'center', color: 'var(--foreground-strong)' },
+	'.cm-octo-icon-tip strong': { display: 'block', fontWeight: 600, color: 'var(--foreground-strong)' },
+	'.cm-octo-icon-tip span:not(.cm-octo-icon-tip-glyph)': { color: 'var(--muted-foreground)' },
 	'.cm-diagnostic': { padding: '4px 8px' },
 	'.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--destructive)', textUnderlineOffset: '3px' },
 })
@@ -129,7 +186,8 @@ export function Editor() {
 			octoHighlight,
 			octoLinter,
 			lintGutter(),
-			autocompletion({ override: [octoCompletions], icons: false }),
+			autocompletion({ override: [octoCompletions], icons: false, addToOptions: [iconPreview] }),
+			iconHover,
 			selectedLineField,
 			convertingPaste,
 			placeholder('Describe your diagram in code… e.g.  Users > API > DB'),
@@ -147,7 +205,12 @@ export function Editor() {
 			EditorView.lineWrapping,
 			EditorView.updateListener.of((u) => {
 				if (!u.docChanged || u.transactions.some((tr) => tr.annotation(External))) return
-				setCode(u.state.doc.toString(), { tag: 'type', ms: 1000 })
+				const text = u.state.doc.toString()
+				const changes: { from: number; to: number; insert: string }[] = []
+				u.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => changes.push({ from: fromA, to: toA, insert: inserted.toString() }))
+				// live sync gets the transaction's changes (OT), not a whole-text replace
+				localCodeEdit(changes, text)
+				setCode(text, { tag: 'type', ms: 1000 })
 			}),
 		]
 		const view = new EditorView({
@@ -155,6 +218,12 @@ export function Editor() {
 			parent: host.current!,
 		})
 		viewRef.current = view
+		// dev-only handle for headless tests
+		if (import.meta.env.DEV) (window as unknown as { __octoView?: EditorView }).__octoView = view
+		const unbind = bindEditor({
+			getText: () => view.state.doc.toString(),
+			applyRemote: (changes) => view.dispatch({ changes, annotations: External.of(true) }),
+		})
 
 		const unsub = useStore.subscribe((s, prev) => {
 			if (s.code !== prev.code) {
@@ -177,6 +246,7 @@ export function Editor() {
 		})
 		return () => {
 			unsub()
+			unbind()
 			view.destroy()
 		}
 	}, [])

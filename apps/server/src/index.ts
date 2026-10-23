@@ -1,7 +1,8 @@
 import { createServer } from 'node:http'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { createDocument } from '@octo-draw/core'
+import { createDocument, registerIconPack } from '@octo-draw/core'
+import { defaultIconsDir, iconPacksFromCache, readIconCacheManifest } from '@octo-draw/core/node/iconCache'
 import { createApp } from './app'
 import { createStreamFn, fallbacksEnabled, hasCredentials, MODEL, NO_CREDENTIALS, type StreamFn } from './claude'
 import { attachSync, DEFAULT_DOC_ID, RoomDocStore, RoomManager, SYNC_PATH, type Room } from './sync'
@@ -39,7 +40,20 @@ if (await hasCredentials()) {
 	console.warn(`[octo-draw] ${NO_CREDENTIALS}. AI endpoints will return 503.`)
 }
 
-const server = createServer(createApp({ store, rooms, storeForRoom, getStream: () => stream }))
+// Official AWS / Google Cloud / Azure icons, if downloaded with `pnpm icons:fetch` (never bundled: vendor terms)
+const ICONS_DIR = defaultIconsDir()
+const iconManifest = readIconCacheManifest(ICONS_DIR)
+const iconPacks = iconPacksFromCache(ICONS_DIR, iconManifest)
+for (const p of iconPacks) registerIconPack(p)
+console.log(
+	iconPacks.length
+		? `[octo-draw] official icons: ${iconPacks.map((p) => `${p.vendor} ${p.version} (${Object.keys(p.icons).length})`).join(', ')} from ${ICONS_DIR}`
+		: `[octo-draw] official cloud icons not downloaded (generic badges in use). Run \`pnpm icons:fetch --accept-terms\` to add them.`,
+)
+
+const server = createServer(
+	createApp({ store, rooms, storeForRoom, getStream: () => stream, icons: { dir: ICONS_DIR, manifest: iconManifest }, officialIcons: process.env.OCTO_ICONS_GRAYSCALE === '1' ? 'grayscale' : 'color' }),
+)
 const sync = attachSync(server, rooms)
 server.listen(PORT, () => {
 	console.log(`[octo-draw] server on http://localhost:${PORT} (docs: ${DOCS_DIR}, live sync: ws://localhost:${PORT}${SYNC_PATH})`)

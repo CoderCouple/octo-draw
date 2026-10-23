@@ -1,0 +1,38 @@
+{
+	"schema": 1,
+	"generatedAt": "2026-01-01T00:00:00.000Z",
+	"packs": {
+		"aws": {
+			"vendor": "aws",
+			"version": "test",
+			"label": "Fake AWS pack (test fixture, placeholder art)",
+			"dir": "aws/test",
+			"icons": {
+				"aws-ec2": { "label": "Amazon EC2", "file": "aws-ec2.svg", "kind": "service", "category": "Compute" },
+				"aws-simple-storage-service": { "label": "Amazon Simple Storage Service", "file": "aws-simple-storage-service.svg", "kind": "service", "category": "Storage" },
+				"aws-escape": { "label": "Escapes the cache", "file": "../../../outside.svg", "kind": "service" }
+			},
+			"aliases": { "aws-s3": "aws-simple-storage-service", "aws-amazon-ec2": "aws-ec2" }
+		},
+		"gcp": {
+			"vendor": "gcp",
+			"version": "test",
+			"label": "Fake Google Cloud pack (test fixture, placeholder art)",
+			"dir": "gcp/test",
+			"icons": {
+				"gcp-cloud-run": { "label": "Cloud Run", "file": "gcp-cloud-run.svg", "kind": "service" }
+			},
+			"aliases": {}
+		},
+		"azure": {
+			"vendor": "azure",
+			"version": "test",
+			"label": "Fake Azure pack (test fixture, placeholder art)",
+			"dir": "azure/test",
+			"icons": {
+				"azure-function-apps": { "label": "Function Apps", "file": "azure-function-apps.svg", "kind": "service" }
+			},
+			"aliases": { "azure-functions": "azure-function-apps" }
+		}
+	}
+}

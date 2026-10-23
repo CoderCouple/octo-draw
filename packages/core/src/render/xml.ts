@@ -38,13 +38,15 @@ export interface GlyphOptions {
 	brand?: boolean
 	/** Surface behind the icon (badge pill fill, brand-color legibility check). */
 	background?: string
+	/** Draw official vendor (pack) icons in grayscale. */
+	grayscale?: boolean
 }
 
 export function iconGlyph(name: string, x: number, y: number, size: number, color: string, resolve?: IconResolver, opts: GlyphOptions = {}) {
 	const icon = resolve?.(name)
 	if (icon && !Array.isArray(icon)) {
 		const ink = iconColor(icon, color, opts)
-		return `<svg${attrs({ x, y, width: size, height: size, viewBox: icon.viewBox, ...iconPaint(icon, ink), overflow: 'visible', 'data-icon': name })}>${iconInnerSvg(icon, ink, opts.background)}</svg>`
+		return `<svg${attrs({ x, y, width: size, height: size, viewBox: icon.viewBox, ...iconPaint(icon, ink), overflow: 'visible', 'data-icon': name })}>${iconInnerSvg(icon, ink, opts.background, { grayscale: opts.grayscale })}</svg>`
 	}
 	if (!icon) {
 		const text = name.replace(/^(aws|gcp|azure)-/, '').slice(0, 5).toUpperCase()

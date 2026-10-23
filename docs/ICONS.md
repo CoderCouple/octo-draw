@@ -14,7 +14,8 @@ DB [icon: postgres, color: brand]
 
 - **Monochrome by default.** Every icon is drawn in the node's icon color, which is the theme foreground (or the node's `color:` tint). This matches the black and white UI.
 - **`color: brand`** draws a brand logo in its official color and leaves the node surface neutral. If the brand color would be hard to read on the surface (for example, GitHub's near-black on a dark theme), the icon uses the foreground instead. Icons without a brand color (generic glyphs and vendor fallbacks) ignore `brand`.
-- **Badges.** `aws-*`, `gcp-*` and `azure-*` services, plus brands we can't redistribute, draw a generic glyph with a small text pill in the lower-right corner (`aws-ec2` → server glyph with `EC2`).
+- **Official cloud icons.** If you've downloaded the official AWS, Google Cloud and Azure packs (`pnpm icons:fetch --accept-terms`, see [below](#official-cloud-icons-aws-google-cloud-azure)), vendor names draw the vendor's icon in full color, as the vendor designed it, even in the monochrome theme. Grayscale is an option.
+- **Badges.** Without a downloaded pack (fresh clones, CI), `aws-*`, `gcp-*` and `azure-*` services draw a generic glyph with a small text pill in the lower-right corner (`aws-ec2` → server glyph with `EC2`). So do brands we can't redistribute.
 - **Unknown names** still render as the old text badge (the first 5 letters of the name in a rounded square).
 - **Name matching ignores case**, and spaces, `_` and `.` count as `-`. So `AWS_EC2` and `Next.js` resolve.
 
@@ -24,9 +25,9 @@ DB [icon: postgres, color: brand]
 |---|---|---|---|
 | [simple-icons](https://github.com/simple-icons/simple-icons) (brand logos) | 16.33.0 | [CC0-1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md). Some logos carry their own license, see below. | Yes, a curated subset of about 135 logos |
 | [lucide](https://github.com/lucide-icons/lucide) (generic glyphs) | 1.61.0 | [ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE) (the parts from Feather are MIT) | Yes, about 95 glyphs |
-| [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | n/a | AWS site terms: "use these toolkits and assets to create architecture diagrams". No redistribution grant. | **No.** Generic fallbacks are used instead. |
-| [Azure architecture icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | n/a | "Copy, distribute, and display the icons only for the permitted use [diagrams, training, docs]… Microsoft reserves all other rights." Also forbids changing the icons. | **No.** Generic fallbacks are used instead. |
-| [Google Cloud icons](https://cloud.google.com/icons) | n/a | Published for building diagrams. There is no open license for redistributing them in software. | **No.** Generic fallbacks are used instead (`gcp`, `google-cloud` use the simple-icons Google Cloud logo). |
+| [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | 2026.07.31 (Q3 2026) | "We allow customers and partners to use these toolkits and assets to create architecture diagrams." No redistribution grant. | **No.** Each user downloads them with `pnpm icons:fetch`. Generic fallbacks otherwise. |
+| [Azure architecture icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | V24 (July 2026) | "You can copy, distribute, and display the icons only for the permitted use [diagrams, training materials, documentation]… Microsoft reserves all other rights." Also forbids changing the icons. | **No.** Downloaded locally with `pnpm icons:fetch`. Generic fallbacks otherwise. |
+| [Google Cloud icons](https://cloud.google.com/icons) | 2025 product icons + legacy set | "the Google Cloud product icons you need for your diagrams, technical documentation, and more". There is no license for redistributing them. | **No.** Downloaded locally with `pnpm icons:fetch`. Generic fallbacks otherwise (`gcp`, `google-cloud` use the simple-icons Google Cloud logo). |
 | [tabler icons](https://github.com/tabler/tabler-icons) | n/a | MIT | Not needed. lucide already covers the generic glyphs. |
 
 Per-logo licenses from simple-icons:
@@ -36,6 +37,96 @@ Per-logo licenses from simple-icons:
 - **Attribution:** [NOTICE](../NOTICE) lists the non-CC0 logos and their attribution.
 
 Brand logos are still trademarks of their owners. Use them to refer to the product, not to imply endorsement. The [simple-icons disclaimer](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) applies.
+
+## Official cloud icons (AWS, Google Cloud, Azure)
+
+The vendors publish their architecture icons for people to use in diagrams. None of them lets an open-source repo redistribute the files:
+
+- **AWS** ([icons page](https://aws.amazon.com/architecture/icons/)): "We allow customers and partners to use these toolkits and assets to create architecture diagrams." and "You can also put icons in materials like whitepapers, presentations, data sheets, and posters." Nothing grants redistribution or modification. The [AWS Site Terms](https://aws.amazon.com/terms/) say the site's content may not be "reproduced, duplicated, copied, sold, resold … or otherwise exploited for any commercial purpose" and that "AWS's trademarks and trade dress may not be used in connection with any product or service that is not AWS's".
+- **Azure** ([icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms)): "Microsoft permits the use of these icons in architectural diagrams, training materials, or documentation. You can copy, distribute, and display the icons only for the permitted use unless granted explicit permission by Microsoft. Microsoft reserves all other rights." Also: "Don't crop, flip, or rotate icons. Don't distort or change icon shape in any way."
+- **Google Cloud** ([icon library](https://cloud.google.com/icons)): "Here you can find the Google Cloud product icons you need for your diagrams, technical documentation, and more." The page has no license; Google's general [terms](https://policies.google.com/terms) apply. Nothing grants redistribution or modification.
+
+So octo-draw **never commits these icons**. Each user downloads them from the vendor into a cache outside the repo:
+
+```sh
+pnpm icons:fetch --accept-terms              # all three (or OCTO_ACCEPT_ICON_TERMS=1)
+pnpm icons:fetch --accept-terms --vendor aws
+pnpm icons:fetch --help                       # --dir, --latest, --force, --list, --json
+```
+
+[`packages/core/scripts/fetch-cloud-icons.ts`](../packages/core/scripts/fetch-cloud-icons.ts) does the following:
+
+1. It prints the terms summary above and exits with code 2 unless you pass `--accept-terms`.
+2. It downloads the pinned zips from the vendor URLs. `--latest` scrapes the AWS and Azure pages for a newer release.
+3. It verifies each zip: HTTP status, size, zip magic and the pinned SHA-256. A re-published pack needs `--allow-hash-mismatch`.
+4. It extracts every SVG and normalizes the names. It refuses to write inside the repo.
+5. It writes the files to `~/.cache/octo-draw/icons/<vendor>/<version>/<name>.svg`, or under `$OCTO_ICONS_DIR` (or `$XDG_CACHE_HOME`) if set. The zips stay in `_downloads/`, so a re-run doesn't download again.
+6. It writes `manifest.json` at the cache root.
+
+| Vendor | Source files | Names |
+|---|---|---|
+| AWS | `Arch_Amazon-EC2_64.svg`, `Res_Amazon-EC2_Instance_48.svg`, `Arch-Category_Compute_64.svg`, `Virtual-private-cloud-VPC_32.svg` | `aws-ec2` (the `Amazon-`/`AWS-` prefix is dropped, and the long form `aws-amazon-ec2` is an alias), `aws-ec2-instance`, `aws-category-compute`, `aws-group-virtual-private-cloud-vpc`. The largest size wins. `_Dark` variants get a `-dark` suffix. |
+| Google Cloud | `Unique Icons/Cloud Run/SVG/CloudRun-512-color-rgb.svg` (2025), `cloud_run/cloud_run.svg` (legacy), `Category Icons/Databases/…` | `gcp-cloud-run`, `gcp-category-databases`. A 2025 icon replaces the legacy one with the same name, and the old icon stays as `<name>-legacy`. `gcp-gke` replaces `gcp-google-kubernetes-engine`, which becomes an alias. |
+| Azure | `10021-icon-service-Function-Apps.svg` | `azure-function-apps` (the `Azure-`/`Microsoft-` prefix is dropped, and the long form is an alias). |
+
+Eraser-style names come from two sources. Every `aws-`/`gcp-`/`azure-` name and alias in the catalog is mapped to the matching pack icon, and a hand-written table in the script covers the rest (`aws-s3` → `aws-simple-storage-service`, `aws-sqs`, `aws-eks`, `azure-functions` → `azure-function-apps`, `gcp-pubsub`, …). The script reports any catalog name it couldn't map; those keep the badge fallback. Results on 2026-10-23: **AWS 857** icons (303 services, 513 resources, 26 categories, 15 groups), **Google Cloud 261** (235 products, 26 categories), **Azure 633**. All catalog vendor names are mapped except `azure-entra-id`, which has no service icon in V24.
+
+### Manifest format
+
+`~/.cache/octo-draw/icons/manifest.json` (`IconCacheManifest`):
+
+```json
+{ "schema": 1, "packs": { "aws": { "vendor": "aws", "version": "2026.07.31", "dir": "aws/2026.07.31",
+  "icons": { "aws-ec2": { "label": "Amazon EC2", "file": "aws-ec2.svg", "kind": "service", "category": "Compute", "source": "Arch_Amazon-EC2_64.svg" } },
+  "aliases": { "aws-s3": "aws-simple-storage-service", "aws-amazon-ec2": "aws-ec2" } } } }
+```
+
+### Runtime
+
+- **Core** (platform-free): `registerIconPack(pack)` takes `{ vendor, version, icons, aliases, svg(name) }`, where `svg` returns the raw markup synchronously or `undefined` if the icon isn't loaded yet. While a pack is registered, `resolveIcon('aws-ec2')` returns `{ source: 'pack', svg, viewBox, paint: 'fill', monochrome: false, pack: { name, version } }`. The lookup accepts catalog names, catalog aliases (`ec2`, `lambda`), pack names and pack aliases. A name the pack doesn't have, or an SVG that hasn't loaded, falls back to the badge icon.
+  - `svg` holds the sanitized child markup. Scripts, event handlers, external hrefs and titles are removed. Ids and CSS classes are prefixed per icon, so many icons can share one document; Google's icons all use `.cls-1`.
+  - `iconSvg(icon, { grayscale: true })`, `iconInnerSvg(icon, color, bg, { grayscale })` and `renderDiagramSvg(…, { officialIcons: 'grayscale' })` desaturate the icon.
+  - Other exports: `unregisterIconPack`, `clearIconPacks`, `listIconPacks`, `iconPackNames`, `onIconPacksChange(fn)`, `iconPackGeneration()`, `lazyIconPack(manifest, fetchSvg)` and `parseVendorSvg`. `searchIcons` also returns pack-only names.
+- **Node glue:** `@octo-draw/core/node/iconCache` provides `defaultIconsDir()`, `readIconCacheManifest(dir)`, `iconPacksFromCache(dir)` (packs with fs-backed `svg()`) and `iconFilePath()`.
+- **Server:** on startup, the server loads the manifest from the cache and registers the packs, so `/api/doc/svg` renders official icons. Add `?icons=grayscale` or set `OCTO_ICONS_GRAYSCALE=1` for grayscale. Routes:
+  - `GET /api/icons/manifest` returns `{ schema: 1, packs: { aws: { vendor, version, label, terms, icons: { name: { label, kind, category } }, aliases } } }`. It returns `{ schema: 1, packs: {} }` if nothing was downloaded. It never includes file paths.
+  - `GET /api/icons/:vendor/:name.svg` serves the cached file. It accepts aliases, sends `Cache-Control: public, max-age=86400` and a no-script CSP, and returns 404 if the file isn't there.
+- **CLI:** `octo-draw render` reads the cache directly. It honors `OCTO_ICONS_DIR` and takes `--icons color|grayscale`.
+- **Tests** never touch the network or the real cache. They use the fake pack in `packages/core/node/fixtures/icon-cache/`, which holds hand-written placeholder SVGs, not vendor files.
+
+### Web app: loading official icons (for `apps/web`)
+
+Load the icons lazily and cache them. The web bundle never contains them.
+
+```ts
+import { lazyIconPack, registerIconPack, onIconPacksChange, iconPackGeneration, type IconCacheManifest } from '@octo-draw/core'
+
+// once, after the catalog loads (inside loadIcons()):
+const res = await fetch('/api/icons/manifest')               // same origin via the vite proxy
+const m = (await res.json()) as IconCacheManifest            // { packs: {} } when nothing was downloaded
+for (const pack of Object.values(m.packs)) {
+	if (!pack) continue
+	registerIconPack(lazyIconPack(pack, async (name) => {
+		const r = await fetch(`/api/icons/${pack.vendor}/${name}.svg`)   // browser HTTP cache: max-age=1 day
+		if (!r.ok) throw new Error(String(r.status))
+		return r.text()
+	}))
+}
+
+// re-render when an icon arrives (the first resolveIcon call starts the fetch and returns the badge fallback):
+const gen = useSyncExternalStore(onIconPacksChange, iconPackGeneration)  // include `gen` in memo deps
+```
+
+Rendering in React:
+
+1. `const icon = resolveIcon(name)`. When `icon.svg !== undefined` it's an official icon. Render `<svg viewBox={icon.viewBox} width={size} height={size} overflow="visible" dangerouslySetInnerHTML={{ __html: icon.svg }} />`.
+   - Don't apply the theme color, `iconPaint` or badges; it carries its own colors.
+   - The markup is sanitized and id/class-scoped, so it's safe to inline next to other icons.
+   - For a grayscale setting, add `style={{ filter: 'grayscale(1)' }}`, or use `iconInnerSvg(icon, '', '', { grayscale: true })`.
+2. Otherwise render it as before (catalog glyph or brand logo with badge).
+3. **Autocomplete:** add `iconPackNames()` to `ICON_ALL_NAMES`, or call `searchIcons`, which already includes pack names. Labels come from `listIconPacks()` or the manifest.
+4. **Exports:** PNG/SVG export via `iconSvg(icon, { grayscale })` already inlines the official markup.
+5. **No server or nothing downloaded:** the manifest has no packs, every name keeps the badge fallback, and nothing else changes.
 
 ## API (`@octo-draw/core`)
 
@@ -60,16 +151,19 @@ interface ResolvedIcon {
 	brandColor?: string     // '#4169E1'
 	badge?: string          // 'EC2'
 	vendor?: 'aws' | 'gcp' | 'azure'
-	source: 'simple-icons' | 'lucide'
+	source: 'simple-icons' | 'lucide' | 'pack'
+	svg?: string            // official pack icons: sanitized markup with its own colors
+	pack?: { name: string; version: string }
 }
 ```
 
 `resolveIcon` tries these steps in order and stops at the first match:
 
-1. A catalog name or alias.
-2. Any vendored lucide glyph name.
-3. The legacy `ICON_ALIASES` table.
-4. For `aws-`/`gcp-`/`azure-` names, the name with the prefix stripped (`aws-cache` → `cache`).
+1. A catalog name or alias. For vendor entries, the official pack icon is used when a pack is registered and has it.
+2. A name or alias from a registered official pack (`aws-ec2-instance`, `azure-function-apps`).
+3. Any vendored lucide glyph name.
+4. The legacy `ICON_ALIASES` table.
+5. For `aws-`/`gcp-`/`azure-` names, the name with the prefix stripped (`aws-cache` → `cache`).
 
 `searchIcons` ranks results in this order:
 

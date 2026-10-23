@@ -4,6 +4,7 @@
 
 import { OCTO_DOCUMENT_SCHEMA, type RenderTheme } from '@octo-draw/core'
 import { CliError, convertDoc, formatForOutput, INPUT_FORMATS, loadInput, OUTPUT_FORMATS, type InputFormat, type OutputFormat } from './convert'
+import { defaultIconsDir } from '@octo-draw/core/node/iconCache'
 
 export interface IO {
 	readFile(path: string): Promise<string>
@@ -19,7 +20,7 @@ export const HELP = `octo-draw — diagram-as-code from the command line
 
 Usage:
   octo-draw convert <input|-> --to <format> [-o <file>] [--from <format>] [--theme light|dark]
-  octo-draw render <input|-> [-o <file.svg>] [--theme light|dark] [--scale <n>]
+  octo-draw render <input|-> [-o <file.svg>] [--theme light|dark] [--scale <n>] [--icons color|grayscale]
   octo-draw push <input|-> [--server <url>]       replace the running editor's diagram
   octo-draw pull [-o <file>] [--to <format>] [--server <url>]
   octo-draw schema                                print the document JSON schema
@@ -28,6 +29,8 @@ Input is detected automatically: octo DSL, mermaid flowchart, ASCII box art
 (markdown fences are fine), an octo document (.json), or a tldraw snapshot.
 Formats:  --to ${OUTPUT_FORMATS.join(' | ')}    --from ${INPUT_FORMATS.join(' | ')}
 Server:   --server, or OCTO_SERVER_URL (default http://localhost:8787)
+Icons:    official AWS / Google Cloud / Azure icons are used when downloaded with
+          \`pnpm icons:fetch --accept-terms\` (cache: OCTO_ICONS_DIR or ~/.cache/octo-draw/icons)
 
 Examples:
   octo-draw convert flow.mmd --to octo > flow.octo
@@ -134,14 +137,15 @@ export async function run(argv: string[], io: IO): Promise<number> {
 				const to = oneOf<OutputFormat>(str(args, 'to'), OUTPUT_FORMATS, 'to') ?? formatForOutput(out)
 				if (!to) throw new CliError(`--to is required (${OUTPUT_FORMATS.join(', ')})`)
 				const { doc } = await readInput(io, args)
-				await emit(io, out, await convertDoc(doc, to, { theme: theme(args) }))
+				await emit(io, out, await convertDoc(doc, to, { theme: theme(args), iconsDir: defaultIconsDir(io.env) }))
 				return 0
 			}
 			case 'render': {
 				const { doc } = await readInput(io, args)
 				const scale = str(args, 'scale') ? Number(str(args, 'scale')) : undefined
 				if (scale !== undefined && !(scale > 0)) throw new CliError('--scale must be a positive number')
-				await emit(io, str(args, 'out'), await convertDoc(doc, 'svg', { theme: theme(args), scale }))
+				const officialIcons = oneOf<'color' | 'grayscale'>(str(args, 'icons'), ['color', 'grayscale'], 'icons')
+				await emit(io, str(args, 'out'), await convertDoc(doc, 'svg', { theme: theme(args), scale, officialIcons, iconsDir: defaultIconsDir(io.env) }))
 				return 0
 			}
 			case 'push': {
@@ -157,7 +161,7 @@ export async function run(argv: string[], io: IO): Promise<number> {
 				const to = oneOf<OutputFormat>(str(args, 'to'), OUTPUT_FORMATS, 'to') ?? formatForOutput(out) ?? 'octo'
 				const r = await request(io, base, 'GET', '/api/doc')
 				const { doc } = loadInput(r.code ?? '', { from: 'octo', title: str(args, 'title') })
-				await emit(io, out, await convertDoc(doc, to, { theme: theme(args) }))
+				await emit(io, out, await convertDoc(doc, to, { theme: theme(args), iconsDir: defaultIconsDir(io.env) }))
 				return 0
 			}
 			case 'schema':

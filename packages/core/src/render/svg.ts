@@ -43,6 +43,11 @@ export interface RenderSvgOptions {
 	 * always render as a text badge.
 	 */
 	icon?: IconResolver | false
+	/**
+	 * Official vendor icons (registered icon packs) keep their vendor colors by
+	 * default, even in monochrome themes; 'grayscale' desaturates them.
+	 */
+	officialIcons?: 'color' | 'grayscale'
 	/** Text measurement (should match what layout used). Defaults to the headless estimate. */
 	measureText?: Measure
 	/** Output scale: width/height attributes are multiplied, viewBox is not. Default 1. */
@@ -57,6 +62,8 @@ interface Ctx {
 	measure: Measure
 	filter?: string
 	icon?: IconResolver
+	/** Grayscale official vendor icons. */
+	grayscale?: boolean
 }
 
 /** `color: brand` keeps the node surface neutral and draws its icon in the brand color. */
@@ -69,7 +76,7 @@ function renderNode(node: IRNode, box: LaidOutNode, c: Ctx) {
 	const label = node.label ?? node.key
 	const cy = contentCenterY(node.shape, box.h)
 	const size = 14
-	const glyph = { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill }
+	const glyph = { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill, grayscale: c.grayscale }
 	const out: string[] = [
 		el('path', { d, fill: col.fill === 'none' ? bg : col.fill, 'fill-opacity': col.fill === 'none' ? 0.001 : undefined, stroke: col.stroke, 'stroke-width': c.mode === 'outline' ? 2 : 1.5, filter: c.filter }),
 	]
@@ -99,7 +106,7 @@ function renderGroup(node: IRNode, box: LaidOutNode, c: Ctx) {
 	const out = [
 		el('path', { d: roundedRect(box.w, box.h, 12), fill: col.fill === 'none' ? bg : col.fill, 'fill-opacity': col.fill === 'none' ? 0.001 : undefined, stroke: col.stroke, 'stroke-width': 1.2, 'stroke-dasharray': dotted ? '4 4' : undefined }),
 	]
-	if (node.icon) out.push(iconGlyph(node.icon, 14, 11, 16, col.text, c.icon, { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill }))
+	if (node.icon) out.push(iconGlyph(node.icon, 14, 11, 16, col.text, c.icon, { brand: isBrand(node.style?.color), background: col.fill === 'none' ? bg : col.fill, grayscale: c.grayscale }))
 	out.push(el('text', { x: 14 + (node.icon ? 22 : 0), y: 19, 'font-size': 13, 'font-weight': 600, fill: col.text, 'dominant-baseline': 'central' }, escapeXml(label)))
 	return el('g', { 'data-group': node.key, transform: `translate(${f(box.x)},${f(box.y)})` }, out)
 }
@@ -261,6 +268,7 @@ export function renderDiagramSvg(ir: DiagramIR, layout: DiagramLayout, opts: Ren
 		measure: opts.measureText ?? estimateText,
 		filter: styleMode === 'shadow' ? 'url(#octo-shadow)' : styleMode === 'watercolor' ? 'url(#octo-watercolor)' : undefined,
 		icon: opts.icon === false ? undefined : (opts.icon ?? resolveIcon),
+		grayscale: opts.officialIcons === 'grayscale',
 	}
 
 	const byKey = new Map(ir.nodes.map((n) => [n.key, n]))

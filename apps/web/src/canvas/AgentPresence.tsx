@@ -3,6 +3,7 @@ import type { DiagramIR } from '@octo-draw/core'
 import { useStore } from '../store'
 import { useCamera } from './camera'
 import { activePresence, diffIR } from '../lib/presence'
+import { peerColor, peerName, usePeers } from '../lib/sync'
 import '../components/agent.css'
 
 /**
@@ -150,6 +151,38 @@ export function AgentPresence() {
 					</g>
 				</g>
 			)}
+		</g>
+	)
+}
+
+/**
+ * Other participants' canvas cursors (live sync presence), in world space.
+ * Agents show their status ("thinking", "drawing") next to the name.
+ */
+export function PeerCursors() {
+	const peers = usePeers((s) => s.peers)
+	const z = useCamera((s) => s.z)
+	const k = 1 / Math.max(z, 0.2)
+	return (
+		<g className="peer-cursors" data-export="skip" pointerEvents="none">
+			{peers.map((p) => {
+				const c = p.state.cursor
+				if (!c) return null
+				const color = typeof p.state.color === 'string' ? p.state.color : peerColor(p.clientId)
+				const busy = p.state.status === 'thinking' || p.state.status === 'drawing'
+				const label = peerName(p) + (busy ? ` · ${p.state.status}` : '')
+				return (
+					<g key={p.sessionId} className="peer-cursor" style={{ transform: `translate(${c.x}px, ${c.y}px)` }}>
+						<g transform={`scale(${k})`}>
+							<path d="M0,0 L0,18 L5,13.5 L8.5,21 L11.5,19.6 L8,12.4 L14.5,12 Z" fill={color} stroke="#ffffff" strokeWidth={1.4} strokeLinejoin="round" />
+							<rect x={13} y={18} width={label.length * 6.6 + 16} height={18} rx={9} fill={color} />
+							<text x={21} y={30.5} fontSize={11} fontWeight={600} fill="#ffffff" fontFamily="var(--font-family-sans)">
+								{label}
+							</text>
+						</g>
+					</g>
+				)
+			})}
 		</g>
 	)
 }

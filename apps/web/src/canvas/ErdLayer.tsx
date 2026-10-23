@@ -20,7 +20,7 @@ type Measure = (t: string, size: number) => { w: number; h: number }
 
 /** ERD: entity tables (header + attribute rows with PK/FK badges) and crow's-foot (or Chen) relationships. */
 export const ErdLayer = memo(function ErdLayer({ ir, layout, theme, selectedKey, editingKey }: Props) {
-	useIcons((s) => s.loaded)
+	useIcons((s) => s.version)
 	const measure = makeMeasure(ir.style.typeface)
 	const notation = ir.erd?.notation ?? 'crows-feet'
 	const filter = ir.style.styleMode === 'shadow' ? 'url(#octo-erd-shadow)' : undefined
@@ -84,7 +84,7 @@ function Entity({
 			/>
 			{hasRows && <line x1={0} y1={ERD_HEAD_H} x2={box.w} y2={ERD_HEAD_H} stroke={stroke} strokeWidth={1.2} />}
 			<path d={roundedRect(box.w, box.h, r)} fill="none" stroke={stroke} strokeWidth={1.4} />
-			{node.icon && <IconGlyph name={node.icon} x={12} y={ERD_HEAD_H / 2 - 9} size={18} color={tinted ? c.icon : headText} />}
+			{node.icon && <IconGlyph name={node.icon} x={12} y={ERD_HEAD_H / 2 - 9} size={18} color={tinted ? c.icon : headText} brand={node.style?.color === 'brand'} surface={headFill === 'none' ? s.bg : headFill} />}
 			{!editing && (
 				<text x={node.icon ? 38 : 14} y={ERD_HEAD_H / 2} fontSize={ERD_HEAD_FONT} fontWeight={650} fill={headText} dominantBaseline="central">
 					{label}
