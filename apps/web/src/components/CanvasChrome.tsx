@@ -3,7 +3,8 @@ import { Icon } from './Icon'
 import { IconPickerButton } from './IconPicker'
 import { pushHistory, redo, requestFit, selectedIds, setCode, undo, useStore, type Tool } from '../store'
 import { useCamera, zoomAt } from '../canvas/camera'
-import { setEdgeProp, setNodeProp } from '@octo-draw/core'
+import { setEdgeProp, setNodeProp } from '../lib/drillCore'
+import { currentPins } from '../lib/view'
 import { INK_COLORS, NODE_COLORS, PALETTE, inkColor } from '../lib/colors'
 import { useTheme } from '../lib/theme'
 import { deleteSelection, tidy } from '../lib/actions'
@@ -29,7 +30,7 @@ export function Toolbar() {
 	const hasSel = useStore((s) => s.selection !== null)
 	const shapeSel = useStore((s) => selectedIds(s.selection).length > 0)
 	const edgeKey = useStore((s) => (s.selection?.kind === 'edge' ? s.selection.key : null))
-	const nodeKey = useStore((s) => (s.selection?.kind === 'node' ? s.selection.key : null))
+	const nodeKey = useStore((s) => (s.selection?.kind === 'node' && !s.selection.key.startsWith('ghost:') ? s.selection.key : null))
 	const theme = useTheme()
 	const drawing = tool !== 'select' && tool !== 'hand' && tool !== 'eraser'
 	return (
@@ -59,7 +60,7 @@ export function Toolbar() {
 								style={{ background: c === 'none' ? 'transparent' : PALETTE[c] }}
 								title={c === 'none' ? 'No color' : c}
 								aria-label={c === 'none' ? 'No color' : `Color ${c}`}
-								onClick={() => setCode(setNodeProp(useStore.getState().code, nodeKey, 'color', c === 'none' ? null : c))}
+								onClick={() => setCode(setNodeProp(useStore.getState().code, nodeKey, 'color', c === 'none' ? null : c, useStore.getState().page))}
 							/>
 						))}
 					</div>
@@ -78,7 +79,7 @@ export function Toolbar() {
 								style={{ background: c === 'none' ? 'transparent' : PALETTE[c] }}
 								title={c === 'none' ? 'Default color' : c}
 								aria-label={c === 'none' ? 'Default connection color' : `Connection color ${c}`}
-								onClick={() => setCode(setEdgeProp(useStore.getState().code, edgeKey, 'color', c === 'none' ? null : c))}
+								onClick={() => setCode(setEdgeProp(useStore.getState().code, edgeKey, 'color', c === 'none' ? null : c, useStore.getState().page))}
 							/>
 						))}
 					</div>
@@ -138,7 +139,7 @@ export function ZoomControls() {
 	const z = useCamera((c) => c.z)
 	const canUndo = useStore((s) => s.past.length > 0)
 	const canRedo = useStore((s) => s.future.length > 0)
-	const pinned = useStore((s) => Object.keys(s.pins).length)
+	const pinned = useStore((s) => Object.keys(currentPins(s)).length)
 	return (
 		<div className="zoombar" onPointerDown={(e) => e.stopPropagation()}>
 			<div className="pill">

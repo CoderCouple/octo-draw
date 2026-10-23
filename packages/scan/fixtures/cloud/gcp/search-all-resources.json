@@ -1,0 +1,675 @@
+[
+	{
+		"name": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"assetType": "cloudresourcemanager.googleapis.com/Project",
+		"project": "projects/482915730621",
+		"displayName": "acme-shop-prod",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/networks/shop-vpc",
+		"assetType": "compute.googleapis.com/Network",
+		"project": "projects/482915730621",
+		"displayName": "shop-vpc",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1",
+		"assetType": "compute.googleapis.com/Subnetwork",
+		"project": "projects/482915730621",
+		"displayName": "shop-us-central1",
+		"location": "us-central1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/europe-west1/subnetworks/shop-europe-west1",
+		"assetType": "compute.googleapis.com/Subnetwork",
+		"project": "projects/482915730621",
+		"displayName": "shop-europe-west1",
+		"location": "europe-west1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/forwardingRules/shop-https-fr",
+		"assetType": "compute.googleapis.com/GlobalForwardingRule",
+		"project": "projects/482915730621",
+		"displayName": "shop-https-fr",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/targetHttpsProxies/shop-https-proxy",
+		"assetType": "compute.googleapis.com/TargetHttpsProxy",
+		"project": "projects/482915730621",
+		"displayName": "shop-https-proxy",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/urlMaps/shop-urlmap",
+		"assetType": "compute.googleapis.com/UrlMap",
+		"project": "projects/482915730621",
+		"displayName": "shop-urlmap",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendServices/checkout-backend",
+		"assetType": "compute.googleapis.com/BackendService",
+		"project": "projects/482915730621",
+		"displayName": "checkout-backend",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendServices/legacy-backend",
+		"assetType": "compute.googleapis.com/BackendService",
+		"project": "projects/482915730621",
+		"displayName": "legacy-backend",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendBuckets/static-assets",
+		"assetType": "compute.googleapis.com/BackendBucket",
+		"project": "projects/482915730621",
+		"displayName": "static-assets",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/us-central1/networkEndpointGroups/checkout-neg",
+		"assetType": "compute.googleapis.com/NetworkEndpointGroup",
+		"project": "projects/482915730621",
+		"displayName": "checkout-neg",
+		"location": "us-central1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instanceGroupManagers/legacy-mig",
+		"assetType": "compute.googleapis.com/InstanceGroupManager",
+		"project": "projects/482915730621",
+		"displayName": "legacy-mig",
+		"location": "us-central1-a",
+		"labels": {
+			"app": "legacy"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instances/legacy-vm-1",
+		"assetType": "compute.googleapis.com/Instance",
+		"project": "projects/482915730621",
+		"displayName": "legacy-vm-1",
+		"location": "us-central1-a",
+		"labels": {
+			"app": "legacy"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE",
+		"networkTags": [
+			"http-server"
+		]
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instances/legacy-vm-2",
+		"assetType": "compute.googleapis.com/Instance",
+		"project": "projects/482915730621",
+		"displayName": "legacy-vm-2",
+		"location": "us-central1-a",
+		"labels": {
+			"app": "legacy"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE",
+		"networkTags": [
+			"http-server"
+		]
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/firewalls/allow-lb-health",
+		"assetType": "compute.googleapis.com/Firewall",
+		"project": "projects/482915730621",
+		"displayName": "allow-lb-health",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/checkout-api",
+		"assetType": "run.googleapis.com/Service",
+		"project": "projects/482915730621",
+		"displayName": "checkout-api",
+		"location": "us-central1",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/fulfillment",
+		"assetType": "run.googleapis.com/Service",
+		"project": "projects/482915730621",
+		"displayName": "fulfillment",
+		"location": "us-central1",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/image-resizer",
+		"assetType": "run.googleapis.com/Service",
+		"project": "projects/482915730621",
+		"displayName": "image-resizer",
+		"location": "us-central1",
+		"labels": {
+			"app": "media"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/send-receipt",
+		"assetType": "run.googleapis.com/Service",
+		"project": "projects/482915730621",
+		"displayName": "send-receipt",
+		"location": "us-central1",
+		"labels": {
+			"goog-managed-by": "cloudfunctions"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//cloudfunctions.googleapis.com/projects/acme-shop-prod/locations/us-central1/functions/send-receipt",
+		"assetType": "cloudfunctions.googleapis.com/Function",
+		"project": "projects/482915730621",
+		"displayName": "send-receipt",
+		"location": "us-central1",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//cloudfunctions.googleapis.com/projects/acme-shop-prod/locations/us-central1/functions/export-orders",
+		"assetType": "cloudfunctions.googleapis.com/CloudFunction",
+		"project": "projects/482915730621",
+		"displayName": "export-orders",
+		"location": "us-central1",
+		"labels": {
+			"app": "analytics"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//vpcaccess.googleapis.com/projects/acme-shop-prod/locations/us-central1/connectors/shop-connector",
+		"assetType": "vpcaccess.googleapis.com/Connector",
+		"project": "projects/482915730621",
+		"displayName": "shop-connector",
+		"location": "us-central1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//sqladmin.googleapis.com/projects/acme-shop-prod/instances/shop-pg",
+		"assetType": "sqladmin.googleapis.com/Instance",
+		"project": "projects/482915730621",
+		"displayName": "shop-pg",
+		"location": "us-central1",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//redis.googleapis.com/projects/acme-shop-prod/locations/us-central1/instances/shop-cache",
+		"assetType": "redis.googleapis.com/Instance",
+		"project": "projects/482915730621",
+		"displayName": "shop-cache",
+		"location": "us-central1",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/topics/orders",
+		"assetType": "pubsub.googleapis.com/Topic",
+		"project": "projects/482915730621",
+		"displayName": "orders",
+		"location": "global",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/topics/exports",
+		"assetType": "pubsub.googleapis.com/Topic",
+		"project": "projects/482915730621",
+		"displayName": "exports",
+		"location": "global",
+		"labels": {
+			"app": "analytics"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/subscriptions/orders-fulfillment",
+		"assetType": "pubsub.googleapis.com/Subscription",
+		"project": "projects/482915730621",
+		"displayName": "orders-fulfillment",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/subscriptions/orders-bq",
+		"assetType": "pubsub.googleapis.com/Subscription",
+		"project": "projects/482915730621",
+		"displayName": "orders-bq",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//storage.googleapis.com/acme-shop-static",
+		"assetType": "storage.googleapis.com/Bucket",
+		"project": "projects/482915730621",
+		"displayName": "acme-shop-static",
+		"location": "us",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//storage.googleapis.com/acme-shop-uploads",
+		"assetType": "storage.googleapis.com/Bucket",
+		"project": "projects/482915730621",
+		"displayName": "acme-shop-uploads",
+		"location": "us-central1",
+		"labels": {
+			"app": "media"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//eventarc.googleapis.com/projects/acme-shop-prod/locations/us-central1/triggers/on-upload",
+		"assetType": "eventarc.googleapis.com/Trigger",
+		"project": "projects/482915730621",
+		"displayName": "on-upload",
+		"location": "us-central1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//cloudscheduler.googleapis.com/projects/acme-shop-prod/locations/us-central1/jobs/nightly-export",
+		"assetType": "cloudscheduler.googleapis.com/Job",
+		"project": "projects/482915730621",
+		"displayName": "nightly-export",
+		"location": "us-central1",
+		"labels": {
+			"app": "analytics"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//bigquery.googleapis.com/projects/acme-shop-prod/datasets/analytics",
+		"assetType": "bigquery.googleapis.com/Dataset",
+		"project": "projects/482915730621",
+		"displayName": "analytics",
+		"location": "US",
+		"labels": {
+			"app": "analytics"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//container.googleapis.com/projects/acme-shop-prod/locations/europe-west1/clusters/shop-gke",
+		"assetType": "container.googleapis.com/Cluster",
+		"project": "projects/482915730621",
+		"displayName": "shop-gke",
+		"location": "europe-west1",
+		"labels": {
+			"app": "catalog"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//secretmanager.googleapis.com/projects/482915730621/secrets/stripe-key",
+		"assetType": "secretmanager.googleapis.com/Secret",
+		"project": "projects/482915730621",
+		"displayName": "stripe-key",
+		"location": "global",
+		"labels": {
+			"app": "checkout"
+		},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//artifactregistry.googleapis.com/projects/acme-shop-prod/locations/us-central1/repositories/containers",
+		"assetType": "artifactregistry.googleapis.com/Repository",
+		"project": "projects/482915730621",
+		"displayName": "containers",
+		"location": "us-central1",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	},
+	{
+		"name": "//iam.googleapis.com/projects/acme-shop-prod/serviceAccounts/checkout@acme-shop-prod.iam.gserviceaccount.com",
+		"assetType": "iam.googleapis.com/ServiceAccount",
+		"project": "projects/482915730621",
+		"displayName": "checkout@acme-shop-prod.iam.gserviceaccount.com",
+		"location": "global",
+		"labels": {},
+		"parentFullResourceName": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+		"parentAssetType": "cloudresourcemanager.googleapis.com/Project",
+		"organization": "organizations/731905518234",
+		"folders": [
+			"folders/220461187411"
+		],
+		"createTime": "2026-09-14T08:12:03Z",
+		"updateTime": "2026-09-14T08:12:03Z",
+		"state": "ACTIVE"
+	}
+]

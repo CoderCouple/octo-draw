@@ -16,6 +16,10 @@ import { duplicateSelection, handleCopy, isTypingTarget, selectAll } from '../li
 import { renameNode } from '../lib/actions'
 import { makeMeasure, FONT_STACK } from '../lib/text'
 import { setLocalCursor } from '../lib/sync'
+import { currentPins, drillTo, exitFocusTo, focusOn, mergeCurrentPins, setCurrentPins, toggleCollapsed } from '../lib/view'
+import { pagePins } from '../lib/pages'
+import { installNavigator } from './drillNav'
+import { Breadcrumbs } from './Breadcrumbs'
 
 type Gesture =
 	| { type: 'pan'; sx: number; sy: number; cx: number; cy: number }
@@ -53,7 +57,12 @@ export function Canvas() {
 	const ir = useStore((s) => s.ir)
 	const layout = useStore((s) => s.layout)
 	const shapes = useStore((s) => s.shapes)
-	const pins = useStore((s) => s.pins)
+	const allPins = useStore((s) => s.pins)
+	const page = useStore((s) => s.page)
+	const pageNames = useStore((s) => s.pageNames)
+	const pins = useMemo(() => pagePins(allPins, page, pageNames), [allPins, page, pageNames])
+	const drill = useStore((s) => s.drill)
+	const collapsedHere = useStore((s) => s.collapsed[s.page])
 	const selection = useStore((s) => s.selection)
 	const tool = useStore((s) => s.tool)
 	const aiBusy = useStore((s) => s.aiBusy)
@@ -117,6 +126,27 @@ export function Canvas() {
 		if (fitRequest) fitBounds(contentBounds(), 1.25, fitStrict)
 	}, [fitRequest])
 
+	useEffect(() => installNavigator(() => worldRef.current, contentBounds), [])
+
+	// collapsing/expanding a group: nodes glide to their new places, edges fade in
+	const morphPending = useRef(false)
+	const firstCollapse = useRef(true)
+	const [morphing, setMorphing] = useState(false)
+	useEffect(() => {
+		if (firstCollapse.current) {
+			firstCollapse.current = false
+			return
+		}
+		morphPending.current = true
+	}, [collapsedHere])
+	useLayoutEffect(() => {
+		if (!morphPending.current) return
+		morphPending.current = false
+		setMorphing(true)
+		const t = setTimeout(() => setMorphing(false), 420)
+		return () => clearTimeout(t)
+	}, [layout])
+
 	// wheel: pan, ctrl/pinch zoom (non-passive so we can preventDefault)
 	useEffect(() => {
 		const el = rootRef.current
@@ -172,6 +202,18 @@ export function Canvas() {
 				duplicateSelection()
 				return
 			}
+			if (!mod && (e.key === 'Enter' || e.key === 'F2')) {
+				const s = useStore.getState()
+				const key = s.selection?.kind === 'node' ? s.selection.key : null
+				if (!key || isGhost(key) || !s.layout?.nodes[key]) return
+				e.preventDefault()
+				if (e.key === 'F2') setEditing({ kind: 'node', key })
+				else if (s.drill[key]) drillTo(s.drill[key], key)
+				else if (s.layout.nodes[key].isContainer) focusOn(key)
+				else if (s.ir?.nodes.find((n) => n.key === key)?.ext?.collapsed !== undefined) toggleCollapsed(key)
+				else setEditing({ kind: 'node', key })
+				return
+			}
 			if (!mod && e.key.startsWith('Arrow')) {
 				const s = useStore.getState()
 				const ids = new Set(selectedIds(s.selection))
@@ -182,12 +224,13 @@ export function Canvas() {
 				const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
 				const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
 				pushHistory(snapshot(), 'nudge', 600)
-				const pins = { ...s.pins }
+				const pins = currentPins(s)
 				for (const key of keys) {
 					const n = s.layout?.nodes[key]
-					if (n) pins[key] = { x: n.x + dx, y: n.y + dy }
+					if (n && !isGhost(key)) pins[key] = { x: n.x + dx, y: n.y + dy }
 				}
-				useStore.setState({ shapes: ids.size ? s.shapes.map((x) => (ids.has(x.id) ? translateShape(x, dx, dy) : x)) : s.shapes, pins })
+				if (ids.size) useStore.setState({ shapes: s.shapes.map((x) => (ids.has(x.id) ? translateShape(x, dx, dy) : x)) })
+				if (keys.length) setCurrentPins(pins, 'none')
 			}
 		}
 		const onCopy = (e: ClipboardEvent) => handleCopy(e)
@@ -293,6 +336,25 @@ export function Canvas() {
 		}
 		const nodeKey = target.closest('[data-node]')?.getAttribute('data-node') ?? null
 		const shapeId = target.closest('[data-shape]')?.getAttribute('data-shape') ?? null
+		if (tool === 'select' && !shapeId && !e.shiftKey) {
+			const chevron = target.closest('[data-chevron]')?.getAttribute('data-chevron')
+			if (chevron) {
+				root.releasePointerCapture(e.pointerId)
+				toggleCollapsed(chevron)
+				return
+			}
+			const mark = target.closest('[data-drill]')?.getAttribute('data-drill')
+			if (mark && s.drill[mark]) {
+				root.releasePointerCapture(e.pointerId)
+				drillTo(s.drill[mark], mark)
+				return
+			}
+			if (nodeKey && isGhost(nodeKey)) {
+				root.releasePointerCapture(e.pointerId)
+				exitFocusTo(s.ir?.nodes.find((n) => n.key === nodeKey)?.ext?.ghostOf ?? nodeKey)
+				return
+			}
+		}
 		switch (tool) {
 			case 'select': {
 				const handle = target.closest('[data-handle]')?.getAttribute('data-handle') ?? null
@@ -435,7 +497,7 @@ export function Canvas() {
 					const st = useStore.getState()
 					const parents = new Map((st.ir?.nodes ?? []).map((n) => [n.key, n.parent]))
 					const moving = new Set(g.keys)
-					for (const [k, pin] of Object.entries(st.pins)) {
+for (const [k, pin] of Object.entries(currentPins(st))) {
 						if (moving.has(k)) continue
 						let a = parents.get(k)
 						let guard = 0
@@ -546,7 +608,7 @@ export function Canvas() {
 			case 'move':
 				if (g.moved) {
 					pushHistory(g.before)
-					if (dragRef.current) useStore.setState({ pins: { ...s.pins, ...dragRef.current } })
+if (dragRef.current) mergeCurrentPins(dragRef.current)
 				} else if (!g.shift && selectedIds(s.selection).length + selectedKeys(s.selection).length > 1) {
 					// plain click inside a multi-selection narrows it to the clicked item
 					useStore.setState({ selection: makeSelection(g.clicked.id ? [g.clicked.id] : [], g.clicked.key ? [g.clicked.key] : []) })
@@ -611,10 +673,14 @@ export function Canvas() {
 			return
 		}
 		const key = target.closest('[data-node]')?.getAttribute('data-node')
-		if (key && s.layout?.nodes[key]) {
-			useStore.setState({ selection: { kind: 'node', key } })
-			setEditing({ kind: 'node', key })
-		}
+		if (!key || !s.layout?.nodes[key] || isGhost(key)) return
+		if (target.closest('[data-chevron]')) return
+		// drillable nodes open their page; a group header focuses the group; a collapsed group expands
+		if (s.drill[key]) return drillTo(s.drill[key], key)
+		if (s.layout.nodes[key].isContainer && target.closest('[data-group-header]')) return focusOn(key)
+		if (s.ir?.nodes.find((n) => n.key === key)?.ext?.collapsed !== undefined) return toggleCollapsed(key)
+		useStore.setState({ selection: { kind: 'node', key } })
+		setEditing({ kind: 'node', key })
 	}
 
 	const selIds = selectedIds(selection)
@@ -634,7 +700,7 @@ export function Canvas() {
 	return (
 		<div
 			ref={rootRef}
-			className="canvas-root"
+			className={`canvas-root${morphing ? ' octo-morph' : ''}`}
 			data-tool={tool}
 			style={{ cursor, backgroundColor: surf.bg, backgroundImage: `radial-gradient(${surf.dot} 1px, transparent 1px)` }}
 			onPointerDown={onPointerDown}
@@ -656,6 +722,7 @@ export function Canvas() {
 							theme={theme}
 							selectedKey={selection?.kind === 'node' ? selection.key : null}
 							editingKey={editing?.kind === 'node' ? editing.key : null}
+							drill={drill}
 						/>
 					)}
 					<g data-layer="freehand">
@@ -745,9 +812,12 @@ export function Canvas() {
 					)}
 				</g>
 			</svg>
+			<Breadcrumbs />
 		</div>
 	)
 }
+
+const isGhost = (key: string) => useStore.getState().ir?.nodes.find((n) => n.key === key)?.ext?.ghost === 'true'
 
 function aiCursorPoint(layout: DiagramLayout, order: string[]): Point | null {
 	for (let i = order.length - 1; i >= 0; i--) {

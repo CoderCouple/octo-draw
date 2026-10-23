@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { DiagramIR, DiagramLayout, Diagnostic, Point } from '@octo-draw/core'
 import { STARTER } from './starter'
+import { ROOT_CRUMB, type Crumb } from './lib/pages'
 
 export type Tool = 'select' | 'hand' | 'pen' | 'rect' | 'ellipse' | 'arrow' | 'text' | 'sticky' | 'eraser'
 
@@ -63,6 +64,22 @@ interface State extends Snapshot {
 	fitRequest: number
 	/** true: the last fit request wants everything visible (zoom-to-fit button) */
 	fitStrict: boolean
+
+	// drill-down view state (localStorage, not code)
+	/** current page name; '' is the root page */
+	page: string
+	/** drill path, root first; the last crumb is what the canvas shows */
+	crumbs: Crumb[]
+	/** collapsed group keys per page */
+	collapsed: Record<string, string[]>
+	/** page names in source order (root '' first) */
+	pageNames: string[]
+	/** the current page's IR before collapse/focus */
+	pageIR: DiagramIR | null
+	/** node key → page it drills into, for the rendered view */
+	drill: Record<string, string>
+	/** `title` directive of the root page */
+	rootTitle?: string
 }
 
 export const useStore = create<State>(() => ({
@@ -85,6 +102,12 @@ export const useStore = create<State>(() => ({
 	toast: null,
 	fitRequest: 0,
 	fitStrict: false,
+	page: '',
+	crumbs: [ROOT_CRUMB],
+	collapsed: {},
+	pageNames: [''],
+	pageIR: null,
+	drill: {},
 }))
 
 const get = useStore.getState

@@ -1,6 +1,6 @@
 /** Structured description of a diagram for agents: IR (without source spans) plus summary stats. */
 
-import { parseOcto, type DiagramIR } from '@octo-draw/core'
+import { parseOcto, parseOctoPages, parsePage, type DiagramIR } from '@octo-draw/core'
 
 export interface DiagramStats {
 	kind: DiagramIR['kind']
@@ -24,7 +24,8 @@ export interface DiagramStats {
 }
 
 export function describeDiagram(code: string): { ir: DiagramIR; stats: DiagramStats; summary: string } {
-	const { ir, diagnostics } = parseOcto(code)
+	const { ir } = parsePage(code, '') ?? parseOcto(code)
+	const { diagnostics } = parseOctoPages(code)
 	const clean: DiagramIR = {
 		...ir,
 		nodes: ir.nodes.map(({ span: _s, ...n }) => n),

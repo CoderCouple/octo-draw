@@ -128,12 +128,80 @@ users.id < posts.authorId: writes
 posts <> tags
 `
 
+const DRILL = `// Drill-down: double-click a node with the corner mark to open its page.
+// Each \`page\` line starts a sub-diagram; the chevron on a group collapses it.
+title Checkout platform
+direction right
+colorMode pastel
+styleMode shadow
+
+Shopper [icon: user, shape: oval]
+Web app [icon: monitor]
+API gateway [icon: server]
+Checkout [icon: shopping-cart, color: blue, drill: Checkout flow]
+Payments [icon: credit-card, color: green]
+Fulfillment [icon: truck, color: orange]
+
+Data [icon: database, color: purple] {
+  Orders DB [icon: database, shape: cylinder]
+  Cache [icon: zap]
+  Events [icon: radio]
+}
+
+Shopper > Web app > API gateway
+API gateway > Checkout, Payments
+Checkout > Payments: charge
+Checkout > Fulfillment: ship
+Checkout > Orders DB
+Payments > Events: paid
+Fulfillment > Events
+API gateway > Cache
+
+page Checkout flow
+sequence
+Shopper [icon: user]
+Web app [icon: monitor]
+Checkout [icon: shopping-cart]
+Payments [icon: credit-card]
+Shopper > Web app: Place order
+Web app > Checkout: POST /checkout
+activate Checkout
+Checkout > Payments: authorize
+Payments --> Checkout: approved
+Checkout --> Web app: 201 created
+deactivate Checkout
+Web app --> Shopper: Order confirmed
+
+page Payments
+direction right
+Authorize [icon: shield-check]
+Fraud check [shape: diamond]
+Capture [icon: credit-card]
+Refund [icon: undo-2, color: red]
+Authorize > Fraud check
+Fraud check > Capture: ok
+Fraud check > Refund: suspicious
+Ledger [icon: book-open]
+Capture --> Ledger
+
+page Fulfillment
+direction down
+Warehouse [color: orange] {
+  Pick [icon: hand]
+  Pack [icon: package]
+}
+Carrier [icon: truck]
+Delivered [shape: oval, icon: check]
+Pick > Pack > Carrier > Delivered
+`
+
 /** Starter diagrams, one per kind: the top bar's Examples menu and `?example=<id>`. */
 export const EXAMPLES: Example[] = [
 	{ id: 'flowchart', label: 'Flowchart', code: FLOWCHART },
 	{ id: 'architecture', label: 'Cloud architecture', code: ARCHITECTURE },
 	{ id: 'sequence', label: 'Sequence diagram', code: SEQUENCE },
 	{ id: 'erd', label: 'Entity relationship', code: ERD },
+	{ id: 'drill', label: 'Drill-down', code: DRILL },
 ]
 
 export function getExample(id: string): Example | undefined {

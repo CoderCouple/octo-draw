@@ -1,0 +1,5 @@
+{
+  "name": "@acme/web",
+  "dependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "@acme/shared": "workspace:*" },
+  "devDependencies": { "vite": "^7.0.0" }
+}

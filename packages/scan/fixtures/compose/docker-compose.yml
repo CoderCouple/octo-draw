@@ -1,0 +1,47 @@
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on: [web, api]
+    networks: [edge]
+  web:
+    build: ./web
+    networks: [edge]
+  api:
+    build:
+      context: ./api
+    environment:
+      DATABASE_URL: postgres://app:supersecret@db:5432/app
+      REDIS_HOST: cache
+    depends_on:
+      db:
+        condition: service_healthy
+    links:
+      - broker
+    networks: [backend]
+  db:
+    image: bitnami/postgresql:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: supersecret
+    networks: [backend]
+  cache:
+    image: redis:7
+    networks: [backend]
+  broker:
+    image: confluentinc/cp-kafka:7.6.0
+    networks: [backend]
+  worker:
+    build: ./worker
+    depends_on: [broker, db]
+    volumes:
+      - ./local:/data
+    networks: [backend]
+volumes:
+  pgdata: {}
+networks:
+  edge: {}
+  backend: {}

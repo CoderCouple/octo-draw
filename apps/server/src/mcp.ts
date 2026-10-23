@@ -11,7 +11,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import { importText, parseOcto, printOcto, toMermaid } from '@octo-draw/core'
+import { importText, parseOcto, parseOctoPages, parsePage, printOcto, toMermaid } from '@octo-draw/core'
 import { AgentActionZ } from './schema'
 import { DSL_REFERENCE } from './prompts'
 import { describeDiagram } from './describe'
@@ -56,7 +56,7 @@ const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true })
 
 function diagnostics(code: string): string {
-	const errs = parseOcto(code).diagnostics.filter((d) => d.severity === 'error')
+	const errs = parseOctoPages(code).diagnostics.filter((d) => d.severity === 'error')
 	return errs.length ? `\n\nParse errors:\n${errs.map((d) => `- ${d.message} (offset ${d.from})`).join('\n')}` : ''
 }
 
@@ -155,7 +155,7 @@ server.registerTool(
 	},
 	({ docId }) => guard(async () => {
 		const doc = await call('GET', withDoc('/api/doc', docId))
-		return text(toMermaid(parseOcto(doc.code).ir))
+		return text(toMermaid((parsePage(doc.code, '') ?? parseOcto(doc.code)).ir))
 	}),
 )
 
@@ -194,6 +194,37 @@ server.registerTool(
 		}
 		if (!res.ok) throw new Error(`HTTP ${res.status}`)
 		return text(await res.text())
+	}),
+)
+
+server.registerTool(
+	'scan_source',
+	{
+		title: 'Scan source',
+		description:
+			'Scan a code repository or infrastructure files and return an architecture diagram as octo DSL with drill-down pages ' +
+			'(workspaces/services, docker-compose, Kubernetes, Terraform, OpenAPI, external systems inferred from dependencies, ' +
+			'a module graph page per package). `source` is a local folder (must be under OCTO_SCAN_ROOTS, default the home directory) ' +
+			'or a remote source: github.com/owner/repo[/tree/ref/subdir], owner/repo@ref. Set apply: true to also make it the current diagram.',
+		inputSchema: {
+			source: z.string().optional().describe('Folder path or source URL / shorthand'),
+			path: z.string().optional().describe('Local folder path (same as source for folders)'),
+			only: z.array(z.enum(['code', 'compose', 'k8s', 'terraform', 'openapi'])).optional().describe('Run only these analyzers'),
+			apply: z.boolean().optional().describe('Also replace the current diagram with the result'),
+			docId: DOC_ID,
+		},
+	},
+	({ source, path, only, apply, docId }) => guard(async () => {
+		if (!source && !path) return fail('Give "source" (folder, github.com/owner/repo, ...) or "path".')
+		const r = (await call('POST', '/api/scan', { source, path, only })) as unknown as { code: string; findings: { analyzer: string; confidence: number; notes?: string[] }[]; warnings: string[] }
+		const findings = r.findings.map((f) => `- ${f.analyzer} (${Math.round(f.confidence * 100)}%): ${(f.notes ?? []).join('; ')}`).join('\n')
+		const warnings = r.warnings.length ? `\n\nWarnings:\n${r.warnings.map((w) => `- ${w}`).join('\n')}` : ''
+		let applied = ''
+		if (apply) {
+			const doc = await call('PUT', withDoc('/api/doc', docId), { code: r.code, source: SOURCE })
+			applied = `\n\nSet as the current diagram (version ${doc.version}).`
+		}
+		return text(`Findings:\n${findings || '- nothing recognised'}${warnings}${applied}\n\n${r.code}`)
 	}),
 )
 

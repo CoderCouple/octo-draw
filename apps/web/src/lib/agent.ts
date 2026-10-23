@@ -160,7 +160,7 @@ export async function sendAgent(prompt: string) {
 		const res = await fetch('/api/agent/stream', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ prompt: text, code: startCode, history, selection, source: 'agent:AI' }),
+			body: JSON.stringify({ prompt: text, code: startCode, history, selection, page: st.page, source: 'agent:AI' }),
 			signal: ctrl.signal,
 		})
 		if (!res.ok || !res.body) throw new Error(await res.text().catch(() => res.statusText))

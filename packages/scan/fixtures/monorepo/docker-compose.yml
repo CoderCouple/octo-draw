@@ -1,0 +1,19 @@
+services:
+  api:
+    build: ./apps/api
+    ports: ["4000:4000"]
+    environment:
+      DATABASE_URL: postgres://acme@postgres:5432/acme
+    depends_on: [postgres, redis]
+  web:
+    build:
+      context: ./apps/web
+    ports: ["8080:80"]
+    depends_on: [api]
+  postgres:
+    image: postgres:16
+    volumes: [pgdata:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+volumes:
+  pgdata:

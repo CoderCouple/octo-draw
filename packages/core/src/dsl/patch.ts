@@ -5,6 +5,7 @@
 
 import { analyzeOcto } from './parse'
 import { printEdge, quoteName, quoteValue } from './print'
+import { editPage, findPage, splitPages } from '../drill/pages'
 
 function splice(src: string, from: number, to: number, text: string): string {
 	return src.slice(0, from) + text + src.slice(to)
@@ -16,7 +17,22 @@ export function appendLine(src: string, line: string): string {
 	return src.endsWith('\n') ? src + line + '\n' : src + '\n' + line + '\n'
 }
 
-export function setNodeProp(src: string, key: string, prop: string, value: string | null): string {
+/** Run `edit` on one page's body (root by default); an unknown page leaves `src` unchanged. */
+function onPage(src: string, page: string | undefined, edit: (body: string) => string): string {
+	if (!page && !src.includes('page')) return edit(src)
+	if (page && !findPage(splitPages(src), page)) return src
+	return editPage(src, page, edit)
+}
+
+/**
+ * `page` (default root `''`) limits the edit to that page's section of a
+ * multi-page source; an implicit node gets its declaration line inside it.
+ */
+export function setNodeProp(src: string, key: string, prop: string, value: string | null, page?: string): string {
+	return onPage(src, page, (body) => patchNodeProp(body, key, prop, value))
+}
+
+function patchNodeProp(src: string, key: string, prop: string, value: string | null): string {
 	const { decls } = analyzeOcto(src)
 	const d = decls.get(key)
 	if (!d) {
@@ -43,7 +59,7 @@ export function setNodeProp(src: string, key: string, prop: string, value: strin
 		else if (idx < entries.length - 1) out = splice(src, entries[idx].from, entries[idx + 1].from, '')
 		else out = splice(src, entries[idx - 1].to, entries[idx].to, '')
 		// Remove duplicates of the same prop, if any.
-		return entries.filter((e) => e.key === prop).length > 1 ? setNodeProp(out, key, prop, null) : out
+		return entries.filter((e) => e.key === prop).length > 1 ? patchNodeProp(out, key, prop, null) : out
 	}
 	const text = `${prop}: ${quoteValue(value)}`
 	if (idx >= 0) return splice(src, entries[idx].keyTo, entries[idx].to, `: ${quoteValue(value)}`)
@@ -53,8 +69,8 @@ export function setNodeProp(src: string, key: string, prop: string, value: strin
 	return splice(src, last.to, last.to, `, ${text}${close}`)
 }
 
-export function renameNodeLabel(src: string, key: string, label: string): string {
-	return setNodeProp(src, key, 'label', label)
+export function renameNodeLabel(src: string, key: string, label: string, page?: string): string {
+	return setNodeProp(src, key, 'label', label, page)
 }
 
 /** Split a props-block body on top-level commas (quotes respected). */
@@ -89,7 +105,11 @@ const entryKey = (raw: string) => raw.split(':')[0].trim()
  * minimal edit of its trailing `[...]`; a branching/chained statement is split
  * into one line per edge first so only the target edge changes.
  */
-export function setEdgeProp(src: string, edgeKey: string, prop: string, value: string | null): string {
+export function setEdgeProp(src: string, edgeKey: string, prop: string, value: string | null, page?: string): string {
+	return onPage(src, page, (body) => patchEdgeProp(body, edgeKey, prop, value))
+}
+
+function patchEdgeProp(src: string, edgeKey: string, prop: string, value: string | null): string {
 	const { statements } = analyzeOcto(src)
 	for (const s of statements) {
 		if (s.kind !== 'connection') continue

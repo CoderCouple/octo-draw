@@ -1,0 +1,928 @@
+[
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/networks/shop-vpc",
+		"assetType": "compute.googleapis.com/Network",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Network",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-vpc",
+				"selfLink": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/networks/shop-vpc",
+				"autoCreateSubnetworks": false,
+				"routingConfig": {
+					"routingMode": "GLOBAL"
+				},
+				"subnetworks": [
+					"https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1",
+					"https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/europe-west1/subnetworks/shop-europe-west1"
+				]
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1",
+		"assetType": "compute.googleapis.com/Subnetwork",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Subnetwork",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-us-central1",
+				"ipCidrRange": "10.10.0.0/20",
+				"network": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/networks/shop-vpc",
+				"region": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1",
+				"privateIpGoogleAccess": true,
+				"selfLink": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1"
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/europe-west1/subnetworks/shop-europe-west1",
+		"assetType": "compute.googleapis.com/Subnetwork",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Subnetwork",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-europe-west1",
+				"ipCidrRange": "10.20.0.0/20",
+				"network": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/networks/shop-vpc",
+				"region": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/europe-west1",
+				"selfLink": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/europe-west1/subnetworks/shop-europe-west1",
+				"secondaryIpRanges": [
+					{
+						"rangeName": "pods",
+						"ipCidrRange": "10.64.0.0/14"
+					}
+				]
+			},
+			"location": "europe-west1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/forwardingRules/shop-https-fr",
+		"assetType": "compute.googleapis.com/GlobalForwardingRule",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "GlobalForwardingRule",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-https-fr",
+				"IPAddress": "203.0.113.10",
+				"IPProtocol": "TCP",
+				"portRange": "443-443",
+				"target": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/targetHttpsProxies/shop-https-proxy",
+				"loadBalancingScheme": "EXTERNAL_MANAGED",
+				"selfLink": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/forwardingRules/shop-https-fr"
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/targetHttpsProxies/shop-https-proxy",
+		"assetType": "compute.googleapis.com/TargetHttpsProxy",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "TargetHttpsProxy",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-https-proxy",
+				"urlMap": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/urlMaps/shop-urlmap",
+				"sslCertificates": [
+					"https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/sslCertificates/shop-cert"
+				]
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/urlMaps/shop-urlmap",
+		"assetType": "compute.googleapis.com/UrlMap",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "UrlMap",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-urlmap",
+				"defaultService": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/backendServices/checkout-backend",
+				"hostRules": [
+					{
+						"hosts": [
+							"shop.acme.example"
+						],
+						"pathMatcher": "main"
+					}
+				],
+				"pathMatchers": [
+					{
+						"name": "main",
+						"defaultService": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/backendServices/checkout-backend",
+						"pathRules": [
+							{
+								"paths": [
+									"/static/*"
+								],
+								"service": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/backendBuckets/static-assets"
+							},
+							{
+								"paths": [
+									"/legacy/*"
+								],
+								"service": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/backendServices/legacy-backend"
+							}
+						]
+					}
+				]
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendServices/checkout-backend",
+		"assetType": "compute.googleapis.com/BackendService",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "BackendService",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "checkout-backend",
+				"protocol": "HTTPS",
+				"loadBalancingScheme": "EXTERNAL_MANAGED",
+				"backends": [
+					{
+						"group": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1/networkEndpointGroups/checkout-neg",
+						"balancingMode": "UTILIZATION"
+					}
+				]
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendServices/legacy-backend",
+		"assetType": "compute.googleapis.com/BackendService",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "BackendService",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "legacy-backend",
+				"protocol": "HTTP",
+				"port": 80,
+				"backends": [
+					{
+						"group": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/zones/us-central1-a/instanceGroups/legacy-mig",
+						"balancingMode": "UTILIZATION"
+					}
+				],
+				"healthChecks": [
+					"https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/healthChecks/legacy-hc"
+				]
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/global/backendBuckets/static-assets",
+		"assetType": "compute.googleapis.com/BackendBucket",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "BackendBucket",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "static-assets",
+				"bucketName": "acme-shop-static",
+				"enableCdn": true
+			},
+			"location": "global"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/regions/us-central1/networkEndpointGroups/checkout-neg",
+		"assetType": "compute.googleapis.com/NetworkEndpointGroup",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "NetworkEndpointGroup",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "checkout-neg",
+				"networkEndpointType": "SERVERLESS",
+				"cloudRun": {
+					"service": "checkout-api"
+				},
+				"region": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1"
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instanceGroupManagers/legacy-mig",
+		"assetType": "compute.googleapis.com/InstanceGroupManager",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "InstanceGroupManager",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "legacy-mig",
+				"baseInstanceName": "legacy-vm",
+				"instanceGroup": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/zones/us-central1-a/instanceGroups/legacy-mig",
+				"instanceTemplate": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/instanceTemplates/legacy-tmpl-3",
+				"targetSize": 2,
+				"zone": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/zones/us-central1-a"
+			},
+			"location": "us-central1-a"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instances/legacy-vm-1",
+		"assetType": "compute.googleapis.com/Instance",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Instance",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "legacy-vm-1",
+				"machineType": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/zones/us-central1-a/machineTypes/e2-medium",
+				"status": "RUNNING",
+				"networkInterfaces": [
+					{
+						"network": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/networks/shop-vpc",
+						"subnetwork": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1",
+						"networkIP": "10.10.1.11"
+					}
+				],
+				"metadata": {
+					"items": [
+						{
+							"key": "created-by",
+							"value": "projects/482915730621/zones/us-central1-a/instanceGroupManagers/legacy-mig"
+						},
+						{
+							"key": "startup-script",
+							"value": "export DB_PASSWORD=hunter2 && ./run.sh"
+						}
+					]
+				}
+			},
+			"location": "us-central1-a"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//compute.googleapis.com/projects/acme-shop-prod/zones/us-central1-a/instances/legacy-vm-2",
+		"assetType": "compute.googleapis.com/Instance",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Instance",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "legacy-vm-2",
+				"machineType": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/zones/us-central1-a/machineTypes/e2-medium",
+				"status": "RUNNING",
+				"networkInterfaces": [
+					{
+						"network": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/global/networks/shop-vpc",
+						"subnetwork": "https://www.googleapis.com/compute/v1/projects/acme-shop-prod/regions/us-central1/subnetworks/shop-us-central1",
+						"networkIP": "10.10.1.12"
+					}
+				],
+				"metadata": {
+					"items": [
+						{
+							"key": "created-by",
+							"value": "projects/482915730621/zones/us-central1-a/instanceGroupManagers/legacy-mig"
+						}
+					]
+				}
+			},
+			"location": "us-central1-a"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/checkout-api",
+		"assetType": "run.googleapis.com/Service",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Service",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"apiVersion": "serving.knative.dev/v1",
+				"kind": "Service",
+				"metadata": {
+					"name": "checkout-api",
+					"namespace": "482915730621",
+					"labels": {
+						"app": "checkout",
+						"cloud.googleapis.com/location": "us-central1"
+					},
+					"annotations": {
+						"run.googleapis.com/ingress": "internal-and-cloud-load-balancing"
+					}
+				},
+				"spec": {
+					"template": {
+						"metadata": {
+							"annotations": {
+								"run.googleapis.com/vpc-access-connector": "projects/acme-shop-prod/locations/us-central1/connectors/shop-connector",
+								"run.googleapis.com/vpc-access-egress": "private-ranges-only",
+								"run.googleapis.com/cloudsql-instances": "acme-shop-prod:us-central1:shop-pg",
+								"autoscaling.knative.dev/maxScale": "20"
+							}
+						},
+						"spec": {
+							"serviceAccountName": "checkout@acme-shop-prod.iam.gserviceaccount.com",
+							"containers": [
+								{
+									"image": "us-central1-docker.pkg.dev/acme-shop-prod/containers/checkout-api:2026.10.02",
+									"ports": [
+										{
+											"containerPort": 8080
+										}
+									],
+									"env": [
+										{
+											"name": "ORDERS_TOPIC",
+											"value": "projects/acme-shop-prod/topics/orders"
+										},
+										{
+											"name": "REDIS_HOST",
+											"value": "10.10.5.3"
+										},
+										{
+											"name": "SESSION_SECRET",
+											"value": "gcp-session-secret-value"
+										},
+										{
+											"name": "STRIPE_KEY",
+											"valueFrom": {
+												"secretKeyRef": {
+													"name": "stripe-key",
+													"key": "latest"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					"traffic": [
+						{
+							"percent": 100,
+							"latestRevision": true
+						}
+					]
+				},
+				"status": {
+					"url": "https://checkout-api-4qx7lz2hfa-uc.a.run.app",
+					"latestReadyRevisionName": "checkout-api-00042-xuv"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/fulfillment",
+		"assetType": "run.googleapis.com/Service",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Service",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"apiVersion": "serving.knative.dev/v1",
+				"kind": "Service",
+				"metadata": {
+					"name": "fulfillment",
+					"labels": {
+						"app": "checkout"
+					}
+				},
+				"spec": {
+					"template": {
+						"metadata": {
+							"annotations": {
+								"run.googleapis.com/cloudsql-instances": "acme-shop-prod:us-central1:shop-pg"
+							}
+						},
+						"spec": {
+							"containers": [
+								{
+									"image": "us-central1-docker.pkg.dev/acme-shop-prod/containers/fulfillment:2026.10.02"
+								}
+							]
+						}
+					}
+				},
+				"status": {
+					"url": "https://fulfillment-4qx7lz2hfa-uc.a.run.app"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/image-resizer",
+		"assetType": "run.googleapis.com/Service",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Service",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"apiVersion": "serving.knative.dev/v1",
+				"kind": "Service",
+				"metadata": {
+					"name": "image-resizer",
+					"labels": {
+						"app": "media"
+					}
+				},
+				"spec": {
+					"template": {
+						"spec": {
+							"containers": [
+								{
+									"image": "us-central1-docker.pkg.dev/acme-shop-prod/containers/image-resizer:1.4.0",
+									"env": [
+										{
+											"name": "OUTPUT_BUCKET",
+											"value": "gs://acme-shop-static/thumbs"
+										}
+									]
+								}
+							]
+						}
+					}
+				},
+				"status": {
+					"url": "https://image-resizer-4qx7lz2hfa-uc.a.run.app"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//run.googleapis.com/projects/acme-shop-prod/locations/us-central1/services/send-receipt",
+		"assetType": "run.googleapis.com/Service",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Service",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"apiVersion": "serving.knative.dev/v1",
+				"kind": "Service",
+				"metadata": {
+					"name": "send-receipt",
+					"labels": {
+						"goog-managed-by": "cloudfunctions"
+					}
+				},
+				"status": {
+					"url": "https://send-receipt-4qx7lz2hfa-uc.a.run.app"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//cloudfunctions.googleapis.com/projects/acme-shop-prod/locations/us-central1/functions/send-receipt",
+		"assetType": "cloudfunctions.googleapis.com/Function",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Function",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/functions/send-receipt",
+				"environment": "GEN_2",
+				"state": "ACTIVE",
+				"buildConfig": {
+					"runtime": "nodejs22",
+					"entryPoint": "sendReceipt"
+				},
+				"serviceConfig": {
+					"service": "projects/acme-shop-prod/locations/us-central1/services/send-receipt",
+					"uri": "https://send-receipt-4qx7lz2hfa-uc.a.run.app",
+					"environmentVariables": {
+						"SENDGRID_API_KEY": "SG.not-a-real-key",
+						"FROM_ADDRESS": "receipts@acme.example"
+					}
+				},
+				"eventTrigger": {
+					"trigger": "projects/acme-shop-prod/locations/us-central1/triggers/send-receipt-123456",
+					"eventType": "google.cloud.pubsub.topic.v1.messagePublished",
+					"pubsubTopic": "projects/acme-shop-prod/topics/orders",
+					"retryPolicy": "RETRY_POLICY_RETRY"
+				},
+				"labels": {
+					"app": "checkout"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//cloudfunctions.googleapis.com/projects/acme-shop-prod/locations/us-central1/functions/export-orders",
+		"assetType": "cloudfunctions.googleapis.com/CloudFunction",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "CloudFunction",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/functions/export-orders",
+				"runtime": "python312",
+				"entryPoint": "export",
+				"status": "ACTIVE",
+				"eventTrigger": {
+					"eventType": "google.pubsub.topic.publish",
+					"resource": "projects/acme-shop-prod/topics/exports",
+					"service": "pubsub.googleapis.com"
+				},
+				"environmentVariables": {
+					"DATASET": "projects/acme-shop-prod/datasets/analytics"
+				},
+				"labels": {
+					"app": "analytics"
+				}
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//vpcaccess.googleapis.com/projects/acme-shop-prod/locations/us-central1/connectors/shop-connector",
+		"assetType": "vpcaccess.googleapis.com/Connector",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Connector",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/connectors/shop-connector",
+				"network": "shop-vpc",
+				"ipCidrRange": "10.8.0.0/28",
+				"state": "READY",
+				"minInstances": 2,
+				"maxInstances": 3
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//sqladmin.googleapis.com/projects/acme-shop-prod/instances/shop-pg",
+		"assetType": "sqladmin.googleapis.com/Instance",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Instance",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-pg",
+				"connectionName": "acme-shop-prod:us-central1:shop-pg",
+				"databaseVersion": "POSTGRES_16",
+				"region": "us-central1",
+				"settings": {
+					"tier": "db-custom-2-7680",
+					"ipConfiguration": {
+						"ipv4Enabled": false,
+						"privateNetwork": "projects/acme-shop-prod/global/networks/shop-vpc"
+					},
+					"userLabels": {
+						"app": "checkout"
+					}
+				},
+				"ipAddresses": [
+					{
+						"type": "PRIVATE",
+						"ipAddress": "10.30.0.5"
+					}
+				]
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//redis.googleapis.com/projects/acme-shop-prod/locations/us-central1/instances/shop-cache",
+		"assetType": "redis.googleapis.com/Instance",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Instance",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/instances/shop-cache",
+				"host": "10.10.5.3",
+				"port": 6379,
+				"tier": "STANDARD_HA",
+				"memorySizeGb": 5,
+				"authorizedNetwork": "projects/acme-shop-prod/global/networks/shop-vpc",
+				"redisVersion": "REDIS_7_2"
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/subscriptions/orders-fulfillment",
+		"assetType": "pubsub.googleapis.com/Subscription",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Subscription",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/subscriptions/orders-fulfillment",
+				"topic": "projects/acme-shop-prod/topics/orders",
+				"pushConfig": {
+					"pushEndpoint": "https://fulfillment-4qx7lz2hfa-uc.a.run.app/pubsub",
+					"oidcToken": {
+						"serviceAccountEmail": "pusher@acme-shop-prod.iam.gserviceaccount.com"
+					}
+				},
+				"ackDeadlineSeconds": 60
+			}
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//pubsub.googleapis.com/projects/acme-shop-prod/subscriptions/orders-bq",
+		"assetType": "pubsub.googleapis.com/Subscription",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Subscription",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/subscriptions/orders-bq",
+				"topic": "projects/acme-shop-prod/topics/orders",
+				"bigqueryConfig": {
+					"table": "acme-shop-prod:analytics.orders_raw",
+					"writeMetadata": true
+				}
+			}
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//eventarc.googleapis.com/projects/acme-shop-prod/locations/us-central1/triggers/on-upload",
+		"assetType": "eventarc.googleapis.com/Trigger",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Trigger",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/triggers/on-upload",
+				"eventFilters": [
+					{
+						"attribute": "type",
+						"value": "google.cloud.storage.object.v1.finalized"
+					},
+					{
+						"attribute": "bucket",
+						"value": "acme-shop-uploads"
+					}
+				],
+				"destination": {
+					"cloudRun": {
+						"service": "image-resizer",
+						"region": "us-central1",
+						"path": "/"
+					}
+				},
+				"transport": {
+					"pubsub": {
+						"topic": "projects/acme-shop-prod/topics/eventarc-us-central1-on-upload-123",
+						"subscription": "projects/acme-shop-prod/subscriptions/eventarc-us-central1-on-upload-sub-123"
+					}
+				},
+				"serviceAccount": "eventarc@acme-shop-prod.iam.gserviceaccount.com"
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//cloudscheduler.googleapis.com/projects/acme-shop-prod/locations/us-central1/jobs/nightly-export",
+		"assetType": "cloudscheduler.googleapis.com/Job",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Job",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "projects/acme-shop-prod/locations/us-central1/jobs/nightly-export",
+				"schedule": "0 2 * * *",
+				"timeZone": "Etc/UTC",
+				"pubsubTarget": {
+					"topicName": "projects/acme-shop-prod/topics/exports",
+					"data": "e30="
+				},
+				"state": "ENABLED"
+			},
+			"location": "us-central1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	},
+	{
+		"name": "//container.googleapis.com/projects/acme-shop-prod/locations/europe-west1/clusters/shop-gke",
+		"assetType": "container.googleapis.com/Cluster",
+		"resource": {
+			"version": "v1",
+			"discoveryDocumentUri": "https://www.googleapis.com/discovery/v1/apis/x/v1/rest",
+			"discoveryName": "Cluster",
+			"parent": "//cloudresourcemanager.googleapis.com/projects/482915730621",
+			"data": {
+				"name": "shop-gke",
+				"location": "europe-west1",
+				"network": "shop-vpc",
+				"subnetwork": "shop-europe-west1",
+				"networkConfig": {
+					"network": "projects/acme-shop-prod/global/networks/shop-vpc",
+					"subnetwork": "projects/acme-shop-prod/regions/europe-west1/subnetworks/shop-europe-west1"
+				},
+				"currentNodeCount": 6,
+				"currentMasterVersion": "1.33.4-gke.1013000",
+				"masterAuth": {
+					"clusterCaCertificate": "LS0tLS1CRUdJTi..."
+				}
+			},
+			"location": "europe-west1"
+		},
+		"ancestors": [
+			"projects/482915730621",
+			"folders/220461187411",
+			"organizations/731905518234"
+		],
+		"updateTime": "2026-09-14T08:12:03Z"
+	}
+]

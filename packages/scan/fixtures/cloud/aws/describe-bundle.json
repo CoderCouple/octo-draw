@@ -1,0 +1,393 @@
+{
+	"region": "us-east-1",
+	"responses": [
+		{
+			"UserId": "AIDAEXAMPLEUSERID0001",
+			"Account": "111122223333",
+			"Arn": "arn:aws:iam::111122223333:user/octo-readonly"
+		},
+		{
+			"Vpcs": [
+				{
+					"CidrBlock": "10.0.0.0/16",
+					"DhcpOptionsId": "dopt-0f1e2d3c4b5a69788",
+					"State": "available",
+					"VpcId": "vpc-0a1b2c3d4e5f60001",
+					"OwnerId": "111122223333",
+					"InstanceTenancy": "default",
+					"CidrBlockAssociationSet": [{ "AssociationId": "vpc-cidr-assoc-0a1b2c3d4e5f6", "CidrBlock": "10.0.0.0/16", "CidrBlockState": { "State": "associated" } }],
+					"IsDefault": false,
+					"Tags": [
+						{ "Key": "Name", "Value": "shop-prod" },
+						{ "Key": "app", "Value": "shop" }
+					]
+				}
+			]
+		},
+		{
+			"Subnets": [
+				{ "AvailabilityZone": "us-east-1a", "AvailabilityZoneId": "use1-az1", "AvailableIpAddressCount": 248, "CidrBlock": "10.0.0.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": true, "State": "available", "SubnetId": "subnet-0aa0000000000a001", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0aa0000000000a001", "Tags": [{ "Key": "Name", "Value": "public-a" }] },
+				{ "AvailabilityZone": "us-east-1b", "AvailabilityZoneId": "use1-az2", "AvailableIpAddressCount": 250, "CidrBlock": "10.0.1.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": true, "State": "available", "SubnetId": "subnet-0aa0000000000a002", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0aa0000000000a002", "Tags": [{ "Key": "Name", "Value": "public-b" }] },
+				{ "AvailabilityZone": "us-east-1a", "AvailabilityZoneId": "use1-az1", "AvailableIpAddressCount": 240, "CidrBlock": "10.0.10.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": false, "State": "available", "SubnetId": "subnet-0bb0000000000b001", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0bb0000000000b001", "Tags": [{ "Key": "Name", "Value": "private-a" }] },
+				{ "AvailabilityZone": "us-east-1b", "AvailabilityZoneId": "use1-az2", "AvailableIpAddressCount": 241, "CidrBlock": "10.0.11.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": false, "State": "available", "SubnetId": "subnet-0bb0000000000b002", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0bb0000000000b002", "Tags": [{ "Key": "Name", "Value": "private-b" }] },
+				{ "AvailabilityZone": "us-east-1a", "AvailabilityZoneId": "use1-az1", "AvailableIpAddressCount": 251, "CidrBlock": "10.0.20.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": false, "State": "available", "SubnetId": "subnet-0cc0000000000c001", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0cc0000000000c001", "Tags": [{ "Key": "Name", "Value": "data-a" }] },
+				{ "AvailabilityZone": "us-east-1b", "AvailabilityZoneId": "use1-az2", "AvailableIpAddressCount": 251, "CidrBlock": "10.0.21.0/24", "DefaultForAz": false, "MapPublicIpOnLaunch": false, "State": "available", "SubnetId": "subnet-0cc0000000000c002", "VpcId": "vpc-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "SubnetArn": "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-0cc0000000000c002", "Tags": [{ "Key": "Name", "Value": "data-b" }] }
+			]
+		},
+		{
+			"SecurityGroups": [
+				{ "Description": "ALB", "GroupName": "shop-alb-sg", "IpPermissions": [{ "FromPort": 443, "IpProtocol": "tcp", "IpRanges": [{ "CidrIp": "0.0.0.0/0" }], "Ipv6Ranges": [], "PrefixListIds": [], "ToPort": 443, "UserIdGroupPairs": [] }], "OwnerId": "111122223333", "GroupId": "sg-0a000000000000a01", "IpPermissionsEgress": [], "VpcId": "vpc-0a1b2c3d4e5f60001" },
+				{ "Description": "web tasks", "GroupName": "shop-web-sg", "IpPermissions": [{ "FromPort": 8080, "IpProtocol": "tcp", "IpRanges": [], "Ipv6Ranges": [], "PrefixListIds": [], "ToPort": 8080, "UserIdGroupPairs": [{ "GroupId": "sg-0a000000000000a01", "UserId": "111122223333" }] }], "OwnerId": "111122223333", "GroupId": "sg-0a000000000000a02", "IpPermissionsEgress": [], "VpcId": "vpc-0a1b2c3d4e5f60001" },
+				{ "Description": "lambda", "GroupName": "shop-lambda-sg", "IpPermissions": [], "OwnerId": "111122223333", "GroupId": "sg-0a000000000000a03", "IpPermissionsEgress": [], "VpcId": "vpc-0a1b2c3d4e5f60001" },
+				{ "Description": "database", "GroupName": "shop-db-sg", "IpPermissions": [{ "FromPort": 5432, "IpProtocol": "tcp", "IpRanges": [], "Ipv6Ranges": [], "PrefixListIds": [], "ToPort": 5432, "UserIdGroupPairs": [{ "GroupId": "sg-0a000000000000a02", "UserId": "111122223333" }, { "GroupId": "sg-0a000000000000a03", "UserId": "111122223333" }, { "GroupId": "sg-0a000000000000a05", "UserId": "111122223333" }] }], "OwnerId": "111122223333", "GroupId": "sg-0a000000000000a04", "IpPermissionsEgress": [], "VpcId": "vpc-0a1b2c3d4e5f60001" },
+				{ "Description": "bastion", "GroupName": "shop-bastion-sg", "IpPermissions": [{ "FromPort": 22, "IpProtocol": "tcp", "IpRanges": [{ "CidrIp": "203.0.113.0/24" }], "Ipv6Ranges": [], "PrefixListIds": [], "ToPort": 22, "UserIdGroupPairs": [] }], "OwnerId": "111122223333", "GroupId": "sg-0a000000000000a05", "IpPermissionsEgress": [], "VpcId": "vpc-0a1b2c3d4e5f60001" }
+			]
+		},
+		{
+			"Reservations": [
+				{
+					"Groups": [],
+					"Instances": [
+						{
+							"AmiLaunchIndex": 0,
+							"ImageId": "ami-0abcdef1234567890",
+							"InstanceId": "i-0b1a2c3d4e5f60001",
+							"InstanceType": "t3.micro",
+							"LaunchTime": "2026-08-01T10:00:00.000Z",
+							"Placement": { "AvailabilityZone": "us-east-1a", "GroupName": "", "Tenancy": "default" },
+							"PrivateIpAddress": "10.0.0.12",
+							"PublicIpAddress": "198.51.100.7",
+							"State": { "Code": 16, "Name": "running" },
+							"SubnetId": "subnet-0aa0000000000a001",
+							"VpcId": "vpc-0a1b2c3d4e5f60001",
+							"SecurityGroups": [{ "GroupName": "shop-bastion-sg", "GroupId": "sg-0a000000000000a05" }],
+							"Tags": [
+								{ "Key": "Name", "Value": "bastion" },
+								{ "Key": "app", "Value": "shop" }
+							]
+						}
+					],
+					"OwnerId": "111122223333",
+					"ReservationId": "r-0123456789abcdef0"
+				}
+			]
+		},
+		{
+			"NatGateways": [
+				{ "CreateTime": "2026-07-01T00:00:00.000Z", "NatGatewayAddresses": [{ "AllocationId": "eipalloc-0a1b2c3d", "PublicIp": "198.51.100.20" }], "NatGatewayId": "nat-0a1b2c3d4e5f60001", "State": "available", "SubnetId": "subnet-0aa0000000000a001", "VpcId": "vpc-0a1b2c3d4e5f60001", "Tags": [{ "Key": "Name", "Value": "shop-nat" }], "ConnectivityType": "public" }
+			]
+		},
+		{
+			"InternetGateways": [{ "Attachments": [{ "State": "available", "VpcId": "vpc-0a1b2c3d4e5f60001" }], "InternetGatewayId": "igw-0a1b2c3d4e5f60001", "OwnerId": "111122223333", "Tags": [{ "Key": "Name", "Value": "shop-igw" }] }]
+		},
+		{
+			"Functions": [
+				{
+					"FunctionName": "order-processor",
+					"FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:order-processor",
+					"Runtime": "nodejs22.x",
+					"Role": "arn:aws:iam::111122223333:role/order-processor-role",
+					"Handler": "index.handler",
+					"CodeSize": 48213,
+					"Timeout": 30,
+					"MemorySize": 512,
+					"LastModified": "2026-09-30T12:00:00.000+0000",
+					"VpcConfig": { "SubnetIds": ["subnet-0bb0000000000b001", "subnet-0bb0000000000b002"], "SecurityGroupIds": ["sg-0a000000000000a03"], "VpcId": "vpc-0a1b2c3d4e5f60001" },
+					"Environment": {
+						"Variables": {
+							"TABLE_NAME": "orders",
+							"EVENTS_TOPIC_ARN": "arn:aws:sns:us-east-1:111122223333:order-events",
+							"API_TOKEN": "tok_live_9f8e7d6c5b4a3210",
+							"LOG_LEVEL": "info"
+						}
+					},
+					"PackageType": "Zip",
+					"Architectures": ["arm64"]
+				},
+				{
+					"FunctionName": "order-api",
+					"FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:order-api",
+					"Runtime": "nodejs22.x",
+					"Role": "arn:aws:iam::111122223333:role/order-api-role",
+					"Handler": "api.handler",
+					"VpcConfig": { "SubnetIds": [], "SecurityGroupIds": [], "VpcId": "" },
+					"Environment": { "Variables": { "QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/111122223333/orders-queue", "DB_PASSWORD": "hunter2-do-not-leak" } },
+					"PackageType": "Zip"
+				},
+				{
+					"FunctionName": "notifier",
+					"FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:notifier",
+					"Runtime": "python3.13",
+					"Role": "arn:aws:iam::111122223333:role/notifier-role",
+					"Handler": "app.handler",
+					"PackageType": "Zip"
+				},
+				{
+					"FunctionName": "report-generator",
+					"FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:report-generator",
+					"Runtime": "python3.13",
+					"Role": "arn:aws:iam::111122223333:role/report-role",
+					"Handler": "app.handler",
+					"Environment": { "Variables": { "REPORT_BUCKET": "shop-reports-111122223333" } },
+					"PackageType": "Zip"
+				}
+			]
+		},
+		{
+			"EventSourceMappings": [
+				{ "UUID": "a1b2c3d4-5678-90ab-cdef-111111111111", "BatchSize": 10, "EventSourceArn": "arn:aws:sqs:us-east-1:111122223333:orders-queue", "FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:order-processor", "LastModified": "2026-09-01T00:00:00.000Z", "State": "Enabled", "StateTransitionReason": "USER_INITIATED" },
+				{ "UUID": "a1b2c3d4-5678-90ab-cdef-222222222222", "BatchSize": 10, "EventSourceArn": "arn:aws:sqs:us-east-1:111122223333:email-queue", "FunctionArn": "arn:aws:lambda:us-east-1:111122223333:function:notifier:live", "LastModified": "2026-09-01T00:00:00.000Z", "State": "Enabled", "StateTransitionReason": "USER_INITIATED" }
+			]
+		},
+		{
+			"LoadBalancers": [
+				{
+					"LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/shop-web-alb/50dc6c495c0c9188",
+					"DNSName": "shop-web-alb-1234567890.us-east-1.elb.amazonaws.com",
+					"CanonicalHostedZoneId": "Z35SXDOTRQ7X7K",
+					"CreatedTime": "2026-07-01T00:00:00.000Z",
+					"LoadBalancerName": "shop-web-alb",
+					"Scheme": "internet-facing",
+					"VpcId": "vpc-0a1b2c3d4e5f60001",
+					"State": { "Code": "active" },
+					"Type": "application",
+					"AvailabilityZones": [
+						{ "ZoneName": "us-east-1a", "SubnetId": "subnet-0aa0000000000a001", "LoadBalancerAddresses": [] },
+						{ "ZoneName": "us-east-1b", "SubnetId": "subnet-0aa0000000000a002", "LoadBalancerAddresses": [] }
+					],
+					"SecurityGroups": ["sg-0a000000000000a01"],
+					"IpAddressType": "ipv4"
+				}
+			]
+		},
+		{
+			"TargetGroups": [
+				{
+					"TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/shop-web-tg/73e2d6bc24d8a067",
+					"TargetGroupName": "shop-web-tg",
+					"Protocol": "HTTP",
+					"Port": 8080,
+					"VpcId": "vpc-0a1b2c3d4e5f60001",
+					"HealthCheckProtocol": "HTTP",
+					"HealthCheckPath": "/healthz",
+					"LoadBalancerArns": ["arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/shop-web-alb/50dc6c495c0c9188"],
+					"TargetType": "ip"
+				}
+			]
+		},
+		{
+			"clusters": [
+				{ "clusterArn": "arn:aws:ecs:us-east-1:111122223333:cluster/shop-cluster", "clusterName": "shop-cluster", "status": "ACTIVE", "registeredContainerInstancesCount": 0, "runningTasksCount": 4, "pendingTasksCount": 0, "activeServicesCount": 2, "tags": [{ "key": "app", "value": "shop" }] }
+			],
+			"failures": []
+		},
+		{
+			"services": [
+				{
+					"serviceArn": "arn:aws:ecs:us-east-1:111122223333:service/shop-cluster/web",
+					"serviceName": "web",
+					"clusterArn": "arn:aws:ecs:us-east-1:111122223333:cluster/shop-cluster",
+					"loadBalancers": [{ "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/shop-web-tg/73e2d6bc24d8a067", "containerName": "web", "containerPort": 8080 }],
+					"status": "ACTIVE",
+					"desiredCount": 2,
+					"runningCount": 2,
+					"launchType": "FARGATE",
+					"taskDefinition": "arn:aws:ecs:us-east-1:111122223333:task-definition/web:12",
+					"networkConfiguration": { "awsvpcConfiguration": { "subnets": ["subnet-0bb0000000000b001", "subnet-0bb0000000000b002"], "securityGroups": ["sg-0a000000000000a02"], "assignPublicIp": "DISABLED" } },
+					"tags": [{ "key": "app", "value": "shop" }]
+				},
+				{
+					"serviceArn": "arn:aws:ecs:us-east-1:111122223333:service/shop-cluster/worker",
+					"serviceName": "worker",
+					"clusterArn": "arn:aws:ecs:us-east-1:111122223333:cluster/shop-cluster",
+					"loadBalancers": [],
+					"status": "ACTIVE",
+					"desiredCount": 2,
+					"runningCount": 2,
+					"launchType": "FARGATE",
+					"taskDefinition": "arn:aws:ecs:us-east-1:111122223333:task-definition/worker:7",
+					"networkConfiguration": { "awsvpcConfiguration": { "subnets": ["subnet-0bb0000000000b002"], "securityGroups": ["sg-0a000000000000a02"], "assignPublicIp": "DISABLED" } },
+					"tags": [{ "key": "app", "value": "shop" }]
+				}
+			],
+			"failures": []
+		},
+		{
+			"taskDefinition": {
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:111122223333:task-definition/web:12",
+				"family": "web",
+				"revision": 12,
+				"networkMode": "awsvpc",
+				"containerDefinitions": [
+					{
+						"name": "web",
+						"image": "111122223333.dkr.ecr.us-east-1.amazonaws.com/shop-web:2026.10.01",
+						"cpu": 256,
+						"memory": 512,
+						"portMappings": [{ "containerPort": 8080, "hostPort": 8080, "protocol": "tcp" }],
+						"environment": [
+							{ "name": "DATABASE_URL", "value": "postgres://shop:s3cr3t-pass@shop-db.cluster-c1a2b3c4d5e6.us-east-1.rds.amazonaws.com:5432/shop" },
+							{ "name": "ORDERS_QUEUE_URL", "value": "https://sqs.us-east-1.amazonaws.com/111122223333/orders-queue" },
+							{ "name": "SESSION_SECRET", "value": "very-secret-session-value" }
+						],
+						"secrets": [{ "name": "STRIPE_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:111122223333:secret:prod/stripe-AbCdEf" }]
+					}
+				],
+				"requiresCompatibilities": ["FARGATE"],
+				"cpu": "256",
+				"memory": "512"
+			}
+		},
+		{
+			"taskDefinition": {
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:111122223333:task-definition/worker:7",
+				"family": "worker",
+				"revision": 7,
+				"containerDefinitions": [
+					{
+						"name": "worker",
+						"image": "111122223333.dkr.ecr.us-east-1.amazonaws.com/shop-worker:2026.10.01",
+						"environment": [{ "name": "CACHE_HOST", "value": "shop-cache.abc123.ng.0001.use1.cache.amazonaws.com" }]
+					}
+				]
+			}
+		},
+		{
+			"DBClusters": [
+				{
+					"DBClusterIdentifier": "shop-db",
+					"DBClusterArn": "arn:aws:rds:us-east-1:111122223333:cluster:shop-db",
+					"Engine": "aurora-postgresql",
+					"EngineVersion": "16.4",
+					"Endpoint": "shop-db.cluster-c1a2b3c4d5e6.us-east-1.rds.amazonaws.com",
+					"ReaderEndpoint": "shop-db.cluster-ro-c1a2b3c4d5e6.us-east-1.rds.amazonaws.com",
+					"Port": 5432,
+					"DBSubnetGroup": "shop-data",
+					"Status": "available",
+					"VpcSecurityGroups": [{ "VpcSecurityGroupId": "sg-0a000000000000a04", "Status": "active" }],
+					"DBClusterMembers": [{ "DBInstanceIdentifier": "shop-db-1", "IsClusterWriter": true }],
+					"TagList": [{ "Key": "app", "Value": "shop" }]
+				}
+			]
+		},
+		{
+			"DBInstances": [
+				{
+					"DBInstanceIdentifier": "shop-db-1",
+					"DBInstanceClass": "db.r7g.large",
+					"Engine": "aurora-postgresql",
+					"DBInstanceStatus": "available",
+					"Endpoint": { "Address": "shop-db-1.c1a2b3c4d5e6.us-east-1.rds.amazonaws.com", "Port": 5432 },
+					"DBClusterIdentifier": "shop-db",
+					"DBInstanceArn": "arn:aws:rds:us-east-1:111122223333:db:shop-db-1",
+					"DBSubnetGroup": { "DBSubnetGroupName": "shop-data", "VpcId": "vpc-0a1b2c3d4e5f60001", "Subnets": [{ "SubnetIdentifier": "subnet-0cc0000000000c001" }, { "SubnetIdentifier": "subnet-0cc0000000000c002" }] },
+					"VpcSecurityGroups": [{ "VpcSecurityGroupId": "sg-0a000000000000a04", "Status": "active" }],
+					"AvailabilityZone": "us-east-1a",
+					"TagList": [{ "Key": "app", "Value": "shop" }]
+				}
+			]
+		},
+		{
+			"DistributionList": {
+				"Marker": "",
+				"MaxItems": 100,
+				"IsTruncated": false,
+				"Quantity": 1,
+				"Items": [
+					{
+						"Id": "E2QWRUHEXAMPLE",
+						"ARN": "arn:aws:cloudfront::111122223333:distribution/E2QWRUHEXAMPLE",
+						"Status": "Deployed",
+						"DomainName": "d111111abcdef8.cloudfront.net",
+						"Aliases": { "Quantity": 1, "Items": ["shop.example.com"] },
+						"Origins": {
+							"Quantity": 2,
+							"Items": [
+								{ "Id": "static", "DomainName": "shop-static-111122223333.s3.us-east-1.amazonaws.com", "OriginPath": "", "S3OriginConfig": { "OriginAccessIdentity": "" } },
+								{ "Id": "web", "DomainName": "shop-web-alb-1234567890.us-east-1.elb.amazonaws.com", "OriginPath": "", "CustomOriginConfig": { "HTTPPort": 80, "HTTPSPort": 443, "OriginProtocolPolicy": "https-only" } }
+							]
+						},
+						"DefaultCacheBehavior": { "TargetOriginId": "web", "ViewerProtocolPolicy": "redirect-to-https" },
+						"Enabled": true
+					}
+				]
+			}
+		},
+		{
+			"Subscriptions": [
+				{ "SubscriptionArn": "arn:aws:sns:us-east-1:111122223333:order-events:6b0e71bd-7e97-4d97-80ce-4a0994e55286", "Owner": "111122223333", "Protocol": "sqs", "Endpoint": "arn:aws:sqs:us-east-1:111122223333:email-queue", "TopicArn": "arn:aws:sns:us-east-1:111122223333:order-events" },
+				{ "SubscriptionArn": "arn:aws:sns:us-east-1:111122223333:order-events:0d4c3a7e-8a2b-4f4e-9b1e-7c0d5e6f7a8b", "Owner": "111122223333", "Protocol": "email", "Endpoint": "ops-oncall@example.com", "TopicArn": "arn:aws:sns:us-east-1:111122223333:order-events" }
+			]
+		},
+		{
+			"Rules": [
+				{ "Name": "nightly-report", "Arn": "arn:aws:events:us-east-1:111122223333:rule/nightly-report", "State": "ENABLED", "ScheduleExpression": "cron(0 3 * * ? *)", "EventBusName": "default" },
+				{ "Name": "order-placed", "Arn": "arn:aws:events:us-east-1:111122223333:rule/shop-bus/order-placed", "State": "ENABLED", "EventPattern": "{\"source\":[\"shop.orders\"]}", "EventBusName": "shop-bus" }
+			]
+		},
+		{
+			"Rule": "nightly-report",
+			"Targets": [{ "Id": "report", "Arn": "arn:aws:lambda:us-east-1:111122223333:function:report-generator" }]
+		},
+		{
+			"RuleArn": "arn:aws:events:us-east-1:111122223333:rule/shop-bus/order-placed",
+			"Targets": [{ "Id": "notify", "Arn": "arn:aws:sns:us-east-1:111122223333:order-events", "Input": "{\"apiKey\":\"never-read-this\"}" }]
+		},
+		{
+			"Items": [
+				{ "ApiEndpoint": "https://a1b2c3d4e5.execute-api.us-east-1.amazonaws.com", "ApiId": "a1b2c3d4e5", "Name": "shop-api", "ProtocolType": "HTTP", "RouteSelectionExpression": "$request.method $request.path", "Tags": { "app": "shop" } }
+			]
+		},
+		{
+			"ApiId": "a1b2c3d4e5",
+			"Items": [
+				{ "ConnectionType": "INTERNET", "IntegrationId": "int0001", "IntegrationMethod": "POST", "IntegrationType": "AWS_PROXY", "IntegrationUri": "arn:aws:lambda:us-east-1:111122223333:function:order-api", "PayloadFormatVersion": "2.0" },
+				{ "ConnectionId": "vpclink01", "ConnectionType": "VPC_LINK", "IntegrationId": "int0002", "IntegrationMethod": "ANY", "IntegrationType": "HTTP_PROXY", "IntegrationUri": "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/shop-web-alb/50dc6c495c0c9188/0467ef3c8400ae65", "PayloadFormatVersion": "1.0" }
+			]
+		},
+		{
+			"HostedZones": [{ "Id": "/hostedzone/Z0123456789ABCDEFGHIJ", "Name": "example.com.", "CallerReference": "ref-1", "Config": { "PrivateZone": false }, "ResourceRecordSetCount": 6 }]
+		},
+		{
+			"HostedZoneId": "/hostedzone/Z0123456789ABCDEFGHIJ",
+			"ResourceRecordSets": [
+				{ "Name": "example.com.", "Type": "NS", "TTL": 172800, "ResourceRecords": [{ "Value": "ns-1.awsdns-00.org." }] },
+				{ "Name": "shop.example.com.", "Type": "A", "AliasTarget": { "HostedZoneId": "Z2FDTNDATAQYW2", "DNSName": "d111111abcdef8.cloudfront.net.", "EvaluateTargetHealth": false } },
+				{ "Name": "api.example.com.", "Type": "A", "AliasTarget": { "HostedZoneId": "Z35SXDOTRQ7X7K", "DNSName": "dualstack.shop-web-alb-1234567890.us-east-1.elb.amazonaws.com.", "EvaluateTargetHealth": true } },
+				{ "Name": "mail.example.com.", "Type": "MX", "TTL": 300, "ResourceRecords": [{ "Value": "10 inbound-smtp.us-east-1.amazonaws.com" }] }
+			]
+		},
+		{
+			"ResourceTagMappingList": [
+				{ "ResourceARN": "arn:aws:sqs:us-east-1:111122223333:orders-queue", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:sqs:us-east-1:111122223333:email-queue", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:sns:us-east-1:111122223333:order-events", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:dynamodb:us-east-1:111122223333:table/orders", "Tags": [{ "Key": "app", "Value": "shop" }, { "Key": "db-password", "Value": "tagged-secret-oops" }] },
+				{ "ResourceARN": "arn:aws:s3:::shop-static-111122223333", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:s3:::shop-reports-111122223333", "Tags": [{ "Key": "app", "Value": "reporting" }] },
+				{ "ResourceARN": "arn:aws:lambda:us-east-1:111122223333:function:report-generator", "Tags": [{ "Key": "app", "Value": "reporting" }] },
+				{ "ResourceARN": "arn:aws:lambda:us-east-1:111122223333:function:order-processor", "Tags": [{ "Key": "app", "Value": "shop" }, { "Key": "aws:cloudformation:stack-name", "Value": "shop-orders" }] },
+				{ "ResourceARN": "arn:aws:lambda:us-east-1:111122223333:function:order-api", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:lambda:us-east-1:111122223333:function:notifier", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:events:us-east-1:111122223333:event-bus/shop-bus", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:secretsmanager:us-east-1:111122223333:secret:prod/stripe-AbCdEf", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:elasticache:us-east-1:111122223333:replicationgroup:shop-cache", "Tags": [{ "Key": "app", "Value": "shop" }] },
+				{ "ResourceARN": "arn:aws:iam::111122223333:role/order-processor-role", "Tags": [] },
+				{ "ResourceARN": "arn:aws:logs:us-east-1:111122223333:log-group:/aws/lambda/order-processor", "Tags": [] }
+			]
+		},
+		{
+			"CacheClusters": [
+				{
+					"CacheClusterId": "shop-cache-001",
+					"ARN": "arn:aws:elasticache:us-east-1:111122223333:cluster:shop-cache-001",
+					"CacheNodeType": "cache.t4g.small",
+					"Engine": "redis",
+					"ReplicationGroupId": "shop-cache",
+					"CacheSubnetGroupName": "shop-data",
+					"CacheNodes": [{ "CacheNodeId": "0001", "Endpoint": { "Address": "shop-cache.abc123.ng.0001.use1.cache.amazonaws.com", "Port": 6379 } }]
+				}
+			]
+		}
+	]
+}

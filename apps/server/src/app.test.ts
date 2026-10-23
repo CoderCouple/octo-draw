@@ -9,6 +9,10 @@ vi.mock('@octo-draw/core', () => ({
 		ir: {},
 		diagnostics: src.includes('!!') ? [{ from: src.indexOf('!!'), to: src.indexOf('!!') + 2, severity: 'error', message: 'bad token' }] : [],
 	}),
+	parseOctoPages: (src: string) => ({
+		pages: [],
+		diagnostics: src.includes('!!') ? [{ from: src.indexOf('!!'), to: src.indexOf('!!') + 2, severity: 'error', message: 'bad token' }] : [],
+	}),
 	applyActions: (src: string, actions: { type: string; from?: string; to?: string }[]) => {
 		let code = src
 		const errors: { index: number; message: string }[] = []

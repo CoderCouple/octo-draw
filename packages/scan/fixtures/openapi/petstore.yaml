@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Petstore
+  version: 1.2.0
+paths:
+  /pets:
+    get:
+      tags: [pets]
+      summary: List pets
+    post:
+      tags: [pets]
+      summary: Create a pet
+  /pets/{petId}:
+    get:
+      tags: [pets]
+      operationId: showPetById
+  /store/orders:
+    post:
+      tags: [store]
+      summary: Place an order
+  /health:
+    get:
+      summary: Health check

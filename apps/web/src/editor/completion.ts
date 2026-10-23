@@ -1,5 +1,5 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { NODE_SHAPES } from '@octo-draw/core'
+import { NODE_SHAPES, pageNames } from '@octo-draw/core'
 import { COLOR_NAMES } from '../lib/colors'
 import { iconSvgString, loadIcons, loadLucide, searchIconNames } from '../lib/icons'
 import { useStore } from '../store'
@@ -11,6 +11,7 @@ const NODE_PROPS: Completion[] = [
 	{ label: 'color', type: 'property', apply: 'color: ', detail: 'palette name or #hex' },
 	{ label: 'label', type: 'property', apply: 'label: ', detail: 'display text' },
 	{ label: 'link', type: 'property', apply: 'link: ', detail: 'URL' },
+	{ label: 'drill', type: 'property', apply: 'drill: ', detail: 'page to open' },
 ]
 const EDGE_PROPS: Completion[] = [
 	{ label: 'id', type: 'property', apply: 'id: ', detail: 'edge id' },
@@ -105,6 +106,17 @@ export function octoCompletions(ctx: CompletionContext): CompletionResult | Prom
 		if (colon >= 0) {
 			const prop = seg.slice(0, colon).trim()
 			if (prop === 'icon') return iconCompletions(ctx)
+			if (prop === 'drill') {
+				const names = pageNames(ctx.state.doc.toString()).filter(Boolean)
+				if (!names.length) return null
+				const word = ctx.matchBefore(/[^,:[\]"]*$/)
+				const lead = word ? word.text.length - word.text.trimStart().length : 0
+				return {
+					from: word ? word.from + lead : ctx.pos,
+					options: names.map((n) => ({ label: n, type: 'class', detail: 'page', apply: /[[\]{},:"]/.test(n) ? `"${n}"` : n })),
+					validFor: /^[^,:[\]"]*$/,
+				}
+			}
 			const values = PROP_VALUES(prop)
 			if (!values) return null
 			const word = ctx.matchBefore(/[\w#-]*$/)

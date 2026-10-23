@@ -14,9 +14,13 @@ interface Props {
 	theme: Theme
 	selectedKey: string | null
 	editingKey: string | null
+	/** node key → page it drills into */
+	drill?: Record<string, string>
 }
 
-export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, selectedKey, editingKey }: Props) {
+const NO_DRILL: Record<string, string> = {}
+
+export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, selectedKey, editingKey, drill = NO_DRILL }: Props) {
 	const iconsReady = useIcons((s) => s.version)
 	// other diagram kinds have their own renderers
 	if (ir.kind === 'sequence' && layout.sequence) return <SequenceLayer ir={ir} layout={layout} theme={theme} selectedKey={selectedKey} editingKey={editingKey} />
@@ -43,7 +47,7 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 			{groups.map((g) => {
 				const node = byKey.get(g.key)
 				return node ? (
-					<GroupView key={g.key} iconsReady={iconsReady} node={node} box={g} mode={mode} theme={theme} selected={selectedKey === g.key} editing={editingKey === g.key} />
+					<GroupView key={g.key} iconsReady={iconsReady} node={node} box={g} mode={mode} theme={theme} selected={selectedKey === g.key} editing={editingKey === g.key} drillTo={drill[g.key]} />
 				) : null
 			})}
 			{ir.edges.map((e) => {
@@ -64,6 +68,7 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 						selected={selectedKey === n.key}
 						editing={editingKey === n.key}
 						measure={measure}
+						drillTo={drill[n.key]}
 					/>
 				) : null
 			})}
@@ -149,6 +154,7 @@ const NodeView = memo(function NodeView({
 	selected,
 	editing,
 	measure,
+	drillTo,
 }: {
 	iconsReady: number
 	node: IRNode
@@ -159,7 +165,10 @@ const NodeView = memo(function NodeView({
 	selected: boolean
 	editing: boolean
 	measure: Measure
+	drillTo?: string
 }) {
+	const ghost = node.ext?.ghost === 'true'
+	const collapsed = node.ext?.collapsed
 	const c = nodeColors(node.style?.color, mode, theme)
 	const brand = node.style?.color === 'brand'
 	const surface = c.fill === 'none' ? SURFACE[theme].bg : c.fill
@@ -193,11 +202,39 @@ const NodeView = memo(function NodeView({
 		content = !editing && <Lines text={label} x={box.w / 2} y={cy} size={fontSize} weight={500} fill={c.text} />
 	}
 	const sel = SURFACE[theme].select
+	const fill = c.fill === 'none' ? SURFACE[theme].bg : c.fill
+	const fillOpacity = c.fill === 'none' ? 0.001 : 1
+	const strokeWidth = mode === 'outline' ? 2 : 1.5
 	return (
-		<g data-node={node.key} transform={`translate(${box.x},${box.y})`} style={{ cursor: 'pointer' }}>
-			<path d={d} fill={c.fill === 'none' ? SURFACE[theme].bg : c.fill} fillOpacity={c.fill === 'none' ? 0.001 : 1} stroke={c.stroke} strokeWidth={mode === 'outline' ? 2 : 1.5} filter={filter} />
-			{detail && <path d={detail} fill="none" stroke={c.stroke} strokeWidth={1.5} />}
+		<g
+			data-node={node.key}
+			data-ghost={ghost ? '' : undefined}
+			data-collapsed={collapsed}
+			transform={`translate(${box.x},${box.y})`}
+			style={{ cursor: 'pointer', transform: `translate(${box.x}px, ${box.y}px)` }}
+			opacity={ghost ? 0.55 : undefined}
+		>
+			{collapsed !== undefined && (
+				<>
+					{/* stacked cards: the group's contents tucked behind */}
+					<path d={roundedRect(box.w, box.h, 10)} transform="translate(8,8)" fill={fill} stroke={c.stroke} strokeWidth={1.2} opacity={0.55} />
+					<path d={roundedRect(box.w, box.h, 10)} transform="translate(4,4)" fill={fill} stroke={c.stroke} strokeWidth={1.2} opacity={0.8} />
+				</>
+			)}
+			<path
+				d={collapsed !== undefined ? roundedRect(box.w, box.h, 10) : d}
+				fill={ghost ? SURFACE[theme].bg : fill}
+				fillOpacity={ghost ? 0.6 : fillOpacity}
+				stroke={c.stroke}
+				strokeWidth={strokeWidth}
+				strokeDasharray={ghost ? '5 4' : undefined}
+				filter={ghost ? undefined : filter}
+			/>
+			{detail && collapsed === undefined && <path d={detail} fill="none" stroke={c.stroke} strokeWidth={1.5} strokeDasharray={ghost ? '5 4' : undefined} />}
 			{content}
+			{collapsed !== undefined && <Chevron x={6} y={6} open={false} color={c.text} groupKey={node.key} />}
+			{collapsed !== undefined && <CountBadge x={box.w} y={0} count={Number(collapsed) || 0} theme={theme} />}
+			{drillTo !== undefined && !ghost && <DrillMark x={box.w - 18} y={box.h - 18} color={c.icon} target={drillTo} nodeKey={node.key} />}
 			{node.link && (
 				<g transform={`translate(${box.w - 16},4)`} opacity={0.7}>
 					<IconGlyph name="external-link" x={0} y={0} size={11} color={c.icon} />
@@ -217,6 +254,7 @@ const GroupView = memo(function GroupView({
 	theme,
 	selected,
 	editing,
+	drillTo,
 }: {
 	iconsReady: number
 	node: IRNode
@@ -225,26 +263,66 @@ const GroupView = memo(function GroupView({
 	theme: Theme
 	selected: boolean
 	editing: boolean
+	drillTo?: string
 }) {
 	const c = groupColors(node.style?.color, mode, theme)
 	const label = node.label ?? node.key
-	const iconOffset = node.icon ? 22 : 0
+	const chevron = 18
+	const iconOffset = (node.icon ? 22 : 0) + chevron
 	return (
-		<g data-node={node.key} transform={`translate(${box.x},${box.y})`}>
+		<g data-node={node.key} transform={`translate(${box.x},${box.y})`} style={{ transform: `translate(${box.x}px, ${box.y}px)` }}>
 			<path d={roundedRect(box.w, box.h, 12)} fill={c.fill === 'none' ? SURFACE[theme].bg : c.fill} fillOpacity={c.fill === 'none' ? 0.001 : 1} stroke={c.stroke} strokeWidth={1.2} strokeDasharray={node.style?.dash === 'dotted' || node.ext?.dash === 'dotted' ? '4 4' : undefined} />
 			<g data-group-header="" style={{ cursor: 'pointer' }}>
 				<rect x={0} y={0} width={box.w} height={36} fill="transparent" />
-				{node.icon && <IconGlyph name={node.icon} x={14} y={11} size={16} color={c.text} brand={node.style?.color === 'brand'} surface={c.fill === 'none' ? SURFACE[theme].bg : c.fill} />}
+				<Chevron x={8} y={11} open color={c.text} groupKey={node.key} />
+				{node.icon && <IconGlyph name={node.icon} x={14 + chevron} y={11} size={16} color={c.text} brand={node.style?.color === 'brand'} surface={c.fill === 'none' ? SURFACE[theme].bg : c.fill} />}
 				{!editing && (
 					<text x={14 + iconOffset} y={19} fontSize={13} fontWeight={600} fill={c.text} dominantBaseline="central">
 						{label}
 					</text>
 				)}
+				{drillTo !== undefined && <DrillMark x={box.w - 24} y={10} color={c.text} target={drillTo} nodeKey={node.key} />}
 			</g>
 			{selected && <path data-export="skip" d={roundedRect(box.w + 8, box.h + 8, 14)} transform="translate(-4,-4)" fill="none" stroke={SURFACE[theme].select} strokeWidth={1.5} strokeDasharray="5 4" />}
 		</g>
 	)
 })
+
+/** Collapse/expand toggle on a group header (open) or a collapsed group node (closed). */
+function Chevron({ x, y, open, color, groupKey }: { x: number; y: number; open: boolean; color: string; groupKey: string }) {
+	return (
+		<g data-chevron={groupKey} data-export="skip" transform={`translate(${x},${y})`} style={{ cursor: 'pointer' }}>
+			<title>{open ? 'Collapse group' : 'Expand group'}</title>
+			<rect x={-3} y={-3} width={20} height={20} rx={5} fill="transparent" className="octo-chevron-hit" />
+			<path d={open ? 'M3.5,5.5 L7,9 L10.5,5.5' : 'M5.5,3.5 L9,7 L5.5,10.5'} transform="translate(0,0)" fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="octo-chevron" />
+		</g>
+	)
+}
+
+function CountBadge({ x, y, count, theme }: { x: number; y: number; count: number; theme: Theme }) {
+	const s = SURFACE[theme]
+	const text = String(count)
+	const w = Math.max(20, 10 + text.length * 7)
+	return (
+		<g transform={`translate(${x - w / 2},${y - 10})`} pointerEvents="none">
+			<rect width={w} height={20} rx={10} fill={s.text} />
+			<text x={w / 2} y={10} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill={s.bg}>
+				{text}
+			</text>
+		</g>
+	)
+}
+
+/** The "↘" corner mark on nodes that drill into a sub-page. */
+function DrillMark({ x, y, color, target, nodeKey }: { x: number; y: number; color: string; target: string; nodeKey: string }) {
+	return (
+		<g data-drill={nodeKey} data-export="skip" transform={`translate(${x},${y})`} style={{ cursor: 'zoom-in' }} className="octo-drill">
+			<title>{`Open "${target}" (double-click)`}</title>
+			<rect x={-2} y={-2} width={16} height={16} rx={4} fill={color} fillOpacity={0.08} />
+			<path d="M3,3 L9.5,9.5 M9.5,4 L9.5,9.5 L4,9.5" fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+		</g>
+	)
+}
 
 const EdgeView = memo(function EdgeView({ edge, laid, theme, measure }: { edge: IREdge; laid: LaidOutEdge; theme: Theme; measure: Measure }) {
 	const color = edgeColor(edge.style?.color, theme)

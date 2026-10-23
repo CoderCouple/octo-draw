@@ -1,0 +1,1006 @@
+{
+	"count": 28,
+	"data": [
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop",
+			"name": "vnet-shop",
+			"type": "microsoft.network/virtualnetworks",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"provisioningState": "Succeeded",
+				"addressSpace": {
+					"addressPrefixes": [
+						"10.1.0.0/16"
+					]
+				},
+				"subnets": [
+					{
+						"name": "snet-app",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-app",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.1.0/24",
+							"delegations": [
+								{
+									"name": "web",
+									"properties": {
+										"serviceName": "Microsoft.Web/serverFarms"
+									}
+								}
+							]
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					},
+					{
+						"name": "snet-data",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-data",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.2.0/24"
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					},
+					{
+						"name": "snet-pe",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-pe",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.3.0/24",
+							"privateEndpointNetworkPolicies": "Disabled"
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					},
+					{
+						"name": "snet-aks",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-aks",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.4.0/22"
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					},
+					{
+						"name": "snet-vm",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-vm",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.10.0/24"
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					},
+					{
+						"name": "snet-agw",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-agw",
+						"etag": "W/\"1\"",
+						"properties": {
+							"provisioningState": "Succeeded",
+							"addressPrefix": "10.1.20.0/24"
+						},
+						"type": "Microsoft.Network/virtualNetworks/subnets"
+					}
+				],
+				"enableDdosProtection": false
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+			"name": "nsg-app",
+			"type": "microsoft.network/networksecuritygroups",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"securityRules": [
+					{
+						"name": "allow-agw",
+						"properties": {
+							"priority": 100,
+							"access": "Allow",
+							"direction": "Inbound",
+							"destinationPortRange": "443"
+						}
+					}
+				]
+			},
+			"tags": {},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Web/serverFarms/asp-shop",
+			"name": "asp-shop",
+			"type": "microsoft.web/serverfarms",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "linux",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "P1v3",
+				"tier": "PremiumV3",
+				"capacity": 2
+			},
+			"plan": null,
+			"properties": {
+				"numberOfWorkers": 2,
+				"reserved": true,
+				"status": "Ready"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Web/sites/app-shop-web",
+			"name": "app-shop-web",
+			"type": "microsoft.web/sites",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "app,linux,container",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"state": "Running",
+				"defaultHostName": "app-shop-web.azurewebsites.net",
+				"hostNames": [
+					"app-shop-web.azurewebsites.net",
+					"shop.contoso.example"
+				],
+				"serverFarmId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Web/serverFarms/asp-shop",
+				"virtualNetworkSubnetId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-app",
+				"httpsOnly": true,
+				"siteConfig": {
+					"appSettings": null,
+					"linuxFxVersion": "DOCKER|contoso.azurecr.io/shop-web:2026.10"
+				}
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Web/sites/func-shop-orders",
+			"name": "func-shop-orders",
+			"type": "microsoft.web/sites",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "functionapp,linux",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"state": "Running",
+				"defaultHostName": "func-shop-orders.azurewebsites.net",
+				"serverFarmId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Web/serverFarms/asp-shop",
+				"virtualNetworkSubnetId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-app"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410",
+				"AzureWebJobsStorage-key": "DefaultEndpointsProtocol=https;AccountKey=abc=="
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Sql/servers/sql-shop",
+			"name": "sql-shop",
+			"type": "microsoft.sql/servers",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "v12.0",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"fullyQualifiedDomainName": "sql-shop.database.windows.net",
+				"administratorLogin": "shopadmin",
+				"publicNetworkAccess": "Disabled",
+				"version": "12.0"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Sql/servers/sql-shop/databases/sqldb-orders",
+			"name": "sqldb-orders",
+			"type": "microsoft.sql/servers/databases",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "v12.0,user",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "GP_S_Gen5",
+				"tier": "GeneralPurpose",
+				"capacity": 2
+			},
+			"plan": null,
+			"properties": {
+				"status": "Online",
+				"maxSizeBytes": 34359738368
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.KeyVault/vaults/kv-shop",
+			"name": "kv-shop",
+			"type": "microsoft.keyvault/vaults",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"vaultUri": "https://kv-shop.vault.azure.net/",
+				"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+				"enableRbacAuthorization": true
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Storage/storageAccounts/stshopdata",
+			"name": "stshopdata",
+			"type": "microsoft.storage/storageaccounts",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "StorageV2",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "Standard_ZRS"
+			},
+			"plan": null,
+			"properties": {
+				"primaryEndpoints": {
+					"blob": "https://stshopdata.blob.core.windows.net/",
+					"queue": "https://stshopdata.queue.core.windows.net/"
+				},
+				"allowBlobPublicAccess": false
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/privateEndpoints/pe-sql",
+			"name": "pe-sql",
+			"type": "microsoft.network/privateendpoints",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"subnet": {
+					"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-pe"
+				},
+				"privateLinkServiceConnections": [
+					{
+						"name": "sql",
+						"properties": {
+							"privateLinkServiceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Sql/servers/sql-shop",
+							"groupIds": [
+								"sqlServer"
+							],
+							"privateLinkServiceConnectionState": {
+								"status": "Approved"
+							}
+						}
+					}
+				],
+				"networkInterfaces": [
+					{
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkInterfaces/pe-sql.nic.1a2b"
+					}
+				]
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/privateEndpoints/pe-kv",
+			"name": "pe-kv",
+			"type": "microsoft.network/privateendpoints",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"subnet": {
+					"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-pe"
+				},
+				"privateLinkServiceConnections": [
+					{
+						"name": "kv",
+						"properties": {
+							"privateLinkServiceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.KeyVault/vaults/kv-shop",
+							"groupIds": [
+								"vault"
+							]
+						}
+					}
+				]
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/privateEndpoints/pe-st",
+			"name": "pe-st",
+			"type": "microsoft.network/privateendpoints",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"subnet": {
+					"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-pe"
+				},
+				"privateLinkServiceConnections": [
+					{
+						"name": "st",
+						"properties": {
+							"privateLinkServiceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Storage/storageAccounts/stshopdata",
+							"groupIds": [
+								"blob"
+							]
+						}
+					}
+				]
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.ContainerService/managedClusters/aks-shop",
+			"name": "aks-shop",
+			"type": "microsoft.containerservice/managedclusters",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"kubernetesVersion": "1.33.3",
+				"dnsPrefix": "aks-shop",
+				"fqdn": "aks-shop-1a2b3c4d.hcp.eastus.azmk8s.io",
+				"agentPoolProfiles": [
+					{
+						"name": "system",
+						"count": 3,
+						"vmSize": "Standard_D4s_v5",
+						"vnetSubnetID": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-aks",
+						"mode": "System"
+					},
+					{
+						"name": "user",
+						"count": 4,
+						"vmSize": "Standard_D8s_v5",
+						"vnetSubnetID": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-aks",
+						"mode": "User"
+					}
+				],
+				"networkProfile": {
+					"networkPlugin": "azure"
+				}
+			},
+			"tags": {
+				"app": "catalog",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/applicationGateways/agw-shop",
+			"name": "agw-shop",
+			"type": "microsoft.network/applicationgateways",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"sku": {
+					"name": "WAF_v2",
+					"tier": "WAF_v2"
+				},
+				"gatewayIPConfigurations": [
+					{
+						"name": "gw",
+						"properties": {
+							"subnet": {
+								"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-agw"
+							}
+						}
+					}
+				],
+				"backendAddressPools": [
+					{
+						"name": "web",
+						"properties": {
+							"backendAddresses": [
+								{
+									"fqdn": "app-shop-web.azurewebsites.net"
+								}
+							]
+						}
+					}
+				]
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkInterfaces/nic-jumpbox",
+			"name": "nic-jumpbox",
+			"type": "microsoft.network/networkinterfaces",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"ipConfigurations": [
+					{
+						"name": "ipconfig1",
+						"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkInterfaces/nic-jumpbox/ipConfigurations/ipconfig1",
+						"properties": {
+							"privateIPAddress": "10.1.10.4",
+							"subnet": {
+								"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-vm"
+							}
+						}
+					}
+				],
+				"virtualMachine": {
+					"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Compute/virtualMachines/vm-jumpbox"
+				}
+			},
+			"tags": {},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Compute/virtualMachines/vm-jumpbox",
+			"name": "vm-jumpbox",
+			"type": "microsoft.compute/virtualmachines",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"hardwareProfile": {
+					"vmSize": "Standard_B2s"
+				},
+				"networkProfile": {
+					"networkInterfaces": [
+						{
+							"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkInterfaces/nic-jumpbox"
+						}
+					]
+				},
+				"osProfile": {
+					"computerName": "jumpbox",
+					"adminUsername": "azureuser"
+				},
+				"storageProfile": {
+					"osDisk": {
+						"osType": "Linux"
+					}
+				}
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410",
+				"role": "bastion"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/loadBalancers/lb-internal",
+			"name": "lb-internal",
+			"type": "microsoft.network/loadbalancers",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "Standard"
+			},
+			"plan": null,
+			"properties": {
+				"frontendIPConfigurations": [
+					{
+						"name": "fe",
+						"properties": {
+							"privateIPAddress": "10.1.10.100",
+							"subnet": {
+								"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-vm"
+							}
+						}
+					}
+				],
+				"backendAddressPools": [
+					{
+						"name": "be",
+						"properties": {
+							"backendIPConfigurations": [
+								{
+									"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/networkInterfaces/nic-jumpbox/ipConfigurations/ipconfig1"
+								}
+							]
+						}
+					}
+				]
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Cache/redis/redis-shop",
+			"name": "redis-shop",
+			"type": "microsoft.cache/redis",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"hostName": "redis-shop.redis.cache.windows.net",
+				"port": 6379,
+				"sslPort": 6380,
+				"redisVersion": "6.0"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.ServiceBus/namespaces/sb-shop",
+			"name": "sb-shop",
+			"type": "microsoft.servicebus/namespaces",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "Standard"
+			},
+			"plan": null,
+			"properties": {
+				"serviceBusEndpoint": "https://sb-shop.servicebus.windows.net:443/",
+				"status": "Active"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.EventGrid/systemTopics/evgt-stshopdata",
+			"name": "evgt-stshopdata",
+			"type": "microsoft.eventgrid/systemtopics",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"source": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Storage/storageAccounts/stshopdata",
+				"topicType": "Microsoft.Storage.StorageAccounts"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Insights/components/appi-shop",
+			"name": "appi-shop",
+			"type": "microsoft.insights/components",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "web",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"ApplicationId": "appi-shop",
+				"InstrumentationKey": "00000000-aaaa-bbbb-cccc-000000000000",
+				"ConnectionString": "InstrumentationKey=00000000-aaaa-bbbb-cccc-000000000000;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/"
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.OperationalInsights/workspaces/log-shop",
+			"name": "log-shop",
+			"type": "microsoft.operationalinsights/workspaces",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"customerId": "11111111-2222-3333-4444-555555555555",
+				"retentionInDays": 30
+			},
+			"tags": {
+				"app": "shop",
+				"env": "prod",
+				"costCenter": "cc-4410"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/publicIPAddresses/pip-agw",
+			"name": "pip-agw",
+			"type": "microsoft.network/publicipaddresses",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-shop-prod",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"ipAddress": "20.0.113.5",
+				"publicIPAllocationMethod": "Static"
+			},
+			"tags": {},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-edge/providers/Microsoft.Network/frontdoors/fd-shop",
+			"name": "fd-shop",
+			"type": "microsoft.network/frontdoors",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "global",
+			"resourceGroup": "rg-edge",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"cname": "fd-shop.azurefd.net",
+				"backendPools": [
+					{
+						"name": "web",
+						"properties": {
+							"backends": [
+								{
+									"address": "app-shop-web.azurewebsites.net",
+									"httpPort": 80,
+									"httpsPort": 443,
+									"enabledState": "Enabled"
+								}
+							]
+						}
+					}
+				],
+				"frontendEndpoints": [
+					{
+						"name": "shop",
+						"properties": {
+							"hostName": "shop.contoso.example"
+						}
+					}
+				]
+			},
+			"tags": {
+				"app": "shop"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-catalog/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-catalog",
+			"name": "cosmos-catalog",
+			"type": "microsoft.documentdb/databaseaccounts",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "GlobalDocumentDB",
+			"location": "eastus",
+			"resourceGroup": "rg-catalog",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"documentEndpoint": "https://cosmos-catalog.documents.azure.com:443/",
+				"databaseAccountOfferType": "Standard",
+				"locations": [
+					{
+						"locationName": "East US"
+					}
+				]
+			},
+			"tags": {
+				"app": "catalog"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-catalog/providers/Microsoft.App/managedEnvironments/cae-catalog",
+			"name": "cae-catalog",
+			"type": "microsoft.app/managedenvironments",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-catalog",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"defaultDomain": "happyriver-1a2b3c4d.eastus.azurecontainerapps.io",
+				"vnetConfiguration": {
+					"infrastructureSubnetId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-shop-prod/providers/Microsoft.Network/virtualNetworks/vnet-shop/subnets/snet-aks",
+					"internal": true
+				}
+			},
+			"tags": {
+				"app": "catalog"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-catalog/providers/Microsoft.App/containerApps/ca-catalog-api",
+			"name": "ca-catalog-api",
+			"type": "microsoft.app/containerapps",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-catalog",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": null,
+			"plan": null,
+			"properties": {
+				"managedEnvironmentId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-catalog/providers/Microsoft.App/managedEnvironments/cae-catalog",
+				"configuration": {
+					"ingress": {
+						"fqdn": "ca-catalog-api.happyriver-1a2b3c4d.eastus.azurecontainerapps.io",
+						"targetPort": 8080,
+						"external": false
+					},
+					"secrets": [
+						{
+							"name": "cosmos-key"
+						}
+					]
+				},
+				"template": {
+					"containers": [
+						{
+							"name": "api",
+							"image": "contoso.azurecr.io/catalog-api:3.2.0",
+							"env": [
+								{
+									"name": "COSMOS_KEY",
+									"secretRef": "cosmos-key"
+								}
+							]
+						}
+					]
+				}
+			},
+			"tags": {
+				"app": "catalog",
+				"db-password": "P@ssw0rd-in-a-tag"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		},
+		{
+			"id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-catalog/providers/Microsoft.ContainerRegistry/registries/contoso",
+			"name": "contoso",
+			"type": "microsoft.containerregistry/registries",
+			"tenantId": "72f988bf-0000-4000-8000-2d7cd011db47",
+			"kind": "",
+			"location": "eastus",
+			"resourceGroup": "rg-catalog",
+			"subscriptionId": "00000000-1111-2222-3333-444444444444",
+			"managedBy": "",
+			"sku": {
+				"name": "Premium"
+			},
+			"plan": null,
+			"properties": {
+				"loginServer": "contoso.azurecr.io",
+				"adminUserEnabled": false
+			},
+			"tags": {
+				"app": "catalog"
+			},
+			"identity": null,
+			"zones": null,
+			"extendedLocation": null
+		}
+	],
+	"skip_token": null,
+	"total_records": 28
+}

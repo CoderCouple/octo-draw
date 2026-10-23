@@ -5,6 +5,7 @@
 import { OCTO_DOCUMENT_SCHEMA, type RenderTheme } from '@octo-draw/core'
 import { CliError, convertDoc, formatForOutput, INPUT_FORMATS, loadInput, OUTPUT_FORMATS, type InputFormat, type OutputFormat } from './convert'
 import { defaultIconsDir } from '@octo-draw/core/node/iconCache'
+import { scanCommand, SCAN_HELP } from './scan'
 
 export interface IO {
 	readFile(path: string): Promise<string>
@@ -20,11 +21,11 @@ export const HELP = `octo-draw — diagram-as-code from the command line
 
 Usage:
   octo-draw convert <input|-> --to <format> [-o <file>] [--from <format>] [--theme light|dark]
-  octo-draw render <input|-> [-o <file.svg>] [--theme light|dark] [--scale <n>] [--icons color|grayscale]
+  octo-draw render <input|-> [-o <file.svg>] [--theme light|dark] [--scale <n>] [--icons color|grayscale] [--page <name>]
   octo-draw push <input|-> [--server <url>]       replace the running editor's diagram
   octo-draw pull [-o <file>] [--to <format>] [--server <url>]
   octo-draw schema                                print the document JSON schema
-
+${SCAN_HELP}
 Input is detected automatically: octo DSL, mermaid flowchart, ASCII box art
 (markdown fences are fine), an octo document (.json), or a tldraw snapshot.
 Formats:  --to ${OUTPUT_FORMATS.join(' | ')}    --from ${INPUT_FORMATS.join(' | ')}
@@ -45,7 +46,7 @@ interface Args {
 }
 
 const SHORT: Record<string, string> = { o: 'out', t: 'to', h: 'help', f: 'from', s: 'server' }
-const BOOLEAN = new Set(['help', 'version', 'quiet'])
+const BOOLEAN = new Set(['help', 'version', 'quiet', 'json'])
 
 export function parseArgs(argv: string[]): Args {
 	const positional: string[] = []
@@ -145,7 +146,7 @@ export async function run(argv: string[], io: IO): Promise<number> {
 				const scale = str(args, 'scale') ? Number(str(args, 'scale')) : undefined
 				if (scale !== undefined && !(scale > 0)) throw new CliError('--scale must be a positive number')
 				const officialIcons = oneOf<'color' | 'grayscale'>(str(args, 'icons'), ['color', 'grayscale'], 'icons')
-				await emit(io, str(args, 'out'), await convertDoc(doc, 'svg', { theme: theme(args), scale, officialIcons, iconsDir: defaultIconsDir(io.env) }))
+				await emit(io, str(args, 'out'), await convertDoc(doc, 'svg', { theme: theme(args), scale, officialIcons, page: str(args, 'page'), iconsDir: defaultIconsDir(io.env) }))
 				return 0
 			}
 			case 'push': {
@@ -164,6 +165,16 @@ export async function run(argv: string[], io: IO): Promise<number> {
 				await emit(io, out, await convertDoc(doc, to, { theme: theme(args), iconsDir: defaultIconsDir(io.env) }))
 				return 0
 			}
+			case 'scan':
+				return await scanCommand(io, args.positional[1], {
+					out: str(args, 'out'),
+					render: str(args, 'render'),
+					only: str(args, 'only'),
+					title: str(args, 'title'),
+					json: args.flags.json === true,
+					quiet: args.flags.quiet === true,
+					theme: theme(args),
+				})
 			case 'schema':
 				io.stdout(JSON.stringify(OCTO_DOCUMENT_SCHEMA, null, '\t') + '\n')
 				return 0

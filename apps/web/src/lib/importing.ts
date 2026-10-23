@@ -6,6 +6,8 @@ import { makeMeasure } from './text'
 import { sizeFor } from '../canvas/freehand'
 import { insertImage } from './images'
 import { pastePayload, payloadFromClipboard } from './clipboard'
+import { splitPages } from './drillCore'
+import { pinKey } from './pages'
 
 const DIRECTIVE = /^\s*(title|direction|colorMode|styleMode|typeface)\b/
 
@@ -29,7 +31,12 @@ export function convertText(text: string): ConvertedText | null {
 export function mergeImportPins(pins: Record<string, Point> | undefined, how: 'replace' | 'append') {
 	const s = useStore.getState()
 	if (how === 'replace') useStore.setState({ pins: pins ? { ...pins } : {} })
-	else if (pins && Object.keys(pins).length) useStore.setState({ pins: { ...s.pins, ...pins } })
+	else if (pins && Object.keys(pins).length) {
+		// appended code lands on the last page
+		const pages = splitPages(s.code)
+		const page = pages[pages.length - 1].name
+		useStore.setState({ pins: { ...s.pins, ...Object.fromEntries(Object.entries(pins).map(([k, p]) => [pinKey(page, k), p])) } })
+	}
 }
 
 export function applyImportedCode(code: string, how: 'replace' | 'append', pins?: Record<string, Point>) {

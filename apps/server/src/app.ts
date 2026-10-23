@@ -25,6 +25,8 @@ export interface AppDeps {
 	icons?: { dir: string; manifest: IconCacheManifest | null }
 	/** Headless SVG renders draw official icons in grayscale (OCTO_ICONS_GRAYSCALE=1). */
 	officialIcons?: 'color' | 'grayscale'
+	/** Source scanning (`/api/scan`): fetch / env injection for tests. */
+	scan?: import('./scan').ScanDeps
 }
 
 const MAX_BODY = 20 * 1024 * 1024
@@ -47,6 +49,11 @@ function cors(req: IncomingMessage, res: ServerResponse) {
 		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
 		res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 	}
+}
+
+function isLoopback(req: IncomingMessage): boolean {
+	const a = req.socket.remoteAddress ?? ''
+	return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1' || a.startsWith('127.')
 }
 
 function json(res: ServerResponse, status: number, body: unknown) {
@@ -107,7 +114,7 @@ function publicIconManifest(m: IconCacheManifest | null | undefined) {
 	return { schema: 1, packs }
 }
 
-export function createApp({ store: defaultStore, rooms, storeForRoom, getStream, icons, officialIcons }: AppDeps) {
+export function createApp({ store: defaultStore, rooms, storeForRoom, getStream, icons, officialIcons, scan: scanDeps }: AppDeps) {
 	let iconManifestJson: string | null = null
 	/** `?docId=` (or body.docId) picks a room; absent means the default document. */
 	function pickStore(url: URL, body?: Record<string, unknown>): DocStoreLike {
@@ -195,14 +202,14 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream,
 			}
 		}
 		if (method === 'GET' && path === '/api/doc/svg') {
-			// Headless render of the current diagram (thumbnails, CLI, MCP). ?theme=dark&scale=2&background=0
+			// Headless render of the current diagram (thumbnails, CLI, MCP). ?theme=dark&scale=2&background=0&page=Name
 			const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light'
 			const scale = Math.min(8, Math.max(0.1, Number(url.searchParams.get('scale')) || 1))
 			const background = url.searchParams.get('background') !== '0'
 			const id = url.searchParams.get('docId')
 			const store = pickStore(url)
 			const doc = id && rooms ? rooms.get(id).snapshot() : { code: store.get().code, pins: {}, shapes: [], title: '' }
-			const svg = await renderDocumentSvg(doc, { theme, scale, background, officialIcons: url.searchParams.get('icons') === 'grayscale' ? 'grayscale' : officialIcons })
+			const svg = await renderDocumentSvg(doc, { theme, scale, background, page: url.searchParams.get('page') ?? '', officialIcons: url.searchParams.get('icons') === 'grayscale' ? 'grayscale' : officialIcons })
 			res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-cache' })
 			return res.end(svg)
 		}
@@ -290,6 +297,34 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream,
 			}
 			return res.end()
 		}
+		// ---- source scanning (local dev: loopback clients only; local paths limited to OCTO_SCAN_ROOTS)
+		if (method === 'POST' && (path === '/api/scan' || path === '/api/scan/explain')) {
+			if (!isLoopback(req)) throw new HttpError(403, 'Source scanning is only available to local clients')
+			const origin = req.headers.origin
+			if (origin && !LOCAL_ORIGIN.test(origin)) throw new HttpError(403, 'Source scanning is not available to other sites')
+			const body = await readJson(req)
+			const scanReq = {
+				path: requireString(body, 'path', true),
+				source: requireString(body, 'source', true),
+				title: requireString(body, 'title', true),
+				only: Array.isArray(body.only) ? body.only.filter((x): x is string => typeof x === 'string') : undefined,
+				options: body.options && typeof body.options === 'object' && !Array.isArray(body.options) ? (body.options as Record<string, unknown>) : undefined,
+			}
+			// loaded lazily: keeps the scanner (and its core imports) out of the other routes
+			const scan = await import('./scan')
+			const stream = path === '/api/scan/explain' ? needStream(res) : null
+			if (path === '/api/scan/explain' && !stream) return
+			try {
+				const result = await scan.runScan(scanReq, scanDeps)
+				if (!stream) return json(res, 200, scan.publicScan(result))
+				const explained = await scan.explainScan(stream, result)
+				return json(res, 200, { ...scan.publicScan(result), code: explained.code, scanCode: result.code, summary: explained.summary, labels: explained.labels, notes: explained.notes })
+			} catch (err) {
+				if (err instanceof scan.ScanError) throw new HttpError(err.status, err.message)
+				throw err
+			}
+		}
+
 		if (method === 'POST' && path === '/api/agent') {
 			const body = await readJson(req)
 			const prompt = requireString(body, 'prompt') as string

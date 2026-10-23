@@ -1,0 +1,344 @@
+{
+	"fileVersion": "1.0",
+	"configSnapshotId": "0f5c1e2d-3b4a-4c5d-9e8f-7a6b5c4d3e2f",
+	"configurationItems": [
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"cidrBlock": "172.31.0.0/16",
+				"vpcId": "vpc-0c0ffee000000001",
+				"isDefault": false,
+				"state": "available"
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"Name": "billing-vpc",
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::EC2::VPC",
+			"resourceId": "vpc-0c0ffee000000001",
+			"resourceName": null,
+			"ARN": "arn:aws:ec2:us-west-2:444455556666:vpc/vpc-0c0ffee000000001",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [
+				{
+					"resourceType": "AWS::EC2::VPC",
+					"resourceId": "vpc-0c0ffee000000001",
+					"relationshipName": "Is contained in Vpc"
+				}
+			],
+			"configuration": {
+				"subnetId": "subnet-0c0ffee0000000a1",
+				"vpcId": "vpc-0c0ffee000000001",
+				"cidrBlock": "172.31.0.0/20",
+				"availabilityZone": "us-west-2a",
+				"mapPublicIpOnLaunch": false
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"Name": "billing-private-a"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::EC2::Subnet",
+			"resourceId": "subnet-0c0ffee0000000a1",
+			"resourceName": null,
+			"ARN": "arn:aws:ec2:us-west-2:444455556666:subnet/subnet-0c0ffee0000000a1",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "us-west-2a",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"groupId": "sg-0c0ffee000000001",
+				"groupName": "billing-app",
+				"vpcId": "vpc-0c0ffee000000001",
+				"ipPermissions": []
+			},
+			"supplementaryConfiguration": {},
+			"tags": {},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::EC2::SecurityGroup",
+			"resourceId": "sg-0c0ffee000000001",
+			"resourceName": "billing-app",
+			"ARN": "arn:aws:ec2:us-west-2:444455556666:security-group/sg-0c0ffee000000001",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"groupId": "sg-0c0ffee000000002",
+				"groupName": "billing-db",
+				"vpcId": "vpc-0c0ffee000000001",
+				"ipPermissions": [
+					{
+						"fromPort": 3306,
+						"toPort": 3306,
+						"ipProtocol": "tcp",
+						"userIdGroupPairs": [
+							{
+								"groupId": "sg-0c0ffee000000001"
+							}
+						],
+						"ipv4Ranges": []
+					}
+				]
+			},
+			"supplementaryConfiguration": {},
+			"tags": {},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::EC2::SecurityGroup",
+			"resourceId": "sg-0c0ffee000000002",
+			"resourceName": "billing-db",
+			"ARN": "arn:aws:ec2:us-west-2:444455556666:security-group/sg-0c0ffee000000002",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [
+				{
+					"resourceType": "AWS::EC2::Subnet",
+					"resourceId": "subnet-0c0ffee0000000a1",
+					"relationshipName": "Is contained in Subnet"
+				},
+				{
+					"resourceType": "AWS::EC2::SecurityGroup",
+					"resourceId": "sg-0c0ffee000000001",
+					"relationshipName": "Is associated with SecurityGroup"
+				}
+			],
+			"configuration": {
+				"instanceId": "i-0c0ffee000000001",
+				"instanceType": "m7g.large",
+				"subnetId": "subnet-0c0ffee0000000a1",
+				"vpcId": "vpc-0c0ffee000000001",
+				"securityGroups": [
+					{
+						"groupId": "sg-0c0ffee000000001",
+						"groupName": "billing-app"
+					}
+				],
+				"state": {
+					"code": 16,
+					"name": "running"
+				},
+				"placement": {
+					"availabilityZone": "us-west-2a"
+				}
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"Name": "billing-api-1",
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::EC2::Instance",
+			"resourceId": "i-0c0ffee000000001",
+			"resourceName": null,
+			"ARN": "arn:aws:ec2:us-west-2:444455556666:instance/i-0c0ffee000000001",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "us-west-2a",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"dBInstanceIdentifier": "billing-mysql",
+				"engine": "mysql",
+				"dBSubnetGroup": {
+					"dBSubnetGroupName": "billing",
+					"vpcId": "vpc-0c0ffee000000001",
+					"subnets": [
+						{
+							"subnetIdentifier": "subnet-0c0ffee0000000a1"
+						}
+					]
+				},
+				"vpcSecurityGroups": [
+					{
+						"vpcSecurityGroupId": "sg-0c0ffee000000002",
+						"status": "active"
+					}
+				],
+				"endpoint": {
+					"address": "billing-mysql.cxyz.us-west-2.rds.amazonaws.com",
+					"port": 3306
+				}
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::RDS::DBInstance",
+			"resourceId": "db-ABCDEFGHIJKLMNOPQRSTUVWXY",
+			"resourceName": "billing-mysql",
+			"ARN": "arn:aws:rds:us-west-2:444455556666:db:billing-mysql",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"functionName": "invoice-mailer",
+				"runtime": "java21",
+				"vpcConfig": {
+					"subnetIds": [
+						"subnet-0c0ffee0000000a1"
+					],
+					"securityGroupIds": [
+						"sg-0c0ffee000000001"
+					]
+				},
+				"environment": {
+					"variables": {
+						"QUEUE": "https://sqs.us-west-2.amazonaws.com/444455556666/invoices",
+						"SMTP_PASSWORD": "config-snapshot-secret"
+					}
+				}
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::Lambda::Function",
+			"resourceId": "invoice-mailer",
+			"resourceName": "invoice-mailer",
+			"ARN": "arn:aws:lambda:us-west-2:444455556666:function:invoice-mailer",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"QueueUrl": "https://sqs.us-west-2.amazonaws.com/444455556666/invoices"
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::SQS::Queue",
+			"resourceId": "https://sqs.us-west-2.amazonaws.com/444455556666/invoices",
+			"resourceName": "invoices",
+			"ARN": "arn:aws:sqs:us-west-2:444455556666:invoices",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"name": "billing-archive-444455556666"
+			},
+			"supplementaryConfiguration": {},
+			"tags": {
+				"service": "billing"
+			},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::S3::Bucket",
+			"resourceId": "billing-archive-444455556666",
+			"resourceName": "billing-archive-444455556666",
+			"ARN": "arn:aws:s3:::billing-archive-444455556666",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Regional",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {
+				"roleName": "invoice-mailer-role"
+			},
+			"supplementaryConfiguration": {},
+			"tags": {},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "OK",
+			"resourceType": "AWS::IAM::Role",
+			"resourceId": "AROAEXAMPLE123",
+			"resourceName": "invoice-mailer-role",
+			"ARN": "arn:aws:iam::444455556666:role/invoice-mailer-role",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		},
+		{
+			"relatedEvents": [],
+			"relationships": [],
+			"configuration": {},
+			"supplementaryConfiguration": {},
+			"tags": {},
+			"configurationItemVersion": "1.3",
+			"configurationItemCaptureTime": "2026-10-01T06:00:00.000Z",
+			"configurationStateId": 1727762400000,
+			"awsAccountId": "444455556666",
+			"configurationItemStatus": "ResourceDeleted",
+			"resourceType": "AWS::DynamoDB::Table",
+			"resourceId": "old-ledger",
+			"resourceName": "old-ledger",
+			"ARN": "arn:aws:dynamodb:us-west-2:444455556666:table/old-ledger",
+			"awsRegion": "us-west-2",
+			"availabilityZone": "Multiple Availability Zones",
+			"configurationStateMd5Hash": ""
+		}
+	]
+}

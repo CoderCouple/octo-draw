@@ -12,6 +12,8 @@ import { deleteSelection } from './lib/actions'
 import { handlePaste } from './lib/importing'
 import { zoomAt, useCamera } from './canvas/camera'
 import { usePeers, type ConnState } from './lib/sync'
+import { PageTabs } from './components/PageTabs'
+import { goBack } from './lib/view'
 
 const SPLIT_KEY = 'octo-draw:split'
 
@@ -129,6 +131,11 @@ function useGlobalKeys() {
 				useCamera.setState({ z: 1 })
 				return
 			}
+			if (e.altKey && !mod && e.key === 'ArrowUp') {
+				e.preventDefault()
+				goBack()
+				return
+			}
 			if (mod || e.altKey) return
 			if (e.key === '!' || (e.shiftKey && e.code === 'Digit1')) {
 				requestFit(true)
@@ -136,7 +143,9 @@ function useGlobalKeys() {
 			}
 			if (e.key === 'Delete' || e.key === 'Backspace') {
 				e.preventDefault()
-				deleteSelection()
+				// with nothing selected, Backspace goes up one drill level
+				if (e.key === 'Backspace' && !useStore.getState().selection) goBack()
+				else deleteSelection()
 				return
 			}
 			if (e.key === 'Escape') {
@@ -192,6 +201,7 @@ export function App() {
 						<span>Diagram code</span>
 						<span className="muted small">octo DSL</span>
 					</div>
+					<PageTabs />
 					<Editor />
 					<StatusBar />
 				</section>

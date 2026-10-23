@@ -125,7 +125,7 @@ API gateway --> Audit: async          // dotted arrow
 |---|---|
 | Operators | `>` arrow, `<` reverse, `<>` both, `-` line, `--` dotted line, `-->` dotted arrow. They need spaces around them, so names like `main-vpc` stay intact |
 | Names | May contain spaces. Quote them when they contain `[ ] { } , : "` or an operator |
-| Node props | `shape` (rectangle, oval, ellipse, diamond, cylinder, hexagon, parallelogram, document, trapezoid, triangle, star, cloud), `icon` (lucide names and aliases such as `db`, `k8s`, `aws-lambda`), `color` (palette name or `#hex`), `label`, `link` |
+| Node props | `shape` (rectangle, oval, ellipse, diamond, cylinder, hexagon, parallelogram, document, trapezoid, triangle, star, cloud), `icon` (lucide names and aliases such as `db`, `k8s`, `aws-lambda`), `color` (palette name or `#hex`), `label`, `link`, `drill` (page to open) |
 | Edge props | `id`, `color`, `dash` |
 
 **Sequence diagrams** start with `sequence`:
@@ -152,6 +152,24 @@ users [icon: user] {
 users.teamId > teams.id      // > many-to-one, < one-to-many, - one-to-one, <> many-to-many
 notation crows-feet          // or chen
 ```
+
+**Pages and drill-down.** A line that is exactly `page <Name>` (column 0; quote the name if needed; a trailing comment is fine) starts a sub-diagram that runs until the next `page` line. Everything before the first one is the root page. Double-click a node to drill into its page: the target is its `drill:` prop, or else a page with the same name as the node (case-insensitive).
+
+```
+title Checkout
+Payments [icon: credit-card, drill: Payments flow]
+Orders                                  // drills into "page Orders"
+API > Payments, Orders
+
+page Payments flow
+direction right                         // directives (and sequence / erd) are per page
+Validate > Charge > Receipt
+
+page Orders
+Create > Reserve stock > Ship
+```
+
+`title` is only read from the root page, and node names are per page. A node called `page`, or a line like `page > x`, is not a page header. A `drill:` naming a missing page is a warning.
 
 ## License
 

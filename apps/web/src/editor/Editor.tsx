@@ -5,13 +5,44 @@ import { defaultKeymap, indentWithTab } from '@codemirror/commands'
 import { bracketMatching, indentOnInput } from '@codemirror/language'
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
 import { linter, lintGutter, type Diagnostic as CMDiagnostic } from '@codemirror/lint'
-import { detectFormat, importText, parseOcto, printOcto } from '@octo-draw/core'
+import { detectFormat, importText, pageAt, parseOctoPages, printOcto, splitPages, findPage } from '@octo-draw/core'
 import { octoHighlight, octoLanguage } from './language'
 import { iconPreview, octoCompletions } from './completion'
 import { getIcon, iconSvgString, loadIcons } from '../lib/icons'
 import { redo, setCode, showToast, undo, useStore } from '../store'
 import { bindEditor, localCodeEdit } from '../lib/sync'
 import { importMessage, mergeImportPins, warningsAction } from '../lib/importing'
+import { setPage } from '../lib/view'
+
+/** The current page's section: header line gets a tab-like mark, body lines a subtle rail. */
+const setPageRange = StateEffect.define<{ from: number; to: number; head: boolean } | null>()
+const pageField = StateField.define<DecorationSet>({
+	create: () => Decoration.none,
+	update(deco, tr) {
+		deco = deco.map(tr.changes)
+		for (const e of tr.effects) {
+			if (!e.is(setPageRange)) continue
+			if (!e.value) {
+				deco = Decoration.none
+				continue
+			}
+			const doc = tr.state.doc
+			const from = Math.min(e.value.from, doc.length)
+			const to = Math.max(from, Math.min(e.value.to, doc.length))
+			const ranges = []
+			const first = doc.lineAt(from).number
+			// `to` is exclusive and sits at the next page's line start
+			const last = to > from ? doc.lineAt(Math.max(from, to - 1)).number : first
+			for (let n = first; n <= last; n++) {
+				const cls = n === first && e.value.head ? 'cm-octo-page-head' : 'cm-octo-page-line'
+				ranges.push(Decoration.line({ class: cls }).range(doc.line(n).from))
+			}
+			deco = Decoration.set(ranges)
+		}
+		return deco
+	},
+	provide: (f) => EditorView.decorations.from(f),
+})
 
 const External = Annotation.define<boolean>()
 
@@ -39,7 +70,7 @@ const octoLinter = linter(
 		const src = view.state.doc.toString()
 		if (useStore.getState().aiBusy) return []
 		const len = src.length
-		return parseOcto(src).diagnostics.map(
+		return parseOctoPages(src).diagnostics.map(
 			(d): CMDiagnostic => {
 				const from = Math.max(0, Math.min(len, d.from))
 				const to = Math.max(from, Math.min(len, d.to))
@@ -138,6 +169,8 @@ const theme = EditorView.theme({
 	'.cm-gutters': { backgroundColor: 'var(--card)', color: 'var(--foreground-subtle)', border: 'none', paddingLeft: '6px' },
 	'.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--muted) 60%, transparent)' },
 	'.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--muted-foreground)' },
+	'.cm-octo-page-line': { boxShadow: 'inset 2px 0 0 var(--border)' },
+	'.cm-octo-page-head': { boxShadow: 'inset 2px 0 0 var(--foreground-subtle)', backgroundColor: 'color-mix(in srgb, var(--muted) 70%, transparent)', fontWeight: 600 },
 	'.cm-octo-selected': { backgroundColor: 'var(--highlight) !important', boxShadow: 'inset 2px 0 0 var(--foreground-strong)' },
 	'&.cm-focused': { outline: 'none' },
 	'.cm-cursor': { borderLeftColor: 'var(--foreground-strong)', borderLeftWidth: '2px' },
@@ -169,6 +202,15 @@ function diff(a: string, b: string) {
 	return { from: start, to: endA, insert: b.slice(start, endB) }
 }
 
+/** page the caret last asked for (so a caret switch doesn't scroll the editor) */
+let caretPage: string | null = null
+function followCaret(view: EditorView) {
+	const name = pageAt(view.state.doc.toString(), view.state.selection.main.head)
+	if (name === useStore.getState().page) return
+	caretPage = name
+	if (!setPage(name)) caretPage = null
+}
+
 export function Editor() {
 	const host = useRef<HTMLDivElement>(null)
 	const viewRef = useRef<EditorView | null>(null)
@@ -189,6 +231,7 @@ export function Editor() {
 			autocompletion({ override: [octoCompletions], icons: false, addToOptions: [iconPreview] }),
 			iconHover,
 			selectedLineField,
+			pageField,
 			convertingPaste,
 			placeholder('Describe your diagram in code… e.g.  Users > API > DB'),
 			keymap.of([
@@ -204,6 +247,8 @@ export function Editor() {
 			theme,
 			EditorView.lineWrapping,
 			EditorView.updateListener.of((u) => {
+				// the caret picks the canvas page
+				if (u.selectionSet && !u.transactions.some((tr) => tr.annotation(External))) followCaret(u.view)
 				if (!u.docChanged || u.transactions.some((tr) => tr.annotation(External))) return
 				const text = u.state.doc.toString()
 				const changes: { from: number; to: number; insert: string }[] = []
@@ -225,7 +270,27 @@ export function Editor() {
 			applyRemote: (changes) => view.dispatch({ changes, annotations: External.of(true) }),
 		})
 
+		/** Marks the current page's lines; `scroll` brings its header into view. */
+		const markPage = (scroll: boolean) => {
+			const s = useStore.getState()
+			const pages = splitPages(view.state.doc.toString())
+			if (pages.length <= 1) {
+				view.dispatch({ effects: setPageRange.of(null) })
+				return
+			}
+			const p = findPage(pages, s.page) ?? pages[0]
+			const effects: StateEffect<unknown>[] = [setPageRange.of({ from: p.from, to: p.to, head: p.name !== '' })]
+			// don't yank the view away from where the user is typing
+			if (scroll && pageAt(view.state.doc.toString(), view.state.selection.main.head) !== p.name) effects.push(EditorView.scrollIntoView(p.from, { y: 'start', yMargin: 8 }))
+			view.dispatch({ effects })
+		}
+		markPage(true)
+
 		const unsub = useStore.subscribe((s, prev) => {
+			if (s.page !== prev.page) markPage(caretPage !== s.page)
+			else if (s.code !== prev.code || s.pageNames !== prev.pageNames) markPage(false)
+			// a page header being typed: follow it once the pipeline knows the new name
+			if (s.pageNames !== prev.pageNames && view.hasFocus) followCaret(view)
 			if (s.code !== prev.code) {
 				const cur = view.state.doc.toString()
 				if (cur !== s.code) {

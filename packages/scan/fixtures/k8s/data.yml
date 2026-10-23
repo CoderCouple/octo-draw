@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: api-config, namespace: shop }
+data:
+  LOG_LEVEL: info
+---
+apiVersion: v1
+kind: Secret
+metadata: { name: db-credentials, namespace: shop }
+type: Opaque
+data:
+  password: aHVudGVyMi1kby1ub3QtbGVhaw==
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: postgres, namespace: shop }
+spec:
+  serviceName: postgres
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: db-credentials, key: password } }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: pg-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres, namespace: shop }
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432 }]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: { name: nightly-report, namespace: jobs }
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata: { labels: { app: report } }
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: report
+              image: ghcr.io/acme/report:latest
+---
+apiVersion: v1
+kind: Service
+metadata: { name: lb, namespace: shop }
+spec:
+  type: LoadBalancer
+  selector: { app: api }
+  ports: [{ port: 443 }]

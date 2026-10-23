@@ -1,6 +1,6 @@
 /** AI features on top of a StreamFn: generate (streaming), vision import, and the tool-use agent. */
 
-import { applyActions, parseOcto, type AgentAction } from '@octo-draw/core'
+import { applyActions, parseOctoPages, type AgentAction } from '@octo-draw/core'
 import { echoContent, RefusalError, textOf, type Message, type MessageParam, type StreamFn, type Tool, type ToolResult } from './claude'
 import {
 	AGENT_SYSTEM,
@@ -20,7 +20,7 @@ export function assertNotRefused(message: Message) {
 
 /** Parse errors formatted for the model, or '' when the code parses cleanly. */
 export function diagnosticsText(code: string): string {
-	const { diagnostics } = parseOcto(code)
+	const { diagnostics } = parseOctoPages(code)
 	const errors = diagnostics.filter((d) => d.severity === 'error')
 	if (errors.length === 0) return ''
 	return errors

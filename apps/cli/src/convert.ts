@@ -9,6 +9,8 @@ import {
 	layoutDiagram,
 	migrateDocument,
 	parseOcto,
+	parseOctoPages,
+	parsePage,
 	printOcto,
 	renderDocumentSvg,
 	serializeDocument,
@@ -93,7 +95,8 @@ export function loadInput(text: string, opts: { name?: string; from?: InputForma
 	const title = opts.title ?? opts.name?.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '')
 	const format = from ?? detectFormat(text)
 	if (format === 'octo') {
-		const { diagnostics, ir } = parseOcto(text)
+		const { diagnostics } = parseOctoPages(text)
+		const { ir } = parsePage(text, '') ?? parseOcto(text)
 		for (const d of diagnostics) warnings.push(`${d.severity}: ${d.message} (offset ${d.from})`)
 		return { doc: createDocument({ code: text, title: ir.title ?? title }), format: 'octo', warnings }
 	}
@@ -111,6 +114,8 @@ export interface ConvertOptions {
 	icons?: boolean
 	/** Official vendor icons: full color (default) or grayscale. */
 	officialIcons?: 'color' | 'grayscale'
+	/** Page to render or export (default the root page). */
+	page?: string
 	/** Official icon cache directory (default $OCTO_ICONS_DIR or ~/.cache/octo-draw/icons). */
 	iconsDir?: string
 }
@@ -120,13 +125,13 @@ export async function convertDoc(doc: OctoDocument, to: OutputFormat, opts: Conv
 		case 'octo':
 			return doc.code.endsWith('\n') || !doc.code ? doc.code : doc.code + '\n'
 		case 'mermaid':
-			return toMermaid(parseOcto(doc.code).ir)
+			return toMermaid((parsePage(doc.code, opts.page ?? '') ?? parseOcto(doc.code)).ir)
 		case 'json':
 			return serializeDocument(doc)
 		case 'svg':
-			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? false : await loadIconResolver({ iconsDir: opts.iconsDir }), officialIcons: opts.officialIcons })) + '\n'
+			return (await renderDocumentSvg(doc, { theme: opts.theme, scale: opts.scale, icon: opts.icons === false ? false : await loadIconResolver({ iconsDir: opts.iconsDir }), officialIcons: opts.officialIcons, page: opts.page })) + '\n'
 		case 'tldraw': {
-			const layout = await layoutDiagram(parseOcto(doc.code).ir, { pinned: doc.pins })
+			const layout = await layoutDiagram((parsePage(doc.code, opts.page ?? '') ?? parseOcto(doc.code)).ir, { pinned: opts.page ? {} : doc.pins })
 			return JSON.stringify(toTldrawSnapshot(doc, layout), null, '\t') + '\n'
 		}
 	}

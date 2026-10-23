@@ -35,6 +35,8 @@ export function quoteName(name: string): string {
 	if (parts.some((p) => (OPS as readonly string[]).includes(p))) return quote(name)
 	if ((DIRECTIVES as readonly string[]).includes(parts[0])) return quote(name)
 	if (parts.length === 1 && KIND_HEADERS[name]) return quote(name)
+	// `page X` alone on a line would start a new page.
+	if (parts[0] === 'page' && parts.length > 1) return quote(name)
 	return name
 }
 

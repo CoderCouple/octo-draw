@@ -8,11 +8,12 @@
  * behind nodes, freehand layer on top.
  */
 
-import type { DiagramIR, DiagramLayout, IREdge, IRNode, LaidOutEdge, LaidOutNode } from '../ir'
+import type { DiagramIR, DiagramLayout, IREdge, IRNode, LaidOutEdge, LaidOutNode, Point } from '../ir'
 import type { FreeShape } from '../free'
 import { freeShapeBounds, freeSizeFor } from '../free'
 import { estimateText, ICON_SIZE, iconPlacement, type Measure } from '../layout/sizing'
 import { parseOcto } from '../dsl/parse'
+import { parsePage } from '../drill/pages'
 import { layoutDiagram } from '../layout/layout'
 import type { OctoDocument } from '../doc'
 import { edgeColor, FONT_STACK, groupColors, inkColor, nodeColors, SURFACES, type RenderTheme } from './colors'
@@ -31,6 +32,8 @@ export type IconResolver = (name: string) => ResolvedIcon | IconNode | null | un
 
 export interface RenderSvgOptions {
 	theme?: RenderTheme
+	/** `renderDocumentSvg` only: which page to render (default the root page, `''`). */
+	page?: string
 	/** Freehand shapes drawn on top of the diagram. */
 	shapes?: FreeShape[]
 	/** Space around the content, in px. Default 32. */
@@ -329,7 +332,18 @@ export function renderDiagramSvg(ir: DiagramIR, layout: DiagramLayout, opts: Ren
 
 /** Convenience: parse a document's code, lay it out with its pins, render it with its shapes. */
 export async function renderDocumentSvg(doc: Pick<OctoDocument, 'code' | 'pins' | 'shapes' | 'title'>, opts: RenderSvgOptions = {}): Promise<string> {
-	const { ir } = parseOcto(doc.code)
-	const layout = await layoutDiagram(ir, { pinned: doc.pins, measureText: opts.measureText })
-	return renderDiagramSvg(ir, layout, { shapes: doc.shapes, title: ir.title ?? doc.title, ...opts })
+	const page = opts.page ?? ''
+	const { ir } = parsePage(doc.code, page) ?? parseOcto(doc.code)
+	const layout = await layoutDiagram(ir, { pinned: pagePins(doc.pins, page), measureText: opts.measureText })
+	// freehand shapes and the document title belong to the root page
+	return renderDiagramSvg(ir, layout, { shapes: page ? undefined : doc.shapes, title: page || (ir.title ?? doc.title), ...opts })
+}
+
+/** Pins for one page: root keys are bare, other pages use `<page>/<key>`. */
+function pagePins(pins: Record<string, Point> | undefined, page: string): Record<string, Point> | undefined {
+	if (!pins || !page) return pins
+	const prefix = `${page}/`
+	const out: Record<string, Point> = {}
+	for (const [k, v] of Object.entries(pins)) if (k.startsWith(prefix)) out[k.slice(prefix.length)] = v
+	return out
 }

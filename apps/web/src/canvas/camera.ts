@@ -57,11 +57,13 @@ export const READABLE_ZOOM = 0.6
  * shrunk into an unreadable strip.
  */
 export function fitBounds(b: { x: number; y: number; w: number; h: number } | null, maxZoom = 1.25, strict = true) {
+	useCamera.setState(fitCamera(b, maxZoom, strict))
+}
+
+/** The camera `fitBounds` would set, without setting it. */
+export function fitCamera(b: { x: number; y: number; w: number; h: number } | null, maxZoom = 1.25, strict = true): Camera {
 	const { w, h } = viewportSize()
-	if (!b || b.w <= 0 || b.h <= 0) {
-		useCamera.setState({ x: w / 2, y: h / 2, z: 1 })
-		return
-	}
+	if (!b || b.w <= 0 || b.h <= 0) return { x: w / 2, y: h / 2, z: 1 }
 	const pad = Math.min(64, w * 0.06, h * 0.08)
 	const fitW = (w - pad * 2) / b.w
 	const fitH = (h - pad * 2) / b.h
@@ -70,5 +72,57 @@ export function fitBounds(b: { x: number; y: number; w: number; h: number } | nu
 	z = Math.max(MIN_ZOOM, z)
 	const x = b.w * z <= w - pad * 2 ? w / 2 - (b.x + b.w / 2) * z : pad - b.x * z
 	const y = b.h * z <= h - pad * 2 ? h / 2 - (b.y + b.h / 2) * z : pad - b.y * z
-	useCamera.setState({ z, x, y })
+	return { z, x, y }
+}
+
+/** `c` zoomed by `factor` about the viewport center. */
+export function scaledCamera(c: Camera, factor: number): Camera {
+	const { w, h } = viewportSize()
+	const z = c.z * factor
+	const wx = (w / 2 - c.x) / c.z
+	const wy = (h / 2 - c.y) / c.z
+	return { z, x: w / 2 - wx * z, y: h / 2 - wy * z }
+}
+
+/** The camera that centers a world box so it fills the viewport (zoom unclamped). */
+export function cameraOnBox(b: { x: number; y: number; w: number; h: number }, fill = 1): Camera {
+	const { w, h } = viewportSize()
+	const z = Math.min(w / Math.max(b.w, 1), h / Math.max(b.h, 1)) * fill
+	return { z, x: w / 2 - (b.x + b.w / 2) * z, y: h / 2 - (b.y + b.h / 2) * z }
+}
+
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+let anim = 0
+/**
+ * Animates the camera to `to` over `ms`: zoom interpolates geometrically and the
+ * world point at the viewport center linearly, so zooms feel even. `onFrame`
+ * gets the eased progress (fades ride along).
+ */
+export function animateCamera(to: Camera, ms: number, onFrame?: (t: number) => void): Promise<void> {
+	const id = ++anim
+	const from = useCamera.getState()
+	const { w, h } = viewportSize()
+	const fc = { x: (w / 2 - from.x) / from.z, y: (h / 2 - from.y) / from.z }
+	const tc = { x: (w / 2 - to.x) / to.z, y: (h / 2 - to.y) / to.z }
+	const start = performance.now()
+	return new Promise((resolve) => {
+		const step = (now: number) => {
+			if (id !== anim) return resolve()
+			const raw = Math.min(1, (now - start) / ms)
+			const t = ease(raw)
+			const z = from.z * Math.pow(to.z / from.z, t)
+			const cx = fc.x + (tc.x - fc.x) * t
+			const cy = fc.y + (tc.y - fc.y) * t
+			useCamera.setState(raw >= 1 ? to : { z, x: w / 2 - cx * z, y: h / 2 - cy * z })
+			onFrame?.(t)
+			if (raw < 1) requestAnimationFrame(step)
+			else resolve()
+		}
+		requestAnimationFrame(step)
+	})
+}
+
+export function cancelCameraAnimation() {
+	anim++
 }

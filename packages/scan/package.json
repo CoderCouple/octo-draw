@@ -1,0 +1,44 @@
+{
+	"name": "@octo-draw/scan",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"description": "Source scanning: code repos, docker-compose, Kubernetes, Terraform and OpenAPI to octo architecture diagrams",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./node": "./src/node.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@aws-sdk/client-api-gateway": "3.1146.0",
+		"@aws-sdk/client-apigatewayv2": "3.1146.0",
+		"@aws-sdk/client-cloudfront": "3.1146.0",
+		"@aws-sdk/client-ec2": "3.1146.0",
+		"@aws-sdk/client-ecs": "3.1146.0",
+		"@aws-sdk/client-elastic-load-balancing-v2": "3.1146.0",
+		"@aws-sdk/client-elasticache": "3.1146.0",
+		"@aws-sdk/client-eventbridge": "3.1146.0",
+		"@aws-sdk/client-lambda": "3.1146.0",
+		"@aws-sdk/client-rds": "3.1146.0",
+		"@aws-sdk/client-resource-explorer-2": "3.1146.0",
+		"@aws-sdk/client-resource-groups-tagging-api": "3.1146.0",
+		"@aws-sdk/client-route-53": "3.1146.0",
+		"@aws-sdk/client-sns": "3.1146.0",
+		"@aws-sdk/client-sts": "3.1146.0",
+		"@aws-sdk/credential-providers": "3.1146.0",
+		"@azure/identity": "4.13.3",
+		"@octo-draw/core": "workspace:*",
+		"google-auth-library": "11.1.0",
+		"yaml": "2.9.1"
+	},
+	"devDependencies": {
+		"@types/node": "22.20.5",
+		"typescript": "5.9.3",
+		"vitest": "5.0.5"
+	}
+}

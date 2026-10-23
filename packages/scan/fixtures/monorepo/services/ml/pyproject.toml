@@ -1,0 +1,3 @@
+[project]
+name = "acme-ml"
+dependencies = ["fastapi>=0.110", "uvicorn[standard]", "openai>=1.0", "redis"]

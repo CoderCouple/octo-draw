@@ -1,0 +1,173 @@
+{
+	"PaginationToken": "",
+	"ResourceTagMappingList": [
+		{
+			"ResourceARN": "arn:aws:lambda:eu-west-1:777788889999:function:catalog-sync",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				},
+				{
+					"Key": "team",
+					"Value": "commerce"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:lambda:eu-west-1:777788889999:function:catalog-search",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:lambda:eu-west-1:777788889999:function:catalog-search:live",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:dynamodb:eu-west-1:777788889999:table/catalog-items",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:dynamodb:eu-west-1:777788889999:table/catalog-items/stream/2026-09-01T00:00:00.000",
+			"Tags": []
+		},
+		{
+			"ResourceARN": "arn:aws:s3:::catalog-images-777788889999",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				},
+				{
+					"Key": "github-token",
+					"Value": "ghp_tagvalueshouldvanish"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:sqs:eu-west-1:777788889999:catalog-ingest",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:sns:eu-west-1:777788889999:catalog-changes",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:sns:eu-west-1:777788889999:catalog-changes:8a1b2c3d-1111-2222-3333-444455556666",
+			"Tags": []
+		},
+		{
+			"ResourceARN": "arn:aws:apigateway:eu-west-1::/restapis/k3l4m5n6o7",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:apigateway:eu-west-1::/restapis/k3l4m5n6o7/stages/prod",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:states:eu-west-1:777788889999:stateMachine:catalog-import",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:ecr:eu-west-1:777788889999:repository/catalog/api",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "catalog"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:kms:eu-west-1:777788889999:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+			"Tags": []
+		},
+		{
+			"ResourceARN": "arn:aws:cloudformation:eu-west-1:777788889999:stack/catalog-prod/abc",
+			"Tags": []
+		},
+		{
+			"ResourceARN": "arn:aws:ec2:eu-west-1:777788889999:vpc/vpc-0d1e2f3a4b5c6d7e8",
+			"Tags": [
+				{
+					"Key": "Name",
+					"Value": "catalog-vpc"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:ec2:eu-west-1:777788889999:subnet/subnet-0d1e2f3a4b5c6d7e9",
+			"Tags": [
+				{
+					"Key": "Name",
+					"Value": "catalog-a"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:kinesis:eu-west-1:777788889999:stream/catalog-clicks",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "analytics"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:firehose:eu-west-1:777788889999:deliverystream/catalog-clicks-to-s3",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "analytics"
+				}
+			]
+		},
+		{
+			"ResourceARN": "arn:aws:quicksight:eu-west-1:777788889999:dashboard/sales",
+			"Tags": [
+				{
+					"Key": "app",
+					"Value": "analytics"
+				}
+			]
+		}
+	]
+}

@@ -9,6 +9,7 @@ import { NODE_SHAPES, type IREdge } from '../ir'
 import { parseMermaid } from '../mermaid/parse'
 import { analyzeOcto, OP_STYLE, type EdgeOp, type OctoAnalysis, type Statement } from '../dsl/parse'
 import { appendLine, setNodeProp } from '../dsl/patch'
+import { editPage, findPage, splitPages } from '../drill/pages'
 import { printEdge, printEdgeLine, printOcto, printProps, quoteName, type PropList } from '../dsl/print'
 
 type GroupStatement = Extract<Statement, { kind: 'group' }>
@@ -353,7 +354,23 @@ function applyOne(src: string, action: AgentAction): string {
 	}
 }
 
-export function applyActions(src: string, actions: AgentAction[]): ApplyResult {
+export interface ApplyOptions {
+	/**
+	 * Page to edit (default root `''`). Every action then only touches that
+	 * page's section. Exception: `replaceCode` without an explicit page
+	 * replaces the whole source.
+	 */
+	page?: string
+}
+
+function applyOnPage(src: string, action: AgentAction, page: string | undefined): string {
+	if (action.type === 'replaceCode' && !page) return replaceCode(action)
+	if (!page && !src.includes('page')) return applyOne(src, action)
+	if (page && !findPage(splitPages(src), page)) fail(`Unknown page "${page}"`)
+	return editPage(src, page, (body) => applyOne(body, action))
+}
+
+export function applyActions(src: string, actions: AgentAction[], opts: ApplyOptions = {}): ApplyResult {
 	let code = src
 	let applied = 0
 	const errors: ApplyResult['errors'] = []
@@ -361,7 +378,7 @@ export function applyActions(src: string, actions: AgentAction[]): ApplyResult {
 	actions.forEach((action, index) => {
 		try {
 			if (!action || typeof action !== 'object') fail('Action must be an object')
-			code = applyOne(code, action)
+			code = applyOnPage(code, action, opts.page)
 			applied++
 		} catch (e) {
 			errors.push({ index, message: e instanceof Error ? e.message : String(e) })

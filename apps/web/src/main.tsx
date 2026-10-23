@@ -4,7 +4,9 @@ import type { AgentAction, ApplyResult, DiagramIR, DiagramLayout } from '@octo-d
 import { App } from './App'
 import { setCode, useStore } from './store'
 import { startPipeline } from './lib/pipeline'
-import { loadSaved, startPersistence } from './lib/persist'
+import { loadSaved, loadView, startPersistence } from './lib/persist'
+import { setPage } from './lib/view'
+import { ROOT_CRUMB } from './lib/pages'
 import { startSync } from './lib/sync'
 import { loadIcons } from './lib/icons'
 import { runActions } from './lib/actions'
@@ -19,6 +21,8 @@ declare global {
 			applyActions: (actions: AgentAction[]) => ApplyResult
 			getIR: () => DiagramIR | null
 			getLayout: () => DiagramLayout | null
+			getPage: () => string
+			setPage: (name: string) => boolean
 		}
 	}
 }
@@ -27,7 +31,8 @@ loadSaved()
 // `?example=sequence` (flowchart | architecture | sequence | erd) opens a starter diagram
 const exampleId = new URLSearchParams(location.search).get('example')
 const example = exampleId ? getExample(exampleId) : undefined
-if (example) useStore.setState({ code: example.code, pins: {} })
+if (example) useStore.setState({ code: example.code, pins: {}, crumbs: [ROOT_CRUMB], page: '', collapsed: {} })
+else loadView()
 startPipeline()
 startPersistence()
 // an example link is a local preview: do not pull (or overwrite) the shared server doc
@@ -40,6 +45,8 @@ window.octo = {
 	applyActions: (actions) => runActions(actions),
 	getIR: () => useStore.getState().ir,
 	getLayout: () => useStore.getState().layout,
+	getPage: () => useStore.getState().page,
+	setPage: (name) => setPage(name, true),
 }
 
 createRoot(document.getElementById('root')!).render(

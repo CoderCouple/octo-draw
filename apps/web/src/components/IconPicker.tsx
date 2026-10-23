@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Shapes, X } from 'lucide'
-import { setNodeProp } from '@octo-draw/core'
+import { setNodeProp } from '../lib/drillCore'
 import { Icon } from './Icon'
 import { IconGlyph } from '../canvas/DiagramLayer'
 import { loadIcons, searchIconNames, useIcons } from '../lib/icons'
@@ -63,7 +63,7 @@ function IconPicker({ nodeKey, onClose }: { nodeKey: string; onClose: () => void
 	const hits = useMemo(() => searchIconNames(query, 96), [query, version])
 	const bg = cssVar('--popover', '#ffffff')
 	const pick = (name: string | null) => {
-		setCode(setNodeProp(useStore.getState().code, nodeKey, 'icon', name))
+		setCode(setNodeProp(useStore.getState().code, nodeKey, 'icon', name, useStore.getState().page))
 		onClose()
 	}
 	return (

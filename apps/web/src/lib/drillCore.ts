@@ -1,0 +1,20 @@
+/** Drill-down API, re-exported from core (CONTRACT.md "Drill-down (v1)"). */
+export {
+	splitPages,
+	parsePage,
+	parseOctoPages,
+	drillTargets,
+	pageAt,
+	addPage,
+	pageNames,
+	findPage,
+	collapseGroups,
+	focusGroup,
+	GHOST_PREFIX,
+	ROOT_PAGE,
+	setNodeProp,
+	setEdgeProp,
+	renameNodeLabel,
+	applyActions,
+	type OctoPage,
+} from '@octo-draw/core'

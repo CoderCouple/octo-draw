@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot, LayoutTemplate, Workflow, Cloud, ArrowLeftRight, Table } from 'lucide'
+import { ROOT_CRUMB } from '../lib/pages'
+import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot, LayoutTemplate, Workflow, Cloud, ArrowLeftRight, Table, Layers } from 'lucide'
 import { Icon } from './Icon'
 import { pushHistory, requestFit, useStore } from '../store'
 import { EXAMPLES, type Example } from '../examples'
@@ -60,13 +61,13 @@ function MenuItem({ icon, label, hint, onClick }: { icon: unknown; label: string
 	)
 }
 
-const EXAMPLE_ICONS: Record<string, unknown> = { flowchart: Workflow, architecture: Cloud, sequence: ArrowLeftRight, erd: Table }
+const EXAMPLE_ICONS: Record<string, unknown> = { flowchart: Workflow, architecture: Cloud, sequence: ArrowLeftRight, erd: Table, drill: Layers }
 
 /** Replaces the document with an example (undoable). */
 function openExample(e: Example) {
 	pushHistory()
 	const prev = useStore.getState().layout
-	useStore.setState({ code: e.code, pins: {}, selection: null })
+	useStore.setState({ code: e.code, pins: {}, selection: null, crumbs: [ROOT_CRUMB], page: '', collapsed: {} })
 	// fit once the new layout lands (layout runs off-thread)
 	const unsub = useStore.subscribe((s) => {
 		if (s.layout === prev) return

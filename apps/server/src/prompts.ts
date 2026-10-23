@@ -19,12 +19,13 @@ A node is declared by its name, optionally followed by [properties]:
   DB [shape: cylinder, icon: database, label: "Postgres 16"]
 - The name is the node's identity (key). Names may contain spaces: \`API gateway\`.
 - Quote a name with "..." when it contains any of  [ ] { } , : "  or an operator token, e.g. "Auth: OAuth" or "Read, write".
-- Node properties: shape, icon, color, label, link.
+- Node properties: shape, icon, color, label, link, drill.
   - shape: ${NODE_SHAPES.join(' | ')}  (default rectangle)
   - icon: a lowercase icon name such as server, database, users, user, cloud, globe, lock, key, mail, cpu, radio, file, folder, monitor, smartphone, settings, shield, credit-card, shopping-cart, aws-lambda, aws-s3, aws-ec2, gcp-cloud-run, k8s, docker
   - color: blue | red | green | orange | purple | yellow | pink | teal | gray, or an exact #hex
   - label: display text when it differs from the name (quote it if it has commas/colons)
   - link: a URL
+  - drill: name of a page (see Pages) that this node opens when double-clicked
 - A property without a value (e.g. [pin]) means "true".
 - Nodes referenced only in a connection are created implicitly as plain rectangles. Declare a node explicitly only when it needs properties or must live in a group.
 
@@ -52,6 +53,24 @@ Operators (MUST have a space on both sides, so names like main-vpc stay intact):
   --   dotted line, no arrowheads
   -->  dotted arrow
 Edge properties: id, color, dash.
+
+## Pages and drill-down
+A line that is exactly \`page <Name>\` (at column 0; quote the name if it has special characters) starts a sub-diagram that runs until the next page line. Everything before the first page line is the root page.
+  Payments [icon: credit-card, drill: Payments flow]
+  Orders
+  API > Payments, Orders
+
+  page Payments flow
+  direction right
+  Validate > Charge > Receipt
+
+  page Orders
+  Create > Reserve stock > Ship
+- A node drills into a page named by its \`drill\` property, or into a page with the same name as the node (case-insensitive).
+- Directives (direction, colorMode, ...) and the sequence / erd header are per page; title is only read from the root page.
+- Node names are per page: the same name on two pages is two different nodes.
+- When editing an existing diagram that has pages, keep every page and its page line.
+- Never name a node \`page Something\` unquoted: that line would start a page.
 
 ## Style guidance
 - Prefer short, meaningful names; put longer text in label.

@@ -1,12 +1,18 @@
-import { applyActions as applyCore, renameNodeLabel, type AgentAction, type ApplyResult } from '@octo-draw/core'
-import { setCode, setPins, showToast, useStore, pushHistory, snapshot, selectedIds, selectedKeys } from '../store'
+import type { AgentAction, ApplyResult } from '@octo-draw/core'
+import { setCode, showToast, useStore, pushHistory, snapshot, selectedIds, selectedKeys } from '../store'
+import { applyActions as applyPage, renameNodeLabel } from './drillCore'
+import { currentPins, setCurrentPins } from './view'
+import { withPagePins } from './pages'
+
+/** Agent actions against the current page's section of the code. */
+const applyCore = (code: string, actions: AgentAction[]) => applyPage(code, actions, { page: useStore.getState().page })
 
 export function deleteSelection() {
 	const s = useStore.getState()
 	const sel = s.selection
 	if (!sel) return
 	if (sel.kind === 'edge') {
-		const e = s.ir?.edges.find((x) => x.key === sel.key)
+		const e = (s.pageIR ?? s.ir)?.edges.find((x) => x.key === sel.key)
 		if (!e) return
 		const r = applyCore(s.code, [{ type: 'removeEdge', id: e.key, from: e.from, to: e.to }])
 		if (r.errors.length) {
@@ -17,10 +23,10 @@ export function deleteSelection() {
 		useStore.setState({ selection: null })
 		return
 	}
-	const keys = selectedKeys(sel)
+	const keys = selectedKeys(sel).filter((k) => !k.startsWith('ghost:'))
 	const ids = new Set(selectedIds(sel))
 	let code = s.code
-	const pins = { ...s.pins }
+	const pins = currentPins(s)
 	if (keys.length) {
 		const r = applyCore(code, keys.map((key) => ({ type: 'removeNode' as const, key })))
 		// removing a group first may already have removed a child: ignore "unknown node" for those
@@ -33,7 +39,7 @@ export function deleteSelection() {
 		for (const k of keys) delete pins[k]
 	}
 	pushHistory()
-	useStore.setState({ code, pins, shapes: ids.size ? s.shapes.filter((x) => !ids.has(x.id)) : s.shapes, selection: null })
+	useStore.setState({ code, pins: withPagePins(s.pins, s.page, pins, s.pageNames), shapes: ids.size ? s.shapes.filter((x) => !ids.has(x.id)) : s.shapes, selection: null })
 }
 
 export function renameNode(key: string, label: string) {
@@ -41,16 +47,15 @@ export function renameNode(key: string, label: string) {
 	const node = s.ir?.nodes.find((n) => n.key === key)
 	const current = node?.label ?? key
 	if (!label.trim() || label === current) return
-	setCode(renameNodeLabel(s.code, key, label))
+	setCode(renameNodeLabel(s.code, key, label, s.page))
 }
 
 export function tidy() {
-	const s = useStore.getState()
-	if (!Object.keys(s.pins).length) {
+	if (!Object.keys(currentPins()).length) {
 		showToast('Already tidy: no pinned nodes')
 		return
 	}
-	setPins({})
+	setCurrentPins({})
 	showToast('Layout tidied: pins cleared')
 }
 
