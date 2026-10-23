@@ -50,16 +50,16 @@ export function analyzeOpenApi(files: ScanFiles): AnalyzerResult {
 		const nodes: ArchNode[] = []
 		let shown = 0
 		const apiKey = keys.take(title)
-		nodes.push({ key: apiKey, icon: 'openapi', role: 'api', facts: [`${doc.openapi ? 'OpenAPI' : 'Swagger'} ${asStr(doc.openapi) ?? asStr(doc.swagger)}`, asStr(info.version) ? `version ${asStr(info.version)}` : ''].filter(Boolean) })
+		nodes.push({ key: apiKey, icon: 'openapi', role: 'api', src: path, facts: [`${doc.openapi ? 'OpenAPI' : 'Swagger'} ${asStr(doc.openapi) ?? asStr(doc.swagger)}`, asStr(info.version) ? `version ${asStr(info.version)}` : ''].filter(Boolean) })
 		const edges = []
 		for (const [tag, eps] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
 			const g = keys.take(`${tag} endpoints`)
-			nodes.push({ key: g, label: tag, role: 'group', isContainer: true, icon: 'api' })
+			nodes.push({ key: g, label: tag, role: 'group', isContainer: true, icon: 'api', src: path })
 			edges.push({ from: apiKey, to: g })
 			for (const ep of eps) {
 				if (shown >= MAX_ENDPOINTS) break
 				shown++
-				nodes.push({ key: keys.take(`${ep.method} ${ep.path}`), parent: g, role: 'api', icon: 'webhook', facts: ep.summary ? [ep.summary] : [] })
+				nodes.push({ key: keys.take(`${ep.method} ${ep.path}`), parent: g, role: 'api', icon: 'webhook', facts: ep.summary ? [ep.summary] : [], src: `${path}#paths.${ep.path}.${ep.method.toLowerCase()}` })
 			}
 		}
 		if (shown < total) nodes.push({ key: keys.take('more endpoints'), label: `${total - shown} more endpoints`, role: 'api', icon: 'layers' })

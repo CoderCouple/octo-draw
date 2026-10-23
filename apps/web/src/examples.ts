@@ -1,3 +1,5 @@
+import DEEP from '@octo-draw/core/fixtures/deep.octo?raw'
+
 export interface Example {
 	id: string
 	label: string
@@ -202,6 +204,7 @@ export const EXAMPLES: Example[] = [
 	{ id: 'sequence', label: 'Sequence diagram', code: SEQUENCE },
 	{ id: 'erd', label: 'Entity relationship', code: ERD },
 	{ id: 'drill', label: 'Drill-down', code: DRILL },
+	{ id: 'deep', label: 'Deep system', code: DEEP },
 ]
 
 export function getExample(id: string): Example | undefined {

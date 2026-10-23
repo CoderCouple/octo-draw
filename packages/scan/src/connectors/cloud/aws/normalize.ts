@@ -411,6 +411,13 @@ class AwsNormalizer {
 		const props: Record<string, string> = {}
 		const rt = fs(fn, 'Runtime')
 		if (rt) props.runtime = rt
+		const handler = fs(fn, 'Handler')
+		if (handler) props.handler = handler
+		const mem = asStr(f(fn, 'MemorySize'))
+		if (mem) props.memory = `${mem} MB`
+		const role = fs(fn, 'Role')
+		// the role NAME (an ARN is a reference, not a secret; the name is enough to find it)
+		if (role) props.role = role.split('/').pop()!
 		const id = arn ? this.addArn(arn, { name, tags: tagsOf(fn), props }) : undefined
 		if (!id) return
 		const vpcConf = f(fn, 'VpcConfig')
@@ -441,7 +448,14 @@ class AwsNormalizer {
 
 	ecsService(s: unknown) {
 		const arn = fs(s, 'serviceArn')
-		const id = this.addArn(arn, { name: fs(s, 'serviceName'), tags: tagsOf(s) })
+		const props: Record<string, string> = {}
+		const launch = fs(s, 'launchType')
+		if (launch) props.launchType = launch
+		const desired = asStr(f(s, 'desiredCount'))
+		if (desired) props.desiredCount = desired
+		const tdArn = fs(s, 'taskDefinition')
+		if (tdArn) props.taskDefinition = tdArn.split('/').pop()!
+		const id = this.addArn(arn, { name: fs(s, 'serviceName'), tags: tagsOf(s), props })
 		if (!id) return
 		const cluster = fs(s, 'clusterArn')
 		if (cluster) {
@@ -466,14 +480,29 @@ class AwsNormalizer {
 		const user = this.b.resolve(`td-user:${arn}`)
 		const target = user ?? this.addArn(arn)
 		const vars: [string, string][] = []
+		// container facts (name, image repository, ports, size) on the service; never env values
+		const containers: Record<string, string> = {}
+		for (const c of asArr(t.containerDefinitions)) {
+			const co = asObj(c)
+			const name = asStr(co.name)
+			if (!name) continue
+			const image = (asStr(co.image) ?? '').split('/').pop()!.replace(/[:@].*$/, '')
+			const ports = asArr(co.portMappings).map((p) => asStr(asObj(p).containerPort)).filter(Boolean)
+			const size = [asStr(co.cpu) ? `${asStr(co.cpu)} cpu` : '', asStr(co.memory) ? `${asStr(co.memory)} MB` : ''].filter(Boolean).join(' / ')
+			containers[`container.${name}`] = [image, ports.length ? `:${ports.join(', :')}` : '', size].filter(Boolean).join(' ')
+		}
+		if (user) {
+			const r = this.b.get(user)
+			if (r) for (const [k, v] of Object.entries(containers)) r.props[k] ??= v
+		}
 		for (const c of asArr(t.containerDefinitions)) {
 			for (const e of asArr(asObj(c).environment)) vars.push([asStr(asObj(e).name) ?? '', asStr(asObj(e).value) ?? ''])
 			for (const s of asArr(asObj(c).secrets)) vars.push([asStr(asObj(s).name) ?? '', asStr(asObj(s).valueFrom) ?? ''])
 		}
 		if (user) this.envRefs(user, vars)
-		else if (target) this.pendingTd.push({ arn, vars })
+		else if (target) this.pendingTd.push({ arn, vars, containers })
 	}
-	pendingTd: { arn: string; vars: [string, string][] }[] = []
+	pendingTd: { arn: string; vars: [string, string][]; containers: Record<string, string> }[] = []
 
 	// ------------------------------------------------------------------ load balancing
 
@@ -708,6 +737,8 @@ class AwsNormalizer {
 		for (const td of this.pendingTd) {
 			const user = b.resolve(`td-user:${td.arn}`)
 			if (user) this.envRefs(user, td.vars)
+			const r = user ? b.get(user) : undefined
+			if (r) for (const [k, v] of Object.entries(td.containers)) r.props[k] ??= v
 		}
 		// DB clusters: place via member instances
 		for (const { id } of this.clusterSubnetGroups) {

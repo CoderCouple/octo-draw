@@ -220,3 +220,85 @@ Example body:
   - Key Vault contents.
 - **Results** contain only the octo code, counts and warnings. The `source` echo includes the regions, profile, role, scope or subscriptions and the file's base name, never the uploaded export.
 - **Bundle size:** the SDKs (AWS SDK v3 clients, `google-auth-library`, `@azure/identity`) load only when a live scan runs, through a runtime-only import that bundlers skip.
+
+## Hugging Face (models, datasets, Spaces, collections)
+
+The `huggingface` connector (`packages/scan/src/connectors/huggingface/`) diagrams what is on the Hub. It uses the public Hub API through `ctx.fetch` and needs no new dependencies.
+
+**Inputs:**
+
+| Input | Diagram |
+|---|---|
+| `hf:org/name`, `huggingface.co/org/name`, `hf.co/org/name` | Model |
+| `huggingface.co/datasets/org/name`, `hf:datasets/org/name` | Dataset |
+| `huggingface.co/spaces/org/name`, `hf:spaces/org/name` | Space |
+| `huggingface.co/collections/owner/slug` | Collection |
+
+A revision can be given as `@rev`, `/tree/<rev>` or `/blob/<rev>/...`.
+
+### Token and errors
+
+- **Token:** set `HF_TOKEN` (or `HUGGING_FACE_HUB_TOKEN`) to read gated or private repos.
+  - The token is read server-side from `ctx.env`.
+  - It is sent only to `huggingface.co` hosts.
+  - It never appears in results.
+- **Public repos** work without a token.
+- **Gated repos:** the metadata is public but `config.json` isn't. Without access, the model still gets its root page, and the Architecture node becomes a "config.json is gated" note with a warning.
+- **401 without a token** means "not found, private or gated". The Hub answers 401 for names that don't exist too.
+- **403** means "accept the terms on huggingface.co".
+- **429** reports the wait time from the `ratelimit` header.
+
+### Model root page
+
+- **Lineage:** the model and its `base_model` chain.
+  - Relations come from the Hub's `base_model:<finetune|adapter|quantized|merge>:` tags, which follow repo renames. The card is the fallback.
+  - The chain is walked up 3 levels.
+- **Card facts:** training datasets, license, `pipeline_tag` and library.
+- **Weights:** formats, dtypes and size.
+- **Spaces** that use the model.
+- **Parameter count:** from the safetensors (or GGUF) metadata, otherwise estimated from the config. The estimates are within about 1 to 3% for Llama, Qwen, Mixtral, T5, Whisper and llava.
+- **GGUF and adapter-only repos:** GGUF repos get a note listing their quantizations. PEFT adapter repos get a note with r, α and target modules, plus an edge to the adapter's base model.
+
+### Model level 1
+
+The "Architecture" page comes from `config.json`.
+
+- **Layer stack:** embeddings → `Decoder × N layers` group → final norm → LM head.
+  - The group's attention node shows MHA/GQA/MQA/MLA, the head and KV-head counts, head dim, RoPE θ and scaling, and the sliding window.
+  - The group's MLP node shows SwiGLU/GELU and the sizes, or MoE with its experts, top-k and shared experts.
+- **VLMs** (`vision_config` + `text_config`): image → patch embedding → vision tower group → projector → merge with the text tokens.
+- **Encoder-decoders** (T5, BART, Whisper): the encoder group feeds the decoder's cross-attention. Whisper also gets the log-mel and conv stem.
+- **Encoder-only models** (BERT family): the encoder stack and its head.
+- **Diffusers repos** (`model_index.json`) get a "Pipeline" page instead: prompt → tokenizers → text encoders → unet/transformer ← scheduler, then latents → vae → image. Component labels are read from each component's `config.json`.
+
+### Datasets, Spaces and collections
+
+- **Dataset:**
+  - Root: the dataset, with size, row count, modality, tasks, license and languages.
+  - A node and a page per config, showing its splits (rows and bytes) and features. These come from the datasets-server `/info`, falling back to the card's `dataset_info`.
+  - Up to 6 of the most downloaded models trained on the dataset.
+- **Space:**
+  - Root: a request flow, User → UI (SDK, version, inputs) → handlers (wired events, `@spaces.GPU` marked ZeroGPU) → model calls → Outputs. The Space group shows the SDK and hardware.
+  - Model calls come from transformers `pipeline`/`from_pretrained`, diffusers pipelines, `SentenceTransformer`, `InferenceClient`, `gr.load`, and the OpenAI, Anthropic, Gemini, Groq and other SDKs. An OpenAI client with an HF router `base_url` counts as HF Inference Providers.
+  - The flow also shows vector DBs (Chroma, FAISS, Pinecone, Qdrant, …), frameworks, raw HTTP APIs, and the card's `models`/`datasets`.
+  - The "App code" page shows the files read: the app file, other small `.py` files, `requirements.txt` and the `Dockerfile`.
+- **Collection:** one node per item type, each drilling into a page that lists the items with links.
+
+### Drill-down v2
+
+- **Refs:** the root page carries `source hf:<id>`, and every node carries `src: hf:<id>#<path>`.
+- **Expander:** `registerExpander('huggingface', …)` expands any node on demand:
+
+| Path | Expands into |
+|---|---|
+| `architecture` | The network |
+| `decoder`, `encoder`, `vision` | One block: norms, attention, MLP/MoE, residual adds, plus the cross-attention for decoders of encoder-decoders |
+| `<stack>.attn`, `<stack>.cross` | Q/K/V projections (or MLA latent), RoPE, SDPA, KV cache and O proj |
+| `<stack>.mlp` | Gate/up/act/down, or the router, experts and combine |
+| `<stack>.expert` | One expert |
+| `pipeline`, `<component>/` | The diffusers pipeline, or a component: UNet down/mid/up blocks, transformer blocks, or a nested transformers config such as `text_encoder_2/` |
+| `config/<name>` | A dataset config |
+| `app`, `app/<handler>`, `file/<path>` | Space code |
+| A bare `hf:<id>` (a base model, a dataset in the card, a Space's model) | That repo's own diagram |
+
+- **Depth:** scans pre-generate the root plus one level. `options.depth = N` pre-generates more levels with the same functions, using page names like `Architecture / Decoder / MoE`.

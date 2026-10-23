@@ -1,0 +1,142 @@
+{
+	"id": "meta-llama/Llama-3.1-8B",
+	"private": false,
+	"pipeline_tag": "text-generation",
+	"library_name": "transformers",
+	"tags": [
+		"transformers",
+		"safetensors",
+		"llama",
+		"text-generation",
+		"facebook",
+		"meta",
+		"pytorch",
+		"llama-3",
+		"en",
+		"de",
+		"fr",
+		"it",
+		"pt",
+		"hi",
+		"es",
+		"th",
+		"arxiv:2204.05149",
+		"license:llama3.1",
+		"eval-results",
+		"text-generation-inference",
+		"endpoints_compatible",
+		"deploy:sagemaker",
+		"region:us"
+	],
+	"downloads": 610709,
+	"likes": 2687,
+	"modelId": "meta-llama/Llama-3.1-8B",
+	"author": "meta-llama",
+	"sha": "d04e592bb4f6aa9cfee91e2e20afa771667e1d4b",
+	"lastModified": "2024-10-16T22:00:37.000Z",
+	"gated": "manual",
+	"disabled": false,
+	"model-index": null,
+	"config": {
+		"architectures": [
+			"LlamaForCausalLM"
+		],
+		"model_type": "llama"
+	},
+	"cardData": {
+		"language": [
+			"en",
+			"de",
+			"fr",
+			"it",
+			"pt",
+			"hi",
+			"es",
+			"th"
+		],
+		"pipeline_tag": "text-generation",
+		"tags": [
+			"facebook",
+			"meta",
+			"pytorch",
+			"llama",
+			"llama-3"
+		],
+		"license": "llama3.1",
+		"library_name": "transformers"
+	},
+	"transformersInfo": {
+		"auto_model": "AutoModelForCausalLM",
+		"pipeline_tag": "text-generation",
+		"processor": "AutoTokenizer"
+	},
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "LICENSE"
+		},
+		{
+			"rfilename": "README.md"
+		},
+		{
+			"rfilename": "USE_POLICY.md"
+		},
+		{
+			"rfilename": "config.json"
+		},
+		{
+			"rfilename": "generation_config.json"
+		},
+		{
+			"rfilename": "model-00001-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00002-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00003-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00004-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model.safetensors.index.json"
+		},
+		{
+			"rfilename": "original/consolidated.00.pth"
+		},
+		{
+			"rfilename": "original/params.json"
+		},
+		{
+			"rfilename": "original/tokenizer.model"
+		},
+		{
+			"rfilename": "special_tokens_map.json"
+		},
+		{
+			"rfilename": "tokenizer.json"
+		},
+		{
+			"rfilename": "tokenizer_config.json"
+		}
+	],
+	"spaces": [
+		"fancyfeast/joy-caption-alpha-one",
+		"lerobot/streaming-dataloader",
+		"fancyfeast/joy-caption-pre-alpha",
+		"lerobot/robot-folding",
+		"HuggingFaceTB/trl-distillation-trainer"
+	],
+	"createdAt": "2024-07-14T22:20:15.000Z",
+	"safetensors": {
+		"parameters": {
+			"BF16": 8030261248
+		},
+		"total": 8030261248
+	},
+	"inference": "warm",
+	"usedStorage": 32350119302
+}

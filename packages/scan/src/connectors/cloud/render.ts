@@ -23,6 +23,8 @@ export interface RenderOptions {
 	maxNodesPerPage?: number
 	/** Max application pages; default 25. */
 	maxAppPages?: number
+	/** `source` directive for the root page (the connector input that re-creates this inventory). */
+	source?: string
 }
 
 export interface RenderResult {
@@ -37,7 +39,7 @@ const APP_TAGS = ['app', 'application', 'app-name', 'appname', 'service', 'servi
 const PROVIDER_ICON = { aws: 'aws', gcp: 'gcp', azure: 'azure' } as const
 const PROVIDER_LABEL = { aws: 'AWS account', gcp: 'GCP project', azure: 'Azure subscription' } as const
 
-const REL_LABEL: Record<RelationKind, string> = {
+export const REL_LABEL: Record<RelationKind, string> = {
 	invokes: 'invokes',
 	triggers: 'triggers',
 	routes: 'routes',
@@ -54,7 +56,7 @@ const REL_LABEL: Record<RelationKind, string> = {
 	'private-link': 'private link',
 	env: 'env',
 }
-const DOTTED: Set<RelationKind> = new Set(['env', 'uses', 'private-link', 'runs-on'])
+export const DOTTED: Set<RelationKind> = new Set(['env', 'uses', 'private-link', 'runs-on'])
 
 interface Ctx {
 	g: CloudGraph
@@ -167,6 +169,7 @@ export function renderCloudGraph(g: CloudGraph, opts: RenderOptions = {}): Rende
 
 	const title = opts.title ?? g.scopeName ?? `${PROVIDER_LABEL[g.provider]} ${g.scope}`
 	renderPage(ctx, { name: '', mode: 'root', members: leaves }, title)
+	if (opts.source && ctx.out[0]) ctx.out[0].ir.source = opts.source
 	// root first, then pages in discovery order (app pages were queued first but render after root)
 	for (let i = 0; i < ctx.queue.length; i++) renderPage(ctx, ctx.queue[i])
 
@@ -432,6 +435,7 @@ function buildIR(ctx: Ctx, spec: PageSpec, units: Unit[], hidden: Set<string>, t
 		containerKey.set(id, key)
 		const node: IRNode = { key, isContainer: true, parent: parentKey }
 		if (key !== label) node.label = label
+		node.ext = { src: resourceSrc(ctx.g.provider, id) }
 		const icon = containerIcon(ctx, id)
 		if (icon) node.icon = icon
 		const color = containerColor(ctx, id)
@@ -462,6 +466,7 @@ function buildIR(ctx: Ctx, spec: PageSpec, units: Unit[], hidden: Set<string>, t
 			if (node.key !== want) node.label = want
 			if (k.shape) node.shape = k.shape
 			if (u.external) node.style = { color: 'gray', dash: 'dashed' }
+			node.ext = { src: resourceSrc(ctx.g.provider, r.id) }
 			ctx.drawn.add(r.id)
 		} else {
 			const want = short(u.label ?? `${u.members.length} resources`)
@@ -514,7 +519,12 @@ function buildIR(ctx: Ctx, spec: PageSpec, units: Unit[], hidden: Set<string>, t
 	}
 }
 
-function short(s: string): string {
+/** `src` of a node standing for one resource: `<provider>:<resource id>`. */
+export function resourceSrc(provider: string, id: string): string {
+	return `${provider}:${id}`
+}
+
+export function short(s: string): string {
 	const c = cleanKey(s)
 	return c.length > 56 ? `${c.slice(0, 55)}…` : c
 }

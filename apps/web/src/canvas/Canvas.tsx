@@ -16,7 +16,11 @@ import { duplicateSelection, handleCopy, isTypingTarget, selectAll } from '../li
 import { renameNode } from '../lib/actions'
 import { makeMeasure, FONT_STACK } from '../lib/text'
 import { setLocalCursor } from '../lib/sync'
-import { currentPins, drillTo, exitFocusTo, focusOn, mergeCurrentPins, setCurrentPins, toggleCollapsed } from '../lib/view'
+import { currentPins, drillTo, exitFocusTo, focusOn, mergeCurrentPins, setCurrentPins, takeMorph, toggleCollapsed } from '../lib/view'
+import { addChildTo, addSiblingOf, addSubDiagramFor, commitLabel, composingKey, drawComponent, groupSelection, reparentAfterDrag, selectParentOf, stopComposing, ungroupSelection } from '../lib/compose'
+import { expandNode } from '../lib/expand'
+import { animateCamera, cameraOnBox, viewportSize } from './camera'
+import { NodeMenu, type NodeMenuState } from './NodeMenu'
 import { pagePins } from '../lib/pages'
 import { installNavigator } from './drillNav'
 import { Breadcrumbs } from './Breadcrumbs'
@@ -43,9 +47,12 @@ type Gesture =
 	| { type: 'resize'; handle: HandleId; ids: string[]; startBox: Box; start: Point; orig: FreeShape[]; targets: Box[]; before: Snapshot; moved: boolean }
 	| { type: 'endpoint'; id: string; which: 0 | 1; targets: Box[]; before: Snapshot; moved: boolean }
 	| { type: 'draw'; start: Point }
+	| { type: 'component'; start: Point; sx: number; sy: number }
 	| { type: 'erase'; before: Snapshot; erased: boolean }
 
-type Editing = { kind: 'node'; key: string } | { kind: 'text'; id: string; isNew: boolean } | null
+type Editing = { kind: 'node'; key: string; placeholder?: boolean } | { kind: 'text'; id: string; isNew: boolean } | null
+/** how the label editor was left */
+type EditEnd = 'enter' | 'tab' | 'escape' | 'blur'
 
 const isTyping = (t: EventTarget | null) => {
 	const el = t as HTMLElement | null
@@ -62,6 +69,11 @@ export function Canvas() {
 	const pageNames = useStore((s) => s.pageNames)
 	const pins = useMemo(() => pagePins(allPins, page, pageNames), [allPins, page, pageNames])
 	const drill = useStore((s) => s.drill)
+	const expandable = useStore((s) => s.expandable)
+	const expandingKey = useStore((s) => (s.expanding && s.expanding.page === s.page ? s.expanding.key : null))
+	const editRequest = useStore((s) => s.editRequest)
+	const [menu, setMenu] = useState<NodeMenuState | null>(null)
+	const [composeBox, setComposeBox] = useState<Box | null>(null)
 	const collapsedHere = useStore((s) => s.collapsed[s.page])
 	const selection = useStore((s) => s.selection)
 	const tool = useStore((s) => s.tool)
@@ -140,12 +152,41 @@ export function Canvas() {
 		morphPending.current = true
 	}, [collapsedHere])
 	useLayoutEffect(() => {
-		if (!morphPending.current) return
+		if (!morphPending.current && !takeMorph()) return
 		morphPending.current = false
 		setMorphing(true)
 		const t = setTimeout(() => setMorphing(false), 420)
 		return () => clearTimeout(t)
 	}, [layout])
+
+	// Tab / Enter flow: once the new node is laid out, open its label editor and keep it in view
+	useEffect(() => {
+		const req = editRequest
+		if (!req || !layout) return
+		const s = useStore.getState()
+		if (req.page !== s.page || s.layoutPending) return
+		const box = layout.nodes[req.key]
+		if (!box) return
+		useStore.setState({ editRequest: null })
+		setEditing({ kind: 'node', key: req.key, placeholder: req.placeholder })
+		const cam = useCamera.getState()
+		const vp = viewportSize()
+		const parentKey = s.ir?.nodes.find((n) => n.key === req.key)?.parent
+		const parentBox = parentKey ? layout.nodes[parentKey] : undefined
+		// nested deep enough to be tiny: zoom smoothly onto the container being edited
+		if (box.h * cam.z < 28 || box.w * cam.z < 40) {
+			const target = parentBox ?? box
+			const z = Math.min(1.25, cameraOnBox(target, 0.8).z)
+			void animateCamera({ z, x: vp.w / 2 - (target.x + target.w / 2) * z, y: vp.h / 2 - (target.y + target.h / 2) * z }, 320)
+			return
+		}
+		const sx = box.x * cam.z + cam.x
+		const sy = box.y * cam.z + cam.y
+		const margin = 48
+		if (sx < margin || sy < margin + 60 || sx + box.w * cam.z > vp.w - margin || sy + box.h * cam.z > vp.h - margin) {
+			void animateCamera({ z: cam.z, x: vp.w / 2 - (box.x + box.w / 2) * cam.z, y: vp.h / 2 - (box.y + box.h / 2) * cam.z }, 280)
+		}
+	}, [editRequest, layout])
 
 	// wheel: pan, ctrl/pinch zoom (non-passive so we can preventDefault)
 	useEffect(() => {
@@ -202,13 +243,39 @@ export function Canvas() {
 				duplicateSelection()
 				return
 			}
+			if (mod && k === 'g') {
+				e.preventDefault()
+				if (e.shiftKey) ungroupSelection()
+				else groupSelection()
+				return
+			}
+			if (e.key === 'Tab' && !mod && !e.altKey) {
+				const s = useStore.getState()
+				const key = s.selection?.kind === 'node' ? s.selection.key : null
+				if (!key || isGhost(key) || !s.layout?.nodes[key] || s.ir?.kind !== 'flowchart') return
+				e.preventDefault()
+				if (e.shiftKey) selectParentOf(key)
+				else addChildTo(key)
+				return
+			}
+			if (mod && e.key === 'Enter') {
+				const s = useStore.getState()
+				const key = s.selection?.kind === 'node' ? s.selection.key : null
+				if (!key || isGhost(key)) return
+				e.preventDefault()
+				addSubDiagramFor(key)
+				return
+			}
 			if (!mod && (e.key === 'Enter' || e.key === 'F2')) {
 				const s = useStore.getState()
 				const key = s.selection?.kind === 'node' ? s.selection.key : null
 				if (!key || isGhost(key) || !s.layout?.nodes[key]) return
 				e.preventDefault()
 				if (e.key === 'F2') setEditing({ kind: 'node', key })
+				// right after naming a new component, Enter adds the next sibling
+				else if (e.key === 'Enter' && !e.shiftKey && composingKey() === key) addSiblingOf(key)
 				else if (s.drill[key]) drillTo(s.drill[key], key)
+				else if (s.expandable[key] === 'src') void expandNode(key, 'auto')
 				else if (s.layout.nodes[key].isContainer) focusOn(key)
 				else if (s.ir?.nodes.find((n) => n.key === key)?.ext?.collapsed !== undefined) toggleCollapsed(key)
 				else setEditing({ kind: 'node', key })
@@ -336,11 +403,27 @@ export function Canvas() {
 		}
 		const nodeKey = target.closest('[data-node]')?.getAttribute('data-node') ?? null
 		const shapeId = target.closest('[data-shape]')?.getAttribute('data-shape') ?? null
+		stopComposing()
+		setMenu(null)
 		if (tool === 'select' && !shapeId && !e.shiftKey) {
 			const chevron = target.closest('[data-chevron]')?.getAttribute('data-chevron')
 			if (chevron) {
 				root.releasePointerCapture(e.pointerId)
 				toggleCollapsed(chevron)
+				return
+			}
+			const add = target.closest('[data-add]')
+			if (add) {
+				root.releasePointerCapture(e.pointerId)
+				const key = add.getAttribute('data-add-key')!
+				if (add.getAttribute('data-add') === 'child') addChildTo(key)
+				else addSiblingOf(key)
+				return
+			}
+			const exp = target.closest('[data-expand]')?.getAttribute('data-expand')
+			if (exp && s.expandable[exp]) {
+				root.releasePointerCapture(e.pointerId)
+				void expandNode(exp, 'auto')
 				return
 			}
 			const mark = target.closest('[data-drill]')?.getAttribute('data-drill')
@@ -412,6 +495,10 @@ export function Canvas() {
 			case 'pen':
 				setDraft({ id: uid(), type: 'pen', x: 0, y: 0, w: 0, h: 0, points: [[p.x, p.y, e.pressure || 0.5]], color: s.ink, size: s.size, pressure: e.pointerType === 'pen' })
 				gesture.current = { type: 'draw', start: p }
+				return
+			case 'component':
+				gesture.current = { type: 'component', start: p, sx: e.clientX, sy: e.clientY }
+				setComposeBox({ x: p.x, y: p.y, w: 0, h: 0 })
 				return
 			case 'rect':
 			case 'ellipse':
@@ -591,6 +678,9 @@ for (const [k, pin] of Object.entries(currentPins(st))) {
 			case 'erase':
 				if (eraseAt(e.clientX, e.clientY)) g.erased = true
 				return
+			case 'component':
+				setComposeBox(normBox(g.start, screenToWorld(e.clientX, e.clientY)))
+				return
 		}
 	}
 
@@ -608,7 +698,9 @@ for (const [k, pin] of Object.entries(currentPins(st))) {
 			case 'move':
 				if (g.moved) {
 					pushHistory(g.before)
-if (dragRef.current) mergeCurrentPins(dragRef.current)
+					if (dragRef.current) mergeCurrentPins(dragRef.current)
+					// dropped into / out of a container: re-parent in the code (same undo step)
+					if (g.keys.length && liveLayout) reparentAfterDrag(g.keys, liveLayout)
 				} else if (!g.shift && selectedIds(s.selection).length + selectedKeys(s.selection).length > 1) {
 					// plain click inside a multi-selection narrows it to the clicked item
 					useStore.setState({ selection: makeSelection(g.clicked.id ? [g.clicked.id] : [], g.clicked.key ? [g.clicked.key] : []) })
@@ -631,6 +723,13 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 			case 'erase':
 				if (g.erased) pushHistory(g.before)
 				return
+			case 'component': {
+				const box = composeBox ?? { x: g.start.x, y: g.start.y, w: 0, h: 0 }
+				setComposeBox(null)
+				const small = box.w < 8 && box.h < 8
+				drawComponent(small ? { x: g.start.x - 70, y: g.start.y - 28, w: 140, h: 56 } : box, g.start)
+				return
+			}
 			case 'draw': {
 				const d = draftRef.current
 				setDraft(null)
@@ -677,6 +776,7 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 		if (target.closest('[data-chevron]')) return
 		// drillable nodes open their page; a group header focuses the group; a collapsed group expands
 		if (s.drill[key]) return drillTo(s.drill[key], key)
+		if (target.closest('[data-expand]') || s.expandable[key] === 'src') return void expandNode(key, 'auto')
 		if (s.layout.nodes[key].isContainer && target.closest('[data-group-header]')) return focusOn(key)
 		if (s.ir?.nodes.find((n) => n.key === key)?.ext?.collapsed !== undefined) return toggleCollapsed(key)
 		useStore.setState({ selection: { kind: 'node', key } })
@@ -711,7 +811,15 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 			onDoubleClick={onDoubleClick}
 			onDragOver={onDragOver}
 			onDrop={onDrop}
-			onContextMenu={(e) => e.preventDefault()}
+			onContextMenu={(e) => {
+				e.preventDefault()
+				const key = (e.target as Element).closest('[data-node]')?.getAttribute('data-node')
+				if (!key || isGhost(key) || tool !== 'select') return setMenu(null)
+				const s = useStore.getState()
+				if (!selectedKeys(s.selection).includes(key)) useStore.setState({ selection: { kind: 'node', key } })
+				const r = rootRef.current!.getBoundingClientRect()
+				setMenu({ key, x: e.clientX - r.left, y: e.clientY - r.top })
+			}}
 		>
 			<svg className="canvas-svg" id="octo-canvas-svg">
 				<g ref={worldRef} id="octo-world">
@@ -723,6 +831,9 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 							selectedKey={selection?.kind === 'node' ? selection.key : null}
 							editingKey={editing?.kind === 'node' ? editing.key : null}
 							drill={drill}
+							expandable={expandable}
+							expandingKey={expandingKey}
+							composable={tool === 'select' && !editing && ir.kind === 'flowchart'}
 						/>
 					)}
 					<g data-layer="freehand">
@@ -731,6 +842,9 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 						))}
 						{draft && <ShapeView shape={draft} theme={theme} complete={false} />}
 					</g>
+					{composeBox && (
+						<rect data-export="skip" x={composeBox.x} y={composeBox.y} width={composeBox.w} height={composeBox.h} rx={10} fill={surf.select} fillOpacity={0.06} stroke={surf.select} strokeWidth={1.5 / useCamera.getState().z} strokeDasharray="6 4" pointerEvents="none" />
+					)}
 					{!editing && (
 						<SelectionOverlay
 							color={surf.select}
@@ -762,9 +876,15 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 							box={liveLayout.nodes[editing.key]}
 							initial={ir.nodes.find((n) => n.key === editing.key)?.label ?? editing.key}
 							isGroup={liveLayout.nodes[editing.key].isContainer}
-							onDone={(value) => {
-								if (value !== null) renameNode(editing.key, value)
+							placeholder={editing.placeholder}
+							onDone={(value, how) => {
+								const key = editing.key
 								setEditing(null)
+								if (editing.placeholder) {
+									const next = commitLabel(key, how === 'escape' ? null : value, true)
+									if (how === 'tab') addChildTo(next)
+									else if (how !== 'enter') stopComposing()
+								} else if (value !== null) renameNode(key, value)
 							}}
 						/>
 					)}
@@ -813,6 +933,24 @@ if (dragRef.current) mergeCurrentPins(dragRef.current)
 				</g>
 			</svg>
 			<Breadcrumbs />
+			{menu && <NodeMenu state={menu} onClose={() => setMenu(null)} />}
+			{ir && !ir.nodes.length && !shapes.length && <EmptyPage />}
+		</div>
+	)
+}
+
+/** A brand-new (sub-)page: say how to start. */
+function EmptyPage() {
+	const page = useStore((s) => s.page)
+	return (
+		<div className="canvas-empty" aria-live="polite">
+			<div className="canvas-empty-card">
+				<strong>{page ? 'This sub-diagram is empty' : 'Nothing here yet'}</strong>
+				<span>Type nodes in the code or draw here.</span>
+				<span className="muted">
+					Press <kbd>C</kbd> and drag to add a component · select one and press <kbd>Tab</kbd> to nest inside it
+				</span>
+			</div>
 		</div>
 	)
 }
@@ -827,7 +965,7 @@ function aiCursorPoint(layout: DiagramLayout, order: string[]): Point | null {
 	return null
 }
 
-function NodeLabelEditor({ box, initial, isGroup, onDone }: { box: { x: number; y: number; w: number; h: number }; initial: string; isGroup: boolean; onDone: (v: string | null) => void }) {
+function NodeLabelEditor({ box, initial, isGroup, placeholder, onDone }: { box: { x: number; y: number; w: number; h: number }; initial: string; isGroup: boolean; placeholder?: boolean; onDone: (v: string | null, how: EditEnd) => void }) {
 	const ref = useRef<HTMLInputElement>(null)
 	const done = useRef(false)
 	const mountedAt = useRef(performance.now())
@@ -839,10 +977,10 @@ function NodeLabelEditor({ box, initial, isGroup, onDone }: { box: { x: number; 
 		})
 		return () => cancelAnimationFrame(id)
 	}, [])
-	const finish = (v: string | null) => {
+	const finish = (v: string | null, how: EditEnd) => {
 		if (done.current) return
 		done.current = true
-		onDone(v)
+		onDone(v, how)
 	}
 	const h = 30
 	const y = isGroup ? box.y + 4 : box.y + box.h / 2 - h / 2
@@ -852,11 +990,16 @@ function NodeLabelEditor({ box, initial, isGroup, onDone }: { box: { x: number; 
 				ref={ref}
 				className="inline-editor"
 				defaultValue={initial}
+				placeholder={placeholder ? 'Name it, Enter · Tab nests' : undefined}
 				style={{ textAlign: isGroup ? 'left' : 'center' }}
 				onKeyDown={(e) => {
 					e.stopPropagation()
-					if (e.key === 'Enter') finish(e.currentTarget.value)
-					if (e.key === 'Escape') finish(null)
+					if (e.key === 'Enter') finish(e.currentTarget.value, 'enter')
+					if (e.key === 'Escape') finish(null, 'escape')
+					if (e.key === 'Tab' && placeholder) {
+						e.preventDefault()
+						finish(e.currentTarget.value, 'tab')
+					}
 				}}
 				onBlur={(e) => {
 					if (performance.now() - mountedAt.current < 250) {
@@ -864,7 +1007,7 @@ function NodeLabelEditor({ box, initial, isGroup, onDone }: { box: { x: number; 
 						requestAnimationFrame(() => el.focus())
 						return
 					}
-					finish(e.currentTarget.value)
+					finish(e.currentTarget.value, 'blur')
 				}}
 			/>
 		</foreignObject>

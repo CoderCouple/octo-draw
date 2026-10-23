@@ -1,0 +1,20 @@
+[
+	{
+		"id": "jaredpalmer/kev-4b",
+		"downloads": 22073,
+		"likes": 156,
+		"pipeline_tag": "text-classification"
+	},
+	{
+		"id": "jaredpalmer/kev-0.8b",
+		"downloads": 18425,
+		"likes": 52,
+		"pipeline_tag": "text-classification"
+	},
+	{
+		"id": "jaredpalmer/kev-9b",
+		"downloads": 6382,
+		"likes": 81,
+		"pipeline_tag": "text-classification"
+	}
+]

@@ -250,10 +250,19 @@ function moduleGraph(files: ScanFiles, p: Profile, byName: Map<string, Profile>,
 
 	const unitFiles = new Map<string, number>()
 	const isDir = new Set<string>()
+	const unitFile = new Map<string, string>()
 	for (const f of inRoot) {
 		const u = unitOf(rel(f), expanded)
 		unitFiles.set(u, (unitFiles.get(u) ?? 0) + 1)
 		if (rel(f).replace(/\.[a-z]+$/i, '') !== u && !/\/(index|mod|__init__)\.[a-z]+$/.test(rel(f))) isDir.add(u)
+		if (!unitFile.has(u)) unitFile.set(u, f)
+	}
+	/** Repo-relative path a unit stands for: its directory, or its single file. */
+	const unitSrc = (u: string) => {
+		if (isDir.has(u)) return join(root, u)
+		const f = unitFile.get(u)!
+		// `routes/index.ts` stands for the `routes` folder when that folder holds only it
+		return unitFiles.get(u)! > 1 ? dirname(f) : f
 	}
 
 	// aggregate edges to unit level
@@ -317,6 +326,7 @@ function moduleGraph(files: ScanFiles, p: Profile, byName: Map<string, Profile>,
 			icon: entry.has(u) && p.role !== 'library' ? p.icon : dir ? 'box' : 'file-code',
 			role: 'library',
 			facts: dir ? [plural(n, 'file')] : [],
+			src: unitSrc(u),
 		})
 	}
 	if (folded.length) {
@@ -335,13 +345,13 @@ function moduleGraph(files: ScanFiles, p: Profile, byName: Map<string, Profile>,
 	for (const [wsKey, us] of wsUse) {
 		const other = [...byName.values()].find((o) => o.key === wsKey)!
 		const k = keys.take(wsKey)
-		nodes.push({ key: k, label: other.ws.name, icon: other.icon, role: other.role, color: 'gray', facts: ['workspace package'] })
+		nodes.push({ key: k, label: other.ws.name, icon: other.icon, role: other.role, color: 'gray', facts: ['workspace package'], src: other.ws.dir || '.' })
 		for (const u of uniq([...us].map((x) => unitKey.get(x)!))) edges.push({ from: u, to: k, dotted: true })
 	}
 	for (const [sys, us] of extUse) {
 		const e = extSys.get(sys)!
 		const k = keys.take(sys)
-		nodes.push({ key: k, icon: e.icon, shape: e.shape, role: e.kind, tech: e.tech })
+		nodes.push({ key: k, icon: e.icon, shape: e.shape, role: e.kind, tech: e.tech, src: `${ws.dir}#uses:${sys}` })
 		for (const u of uniq([...us].map((x) => unitKey.get(x)!))) edges.push({ from: u, to: k })
 	}
 	// externals declared but not seen in imports (config-only use) are still shown on the root page only
@@ -419,7 +429,7 @@ export function analyzeCode(files: ScanFiles, opts: { maxModuleNodes?: number } 
 	if (useGroups) for (const g of groupDirs) {
 		const k = keys.take(g)
 		groupKey.set(g, k)
-		nodes.push({ key: k, label: `${g}/`, role: 'group', isContainer: true })
+		nodes.push({ key: k, label: `${g}/`, role: 'group', isContainer: true, src: g })
 	}
 	for (const p of profiles) {
 		nodes.push({
@@ -432,6 +442,7 @@ export function analyzeCode(files: ScanFiles, opts: { maxModuleNodes?: number } 
 			aliases: uniq([p.ws.name, shortName(p.ws.name), p.ws.dir, basename(p.ws.dir)].filter(Boolean)),
 			dir: p.ws.dir,
 			facts: [`${p.ws.lang} package at ${p.ws.dir || '.'}`, ...p.facts],
+			src: p.ws.dir || '.',
 		})
 	}
 	for (const p of profiles) for (const d of p.internal) edges.push({ from: p.key, to: byName.get(d)!.key })
@@ -472,7 +483,7 @@ export function analyzeCode(files: ScanFiles, opts: { maxModuleNodes?: number } 
 			if (!extKey.has(e.system)) {
 				const k = keys.take(e.system)
 				extKey.set(e.system, k)
-				nodes.push({ key: k, icon: e.icon, shape: e.shape, role: e.kind, tech: e.tech, aliases: [e.system] })
+				nodes.push({ key: k, icon: e.icon, shape: e.shape, role: e.kind, tech: e.tech, aliases: [e.system], src: `#uses:${e.system}` })
 			}
 			edges.push({ from: p.key, to: extKey.get(e.system)! })
 		}

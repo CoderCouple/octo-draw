@@ -1,0 +1,119 @@
+{
+	"id": "Qwen/Qwen2.5-7B-Instruct",
+	"private": false,
+	"pipeline_tag": "text-generation",
+	"library_name": "transformers",
+	"tags": [
+		"transformers",
+		"safetensors",
+		"qwen2",
+		"text-generation",
+		"chat",
+		"conversational",
+		"en",
+		"arxiv:2309.00071",
+		"arxiv:2407.10671",
+		"base_model:Qwen/Qwen2.5-7B",
+		"base_model:finetune:Qwen/Qwen2.5-7B",
+		"license:apache-2.0",
+		"eval-results",
+		"text-generation-inference",
+		"endpoints_compatible",
+		"deploy:sagemaker",
+		"deploy:azure",
+		"region:us"
+	],
+	"downloads": 6369723,
+	"likes": 2455,
+	"modelId": "Qwen/Qwen2.5-7B-Instruct",
+	"author": "Qwen",
+	"sha": "a09a35458c702b33eeacc393d103063234e8bc28",
+	"lastModified": "2025-01-12T02:10:10.000Z",
+	"gated": false,
+	"disabled": false,
+	"model-index": null,
+	"config": {
+		"architectures": [
+			"Qwen2ForCausalLM"
+		],
+		"model_type": "qwen2"
+	},
+	"cardData": {
+		"license": "apache-2.0",
+		"license_link": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/blob/main/LICENSE",
+		"language": [
+			"en"
+		],
+		"pipeline_tag": "text-generation",
+		"base_model": "Qwen/Qwen2.5-7B",
+		"tags": [
+			"chat"
+		],
+		"library_name": "transformers"
+	},
+	"transformersInfo": {
+		"auto_model": "AutoModelForCausalLM",
+		"pipeline_tag": "text-generation",
+		"processor": "AutoTokenizer"
+	},
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "LICENSE"
+		},
+		{
+			"rfilename": "README.md"
+		},
+		{
+			"rfilename": "config.json"
+		},
+		{
+			"rfilename": "generation_config.json"
+		},
+		{
+			"rfilename": "merges.txt"
+		},
+		{
+			"rfilename": "model-00001-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00002-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00003-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00004-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model.safetensors.index.json"
+		},
+		{
+			"rfilename": "tokenizer.json"
+		},
+		{
+			"rfilename": "tokenizer_config.json"
+		},
+		{
+			"rfilename": "vocab.json"
+		}
+	],
+	"spaces": [
+		"tardellirs/model-pulse",
+		"embedl/hfviewer",
+		"alexnasa/Wan2.2-Animate-ZEROGPU",
+		"fastgpu/vram-and-gpu-cost-calculator",
+		"pliny-the-prompter/obliteratus"
+	],
+	"createdAt": "2024-09-16T11:55:40.000Z",
+	"safetensors": {
+		"parameters": {
+			"BF16": 7615616512
+		},
+		"total": 7615616512
+	},
+	"inference": "warm",
+	"usedStorage": 15255453428
+}

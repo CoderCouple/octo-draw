@@ -169,6 +169,12 @@ export interface DiagramIR {
 	direction: Direction
 	style: { colorMode?: ColorMode; styleMode?: StyleMode; typeface?: Typeface }
 	title?: string
+	/**
+	 * Root page only: the document-level `source <connector input>` directive
+	 * (`github.com/o/r@abc123`, `/abs/repo`, `aws:./export.json`). Node `src`
+	 * refs (in `ext.src`) are relative to it.
+	 */
+	source?: string
 	nodes: IRNode[]
 	edges: IREdge[]
 	/** kind 'sequence' only. */

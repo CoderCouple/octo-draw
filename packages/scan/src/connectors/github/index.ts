@@ -14,7 +14,7 @@
  */
 
 import { filePriority, isScannablePath } from '../../filter'
-import { emitGraph, scanSource } from '../../scan'
+import { deepenScan, emitGraph, scanSource } from '../../scan'
 import type { ScanFiles, ScanOptions } from '../../types'
 import { ConnectorError, type Connector, type ConnectorContext, type ConnectorResult, type SourceRef } from '../types'
 
@@ -198,7 +198,8 @@ export async function scanGithub(ref: SourceRef, ctx: ConnectorContext): Promise
 
 	const fullName = `${owner}/${repo}`
 	const title = o.title ?? (subdir ? `${fullName}/${subdir}` : shortTitle(meta.description) || fullName)
-	const result = scanSource(sorted, { ci: true, ...o, title, rootName: subdir ? subdir.split('/').pop() : repo })
+	const sourceInput = `github.com/${fullName}/tree/${gitRef}${subdir ? `/${subdir}` : ''}`
+	const result = scanSource(sorted, { ci: true, ...o, depth: 1, title, rootName: subdir ? subdir.split('/').pop() : repo, source: sourceInput, srcScheme: 'github' })
 	const base = `${meta.html_url ?? `https://github.com/${fullName}`}/tree/${gitRef}`
 	for (const n of result.graph.root.nodes) if (n.dir !== undefined && !n.link) n.link = `${base}/${prefix}${n.dir}`.replace(/\/+$/, '')
 	const langs = Object.entries(languages).sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -212,12 +213,60 @@ export async function scanGithub(ref: SourceRef, ctx: ConnectorContext): Promise
 		{ analyzer: 'github', confidence: 1, notes: [`${fullName}@${gitRef}${subdir ? `/${subdir}` : ''}: ${files.size} files fetched of ${blobs.length}`, ...(langs.length ? [`languages: ${langs.map(([l]) => l).join(', ')}`] : []), ...(meta.description?.trim() ? [`description: ${meta.description.trim()}`] : []), ...(meta.archived ? ['archived repository'] : [])] },
 		...result.findings,
 	]
+	let code = emitGraph(result.graph, header)
+	if ((o.depth ?? 1) > 1) {
+		const deep = deepenScan(code, sorted, { ...o, srcScheme: 'github' })
+		code = deep.code
+		warnings.push(...deep.warnings)
+	}
 	return {
-		code: emitGraph(result.graph, header),
+		code,
 		findings,
 		warnings: [...warnings, ...result.warnings],
 		source: { kind: 'github', id: fullName, ref: gitRef, ...(subdir ? { options: { subdir } } : {}) },
 		files: sorted,
+	}
+}
+
+/**
+ * Files of a GitHub source for on-demand expansion: the recursive tree (paths
+ * under the source's subdir, made relative to it) and raw contents. Resolves
+ * the ref like `scanGithub` (default branch, refs with slashes).
+ */
+export async function githubFileSource(ref: SourceRef, ctx: ConnectorContext): Promise<{ list(): Promise<string[]>; read(path: string): Promise<string | null> }> {
+	const o = (ref.options ?? {}) as GithubOptions & { refParts?: string[] }
+	const [owner, repo] = ref.id.split('/')
+	if (!owner || !repo) throw new ConnectorError(`bad GitHub repo id "${ref.id}" (expected owner/repo)`)
+	const gh = client(owner, repo, ctx, o)
+	let gitRef = ref.ref
+	if (!gitRef) gitRef = (await gh.json<{ default_branch: string }>(`/repos/${owner}/${repo}`)).default_branch
+	let subdir = (o.subdir ?? '').replace(/^\/+|\/+$/g, '')
+	let tree: { tree: TreeEntry[] } | null = null
+	const candidates = o.refParts && o.refParts.length > 1 ? o.refParts.map((_, i) => ({ ref: o.refParts!.slice(0, i + 1).join('/'), subdir: o.refParts!.slice(i + 1).join('/') })) : [{ ref: gitRef, subdir }]
+	for (const c of candidates) {
+		try {
+			tree = await gh.json(`/repos/${owner}/${repo}/git/trees/${encodeURIComponent(c.ref)}?recursive=1`)
+			gitRef = c.ref
+			subdir = c.subdir
+			break
+		} catch (err) {
+			if (!(err instanceof ConnectorError) || err.status !== 404) throw err
+		}
+	}
+	if (!tree) throw new ConnectorError(`GitHub: ref "${gitRef}" not found in ${owner}/${repo}`, 404)
+	const prefix = subdir ? subdir + '/' : ''
+	const maxFileBytes = o.maxFileBytes ?? 256 * 1024
+	const sizes = new Map<string, number>()
+	for (const e of tree.tree) if (e.type === 'blob' && e.path.startsWith(prefix) && isScannablePath(e.path.slice(prefix.length))) sizes.set(e.path.slice(prefix.length), e.size ?? 0)
+	const finalRef = gitRef
+	return {
+		list: async () => [...sizes.keys()].slice(0, 20000),
+		read: async (path) => {
+			const size = sizes.get(path)
+			if (size === undefined || size > maxFileBytes) return null
+			const text = await gh.raw(prefix + path, finalRef)
+			return text === null || text.includes('\u0000') ? null : text
+		},
 	}
 }
 

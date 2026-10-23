@@ -1,0 +1,110 @@
+{
+	"id": "Qwen/Qwen2.5-7B",
+	"private": false,
+	"pipeline_tag": "text-generation",
+	"library_name": "transformers",
+	"tags": [
+		"transformers",
+		"safetensors",
+		"qwen2",
+		"text-generation",
+		"conversational",
+		"en",
+		"arxiv:2407.10671",
+		"license:apache-2.0",
+		"eval-results",
+		"text-generation-inference",
+		"endpoints_compatible",
+		"deploy:azure",
+		"region:us"
+	],
+	"downloads": 578628,
+	"likes": 337,
+	"modelId": "Qwen/Qwen2.5-7B",
+	"author": "Qwen",
+	"sha": "d149729398750b98c0af14eb82c78cfe92750796",
+	"lastModified": "2024-09-25T12:32:32.000Z",
+	"gated": false,
+	"disabled": false,
+	"model-index": null,
+	"config": {
+		"architectures": [
+			"Qwen2ForCausalLM"
+		],
+		"model_type": "qwen2"
+	},
+	"cardData": {
+		"license": "apache-2.0",
+		"license_link": "https://huggingface.co/Qwen/Qwen2.5-7B/blob/main/LICENSE",
+		"language": [
+			"en"
+		],
+		"pipeline_tag": "text-generation",
+		"library_name": "transformers"
+	},
+	"transformersInfo": {
+		"auto_model": "AutoModelForCausalLM",
+		"pipeline_tag": "text-generation",
+		"processor": "AutoTokenizer"
+	},
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "LICENSE"
+		},
+		{
+			"rfilename": "README.md"
+		},
+		{
+			"rfilename": "config.json"
+		},
+		{
+			"rfilename": "generation_config.json"
+		},
+		{
+			"rfilename": "merges.txt"
+		},
+		{
+			"rfilename": "model-00001-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00002-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00003-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model-00004-of-00004.safetensors"
+		},
+		{
+			"rfilename": "model.safetensors.index.json"
+		},
+		{
+			"rfilename": "tokenizer.json"
+		},
+		{
+			"rfilename": "tokenizer_config.json"
+		},
+		{
+			"rfilename": "vocab.json"
+		}
+	],
+	"spaces": [
+		"pliny-the-prompter/obliteratus",
+		"ISEEKYAN/megatron_memory_estimator",
+		"ming9999/ATLAS-demo",
+		"ACloudCenter/Conference-Generator-VibeVoice",
+		"ISEEKYAN/megatron_memory_estimator_old"
+	],
+	"createdAt": "2024-09-15T12:17:40.000Z",
+	"safetensors": {
+		"parameters": {
+			"BF16": 7615616512
+		},
+		"total": 7615616512
+	},
+	"inference": "warm",
+	"usedStorage": 15231271888
+}

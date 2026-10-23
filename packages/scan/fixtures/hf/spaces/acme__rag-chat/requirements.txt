@@ -1,0 +1,6 @@
+gradio==5.9.1
+huggingface_hub>=0.26
+openai>=1.50
+chromadb==0.5.23
+sentence-transformers
+datasets

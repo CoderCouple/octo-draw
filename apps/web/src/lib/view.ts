@@ -1,7 +1,8 @@
-import type { Point } from '@octo-draw/core'
+import type { DiagramIR, Point } from '@octo-draw/core'
 import { pushHistory, snapshot, useStore, type HistoryMode } from '../store'
-import { drillInto, focusInto, goTo, goUp, jumpTo, pagePins, withPagePins, type Crumb } from './pages'
+import { drillInto, focusInto, goTo, goUp, jumpToPath, pagePins, sameCrumb, withPagePins, type Crumb } from './pages'
 import { addPage } from './drillCore'
+import { collapseToDepth, pagePath, type PageTreeNode } from './coreV2'
 
 /**
  * Store-level drill-down navigation: the current page, the breadcrumb path,
@@ -21,7 +22,10 @@ export function setNavigator(fn: Navigator | null) {
 /** Applies a crumb stack right away (the canvas navigator calls this mid-animation). */
 export function applyCrumbs(next: Crumb[]) {
 	const top = next[next.length - 1]
-	set({ crumbs: next, page: top.page, selection: null })
+	const trail = get().trail
+	// remember the deeper path we came up from, so Cmd+] can go back down it
+	const onTrail = trail.length >= next.length && next.every((c, i) => sameCrumb(c, trail[i]))
+	set({ crumbs: next, page: top.page, selection: null, trail: onTrail ? trail : next })
 }
 
 async function navigate(next: Crumb[], how: 'in' | 'out' | 'none', via?: string) {
@@ -70,14 +74,123 @@ export function goToCrumb(index: number) {
 	void navigate(goTo(s.crumbs, index), 'out', via)
 }
 
-/** Page tab / editor caret / agent hook: switch pages without a drill animation. */
+/**
+ * Outline / editor caret / agent hook: opens a page directly. The breadcrumb
+ * trail is rebuilt from the page tree (`pagePath`) unless the page is already
+ * on the current path.
+ */
 export function setPage(name: string, animate = false) {
 	const s = get()
 	if (!s.pageNames.includes(name)) return false
 	const top = s.crumbs[s.crumbs.length - 1]
 	if (top.page === name && !top.focus) return true
-	void navigate(jumpTo(s.crumbs, name), animate ? 'in' : 'none')
+	void navigate(jumpToPath(s.crumbs, name, pagePath(s.code, name)), animate ? 'in' : 'none')
 	return true
+}
+
+/** Cmd+]: one level back down the path we last came up from. */
+export function goDeeper() {
+	const s = get()
+	if (s.trail.length <= s.crumbs.length) return false
+	const next = s.trail.slice(0, s.crumbs.length + 1)
+	void navigate(next, 'in', next[next.length - 1].via)
+	return true
+}
+
+function findInTree(tree: PageTreeNode[], name: string): { node: PageTreeNode; parent: PageTreeNode | null } | null {
+	const walk = (n: PageTreeNode, parent: PageTreeNode | null): { node: PageTreeNode; parent: PageTreeNode | null } | null => {
+		if (n.name === name && (parent !== null || n === tree[0])) return { node: n, parent }
+		for (const c of n.children) {
+			const hit = walk(c, n)
+			if (hit) return hit
+		}
+		return null
+	}
+	for (const t of tree) {
+		const hit = walk(t, null)
+		if (hit) return hit
+	}
+	return null
+}
+
+/** Page Up / Page Down: the previous / next sibling page in the page tree. */
+export function siblingPage(dir: -1 | 1) {
+	const s = get()
+	const hit = findInTree(s.tree, s.page)
+	if (!hit?.parent) return false
+	const sibs = hit.parent.children.filter((c) => s.pageNames.includes(c.name))
+	const i = sibs.findIndex((c) => c.name === s.page)
+	const next = sibs[i + dir]
+	if (!next) return false
+	return setPage(next.name, true)
+}
+
+/** Child pages of `name` in the page tree (outline counts, sub-diagram menus). */
+export function childPages(name: string): string[] {
+	const s = get()
+	return findInTree(s.tree, name)?.node.children.map((c) => c.name) ?? []
+}
+
+/** Deepest container level in a view (top-level containers are level 1); 0 without groups. */
+export function maxGroupDepth(ir: DiagramIR | null): number {
+	if (!ir) return 0
+	const byKey = new Map(ir.nodes.map((n) => [n.key, n]))
+	let max = 0
+	for (const n of ir.nodes) {
+		if (!n.isContainer) continue
+		let level = 1
+		const seen = new Set([n.key])
+		for (let p = n.parent; p !== undefined && byKey.has(p) && !seen.has(p); p = byKey.get(p)!.parent) {
+			seen.add(p)
+			level++
+		}
+		max = Math.max(max, level)
+	}
+	return max
+}
+
+/**
+ * Levels control: `levels` visible hierarchy levels (1 = top-level items only,
+ * every group collapsed), null = everything open. Inside a focused view only
+ * the focused subtree changes.
+ */
+export function setLevels(levels: number | null) {
+	const s = get()
+	const view = s.focusIR
+	if (!view) return
+	const inView = new Set(view.nodes.map((n) => n.key))
+	const keep = (s.collapsed[s.page] ?? []).filter((k) => !inView.has(k))
+	const next = levels === null ? keep : [...keep, ...collapseToDepth(view, levels)]
+	const collapsed = { ...s.collapsed }
+	if (next.length) collapsed[s.page] = next
+	else delete collapsed[s.page]
+	set({ collapsed })
+}
+
+/** Which Levels button matches the current collapse state (null = All, undefined = custom). */
+export function currentLevels(s = get()): number | null | undefined {
+	const view = s.focusIR
+	if (!view) return null
+	const inView = new Set(view.nodes.filter((n) => n.isContainer).map((n) => n.key))
+	const here = new Set((s.collapsed[s.page] ?? []).filter((k) => inView.has(k) && k !== s.crumbs[s.crumbs.length - 1].focus))
+	if (!here.size) return null
+	const max = maxGroupDepth(view)
+	for (let n = 1; n <= max; n++) {
+		const keys = collapseToDepth(view, n)
+		if (keys.length === here.size && keys.every((k) => here.has(k))) return n
+	}
+	return undefined
+}
+
+let morphNext = false
+/** The next layout animates (nodes glide) instead of jumping. */
+export function requestMorph() {
+	morphNext = true
+}
+export function takeMorph() {
+	const v = morphNext
+	morphNext = false
+	return v
 }
 
 /** Leaves focus mode and selects `key` (a ghost node was clicked). */

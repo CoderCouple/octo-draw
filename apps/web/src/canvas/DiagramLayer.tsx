@@ -16,11 +16,18 @@ interface Props {
 	editingKey: string | null
 	/** node key → page it drills into */
 	drill?: Record<string, string>
+	/** node key → expandable into a new page ('src': has a source ref, 'ai': AI only) */
+	expandable?: Record<string, 'src' | 'ai'>
+	/** node being expanded right now (loading shimmer) */
+	expandingKey?: string | null
+	/** show the hover "+" handles (add child / sibling) */
+	composable?: boolean
 }
 
 const NO_DRILL: Record<string, string> = {}
+const NO_EXPAND: Record<string, 'src' | 'ai'> = {}
 
-export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, selectedKey, editingKey, drill = NO_DRILL }: Props) {
+export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, selectedKey, editingKey, drill = NO_DRILL, expandable = NO_EXPAND, expandingKey = null, composable = false }: Props) {
 	const iconsReady = useIcons((s) => s.version)
 	// other diagram kinds have their own renderers
 	if (ir.kind === 'sequence' && layout.sequence) return <SequenceLayer ir={ir} layout={layout} theme={theme} selectedKey={selectedKey} editingKey={editingKey} />
@@ -39,6 +46,12 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 				<filter id="octo-shadow" x="-20%" y="-20%" width="140%" height="160%">
 					<feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#000000" floodOpacity={theme === 'dark' ? 0.5 : 0.08} />
 				</filter>
+				<linearGradient id="octo-shimmer" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+					<stop offset="0" stopColor={SURFACE[theme].text} stopOpacity={0} />
+					<stop offset="0.5" stopColor={SURFACE[theme].text} stopOpacity={theme === 'dark' ? 0.22 : 0.12} />
+					<stop offset="1" stopColor={SURFACE[theme].text} stopOpacity={0} />
+					<animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="1.2s" repeatCount="indefinite" />
+				</linearGradient>
 				<filter id="octo-watercolor" x="-10%" y="-10%" width="120%" height="120%">
 					<feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise" />
 					<feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
@@ -47,7 +60,7 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 			{groups.map((g) => {
 				const node = byKey.get(g.key)
 				return node ? (
-					<GroupView key={g.key} iconsReady={iconsReady} node={node} box={g} mode={mode} theme={theme} selected={selectedKey === g.key} editing={editingKey === g.key} drillTo={drill[g.key]} />
+					<GroupView key={g.key} iconsReady={iconsReady} node={node} box={g} mode={mode} theme={theme} selected={selectedKey === g.key} editing={editingKey === g.key} drillTo={drill[g.key]} composable={composable} />
 				) : null
 			})}
 			{ir.edges.map((e) => {
@@ -69,6 +82,9 @@ export const DiagramLayer = memo(function DiagramLayer({ ir, layout, theme, sele
 						editing={editingKey === n.key}
 						measure={measure}
 						drillTo={drill[n.key]}
+						expandable={expandable[n.key]}
+						expanding={expandingKey === n.key}
+						composable={composable}
 					/>
 				) : null
 			})}
@@ -155,6 +171,9 @@ const NodeView = memo(function NodeView({
 	editing,
 	measure,
 	drillTo,
+	expandable,
+	expanding,
+	composable,
 }: {
 	iconsReady: number
 	node: IRNode
@@ -166,6 +185,9 @@ const NodeView = memo(function NodeView({
 	editing: boolean
 	measure: Measure
 	drillTo?: string
+	expandable?: 'src' | 'ai'
+	expanding?: boolean
+	composable?: boolean
 }) {
 	const ghost = node.ext?.ghost === 'true'
 	const collapsed = node.ext?.collapsed
@@ -210,6 +232,8 @@ const NodeView = memo(function NodeView({
 			data-node={node.key}
 			data-ghost={ghost ? '' : undefined}
 			data-collapsed={collapsed}
+			data-selected={selected ? '' : undefined}
+			data-expanding={expanding ? '' : undefined}
 			transform={`translate(${box.x},${box.y})`}
 			style={{ cursor: 'pointer', transform: `translate(${box.x}px, ${box.y}px)` }}
 			opacity={ghost ? 0.55 : undefined}
@@ -233,8 +257,11 @@ const NodeView = memo(function NodeView({
 			{detail && collapsed === undefined && <path d={detail} fill="none" stroke={c.stroke} strokeWidth={1.5} strokeDasharray={ghost ? '5 4' : undefined} />}
 			{content}
 			{collapsed !== undefined && <Chevron x={6} y={6} open={false} color={c.text} groupKey={node.key} />}
-			{collapsed !== undefined && <CountBadge x={box.w} y={0} count={Number(collapsed) || 0} theme={theme} />}
+			{collapsed !== undefined && <CountBadge x={box.w} y={0} count={Number(collapsed) || 0} direct={node.ext?.children !== undefined ? Number(node.ext.children) : undefined} theme={theme} />}
 			{drillTo !== undefined && !ghost && <DrillMark x={box.w - 18} y={box.h - 18} color={c.icon} target={drillTo} nodeKey={node.key} />}
+			{drillTo === undefined && expandable && !ghost && <ExpandMark x={box.w - 18} y={box.h - 18} color={c.icon} kind={expandable} nodeKey={node.key} />}
+			{expanding && <path data-export="skip" d={roundedRect(box.w, box.h, 10)} fill="url(#octo-shimmer)" stroke={c.stroke} strokeWidth={1.5} strokeDasharray="4 4" className="octo-expanding" pointerEvents="none" />}
+			{composable && !ghost && <AddHandles w={box.w} h={box.h} nodeKey={node.key} theme={theme} />}
 			{node.link && (
 				<g transform={`translate(${box.w - 16},4)`} opacity={0.7}>
 					<IconGlyph name="external-link" x={0} y={0} size={11} color={c.icon} />
@@ -255,6 +282,7 @@ const GroupView = memo(function GroupView({
 	selected,
 	editing,
 	drillTo,
+	composable,
 }: {
 	iconsReady: number
 	node: IRNode
@@ -264,13 +292,14 @@ const GroupView = memo(function GroupView({
 	selected: boolean
 	editing: boolean
 	drillTo?: string
+	composable?: boolean
 }) {
 	const c = groupColors(node.style?.color, mode, theme)
 	const label = node.label ?? node.key
 	const chevron = 18
 	const iconOffset = (node.icon ? 22 : 0) + chevron
 	return (
-		<g data-node={node.key} transform={`translate(${box.x},${box.y})`} style={{ transform: `translate(${box.x}px, ${box.y}px)` }}>
+		<g data-node={node.key} data-group="" data-selected={selected ? '' : undefined} transform={`translate(${box.x},${box.y})`} style={{ transform: `translate(${box.x}px, ${box.y}px)` }}>
 			<path d={roundedRect(box.w, box.h, 12)} fill={c.fill === 'none' ? SURFACE[theme].bg : c.fill} fillOpacity={c.fill === 'none' ? 0.001 : 1} stroke={c.stroke} strokeWidth={1.2} strokeDasharray={node.style?.dash === 'dotted' || node.ext?.dash === 'dotted' ? '4 4' : undefined} />
 			<g data-group-header="" style={{ cursor: 'pointer' }}>
 				<rect x={0} y={0} width={box.w} height={36} fill="transparent" />
@@ -284,9 +313,32 @@ const GroupView = memo(function GroupView({
 				{drillTo !== undefined && <DrillMark x={box.w - 24} y={10} color={c.text} target={drillTo} nodeKey={node.key} />}
 			</g>
 			{selected && <path data-export="skip" d={roundedRect(box.w + 8, box.h + 8, 14)} transform="translate(-4,-4)" fill="none" stroke={SURFACE[theme].select} strokeWidth={1.5} strokeDasharray="5 4" />}
+			{composable && <AddHandles w={box.w} h={box.h} nodeKey={node.key} theme={theme} group />}
 		</g>
 	)
 })
+
+/**
+ * Hover "+" handles: bottom edge adds a child inside the node (a leaf becomes
+ * a container), the right edge adds a sibling next to it.
+ */
+function AddHandles({ w, h, nodeKey, theme, group }: { w: number; h: number; nodeKey: string; theme: Theme; group?: boolean }) {
+	const s = SURFACE[theme]
+	const plus = (x: number, y: number, kind: 'child' | 'sibling', title: string) => (
+		<g data-add={kind} data-add-key={nodeKey} transform={`translate(${x},${y})`} className="octo-add" style={{ cursor: 'copy' }}>
+			<title>{title}</title>
+			<circle r={11} fill="transparent" />
+			<circle r={8} fill={s.bg} stroke={s.text} strokeWidth={1.2} />
+			<path d="M-3.5,0 H3.5 M0,-3.5 V3.5" stroke={s.text} strokeWidth={1.5} strokeLinecap="round" />
+		</g>
+	)
+	return (
+		<g data-export="skip">
+			{plus(w / 2, h, 'child', group ? 'Add a component inside (Tab)' : 'Add a component inside: makes this a container (Tab)')}
+			{plus(w, group ? 18 : h / 2, 'sibling', 'Add a sibling next to it (Enter after naming)')}
+		</g>
+	)
+}
 
 /** Collapse/expand toggle on a group header (open) or a collapsed group node (closed). */
 function Chevron({ x, y, open, color, groupKey }: { x: number; y: number; open: boolean; color: string; groupKey: string }) {
@@ -299,12 +351,14 @@ function Chevron({ x, y, open, color, groupKey }: { x: number; y: number; open: 
 	)
 }
 
-function CountBadge({ x, y, count, theme }: { x: number; y: number; count: number; theme: Theme }) {
+function CountBadge({ x, y, count, direct, theme }: { x: number; y: number; count: number; direct?: number; theme: Theme }) {
 	const s = SURFACE[theme]
-	const text = String(count)
+	// nested: "<direct> · <all descendants>", flat: just the count
+	const text = direct !== undefined && direct !== count ? `${direct} · ${count}` : String(count)
 	const w = Math.max(20, 10 + text.length * 7)
 	return (
 		<g transform={`translate(${x - w / 2},${y - 10})`} pointerEvents="none">
+			<title>{direct !== undefined ? `${direct} inside, ${count} in total` : `${count} inside`}</title>
 			<rect width={w} height={20} rx={10} fill={s.text} />
 			<text x={w / 2} y={10} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill={s.bg}>
 				{text}
@@ -320,6 +374,17 @@ function DrillMark({ x, y, color, target, nodeKey }: { x: number; y: number; col
 			<title>{`Open "${target}" (double-click)`}</title>
 			<rect x={-2} y={-2} width={16} height={16} rx={4} fill={color} fillOpacity={0.08} />
 			<path d="M3,3 L9.5,9.5 M9.5,4 L9.5,9.5 L4,9.5" fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+		</g>
+	)
+}
+
+/** Dotted "↘" on nodes without a page yet: expand into one (from source, or with AI). */
+function ExpandMark({ x, y, color, kind, nodeKey }: { x: number; y: number; color: string; kind: 'src' | 'ai'; nodeKey: string }) {
+	return (
+		<g data-expand={nodeKey} data-export="skip" transform={`translate(${x},${y})`} style={{ cursor: 'zoom-in' }} className={`octo-expand ${kind}`}>
+			<title>{kind === 'src' ? 'Expand from source into a sub-diagram (double-click)' : 'Expand into a sub-diagram with AI'}</title>
+			<rect x={-2} y={-2} width={16} height={16} rx={4} fill={color} fillOpacity={0.06} stroke={color} strokeOpacity={0.5} strokeWidth={1} strokeDasharray="2 2" />
+			<path d="M3,3 L9.5,9.5 M9.5,4 L9.5,9.5 L4,9.5" fill="none" stroke={color} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 1.6" />
 		</g>
 	)
 }

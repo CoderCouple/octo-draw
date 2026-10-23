@@ -8,11 +8,12 @@ export interface EmittedPage {
 	ir: DiagramIR
 }
 
-export function graphToIR(g: ArchGraph, opts: { title?: string } = {}): DiagramIR {
+export function graphToIR(g: ArchGraph, opts: { title?: string; source?: string } = {}): DiagramIR {
 	const keys = new Set(g.nodes.map((n) => n.key))
 	const nodes: IRNode[] = g.nodes.map((n: ArchNode) => {
 		const ext: Record<string, string> = {}
 		if (n.drill) ext.drill = n.drill
+		if (n.src !== undefined) ext.src = n.src
 		const out: IRNode = { key: n.key }
 		if (n.label !== undefined && n.label !== n.key) out.label = n.label
 		if (n.shape) out.shape = n.shape
@@ -40,7 +41,9 @@ export function graphToIR(g: ArchGraph, opts: { title?: string } = {}): DiagramI
 			line: { dash: e.dotted ? 'dotted' : 'solid' },
 		})
 	}
-	return { version: 1, kind: 'flowchart', direction: 'right', style: {}, title: opts.title, nodes, edges }
+	const ir: DiagramIR = { version: 1, kind: 'flowchart', direction: 'right', style: {}, title: opts.title, nodes, edges }
+	if (opts.source) ir.source = opts.source
+	return ir
 }
 
 /** Root page first (with title), then `page <Name>` sections. */

@@ -308,6 +308,7 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream,
 				source: requireString(body, 'source', true),
 				title: requireString(body, 'title', true),
 				only: Array.isArray(body.only) ? body.only.filter((x): x is string => typeof x === 'string') : undefined,
+				depth: typeof body.depth === 'number' ? body.depth : undefined,
 				options: body.options && typeof body.options === 'object' && !Array.isArray(body.options) ? (body.options as Record<string, unknown>) : undefined,
 			}
 			// loaded lazily: keeps the scanner (and its core imports) out of the other routes
@@ -323,6 +324,75 @@ export function createApp({ store: defaultStore, rooms, storeForRoom, getStream,
 				if (err instanceof scan.ScanError) throw new HttpError(err.status, err.message)
 				throw err
 			}
+		}
+
+		// ---- on-demand drill-down: a node without a page becomes a new page (source expanders or AI)
+		if (method === 'POST' && path === '/api/expand') {
+			const body = await readJson(req)
+			const mode = body.mode ?? 'auto'
+			if (mode !== 'auto' && mode !== 'ai' && mode !== 'source') throw new HttpError(400, '"mode" must be auto, ai or source')
+			const expandReq = {
+				code: requireString(body, 'code') as string,
+				page: requireString(body, 'page', true) ?? '',
+				node: requireString(body, 'node') as string,
+				mode: mode as 'auto' | 'ai' | 'source',
+				depth: typeof body.depth === 'number' ? body.depth : undefined,
+				options: body.options && typeof body.options === 'object' && !Array.isArray(body.options) ? (body.options as Record<string, unknown>) : undefined,
+			}
+			const ex = await import('./expand')
+			let target
+			try {
+				target = ex.findTarget(expandReq)
+			} catch (err) {
+				if (err instanceof ex.ExpandError) throw new HttpError(err.status, err.message)
+				throw err
+			}
+			const useSource = mode === 'source' || (mode === 'auto' && ex.srcResolves(target))
+			if (useSource) {
+				// source expansion reads local files / uses server credentials: local dev clients only (like /api/scan)
+				if (!isLoopback(req)) throw new HttpError(403, 'Source expansion is only available to local clients')
+				const origin = req.headers.origin
+				if (origin && !LOCAL_ORIGIN.test(origin)) throw new HttpError(403, 'Source expansion is not available to other sites')
+			}
+			const wantsStream = body.stream !== false
+			let result: import('./expand').ExpandResponse | null = null
+			const fallbackWarnings: string[] = []
+			if (useSource) {
+				try {
+					result = await ex.expandWithSource(expandReq, target, scanDeps)
+				} catch (err) {
+					const status = err instanceof ex.ScanError ? err.status : 500
+					if (mode === 'source' || !getStream() || status === 403) {
+						if (err instanceof ex.ScanError) throw new HttpError(err.status, err.message)
+						throw err
+					}
+					fallbackWarnings.push(`source expansion failed (${err instanceof Error ? err.message : String(err)}); expanded with AI instead`)
+				}
+			}
+			if (result) {
+				if (!wantsStream) return json(res, 200, result)
+				sseStart(res)
+				sse(res, { done: true, ...result })
+				return res.end()
+			}
+			const stream = needStream(res)
+			if (!stream) return
+			if (!wantsStream) {
+				const r = await ex.expandWithAi(stream, expandReq, target, () => {})
+				return json(res, 200, { ...r, warnings: [...fallbackWarnings, ...r.warnings] })
+			}
+			sseStart(res)
+			const ctrl = new AbortController()
+			res.on('close', () => {
+				if (!res.writableEnded) ctrl.abort()
+			})
+			try {
+				const r = await ex.expandWithAi(stream, expandReq, target, (delta) => sse(res, { delta }), ctrl.signal)
+				sse(res, { done: true, ...r, warnings: [...fallbackWarnings, ...r.warnings] })
+			} catch (err) {
+				if (!ctrl.signal.aborted) sse(res, { error: err instanceof ex.ExpandError ? err.message : errorMessage(err).message })
+			}
+			return res.end()
 		}
 
 		if (method === 'POST' && path === '/api/agent') {

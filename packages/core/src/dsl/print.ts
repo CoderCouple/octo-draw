@@ -34,6 +34,8 @@ export function quoteName(name: string): string {
 	const parts = name.split(' ')
 	if (parts.some((p) => (OPS as readonly string[]).includes(p))) return quote(name)
 	if ((DIRECTIVES as readonly string[]).includes(parts[0])) return quote(name)
+	// `source X` at top level is the source directive.
+	if (parts[0] === 'source' && parts.length > 1) return quote(name)
 	if (parts.length === 1 && KIND_HEADERS[name]) return quote(name)
 	// `page X` alone on a line would start a new page.
 	if (parts[0] === 'page' && parts.length > 1) return quote(name)
@@ -114,6 +116,11 @@ function printHeader(ir: DiagramIR): string[] {
 		const t = oneLine(ir.title)
 		const bare = t !== '' && !/^\s|\s$|^"|[{}]/.test(t) && !looksLikeComment(t)
 		out.push(`title ${bare ? t : quote(t)}`)
+	}
+	if (ir.source !== undefined) {
+		const t = oneLine(ir.source)
+		const bare = t !== '' && !/^\s|\s$|^"|[{}]/.test(t) && !looksLikeComment(t)
+		out.push(`source ${bare ? t : quote(t)}`)
 	}
 	const defaultDir = ir.kind === 'architecture' || ir.kind === 'erd' ? 'right' : 'down'
 	if (ir.direction !== defaultDir) out.push(`direction ${ir.direction}`)

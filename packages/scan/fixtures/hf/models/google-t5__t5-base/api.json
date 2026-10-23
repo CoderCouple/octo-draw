@@ -1,0 +1,124 @@
+{
+	"id": "google-t5/t5-base",
+	"private": false,
+	"pipeline_tag": "translation",
+	"library_name": "transformers",
+	"tags": [
+		"transformers",
+		"pytorch",
+		"tf",
+		"jax",
+		"rust",
+		"safetensors",
+		"t5",
+		"text2text-generation",
+		"summarization",
+		"translation",
+		"en",
+		"fr",
+		"ro",
+		"de",
+		"dataset:c4",
+		"arxiv:1805.12471",
+		"arxiv:1708.00055",
+		"arxiv:1704.05426",
+		"arxiv:1606.05250",
+		"arxiv:1808.09121",
+		"arxiv:1810.12885",
+		"arxiv:1905.10044",
+		"arxiv:1910.09700",
+		"license:apache-2.0",
+		"text-generation-inference",
+		"endpoints_compatible",
+		"deploy:azure",
+		"region:us"
+	],
+	"downloads": 1915134,
+	"likes": 805,
+	"modelId": "google-t5/t5-base",
+	"author": "google-t5",
+	"sha": "a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1",
+	"lastModified": "2024-02-14T17:21:55.000Z",
+	"gated": false,
+	"disabled": false,
+	"model-index": null,
+	"config": {
+		"architectures": [
+			"T5ForConditionalGeneration"
+		],
+		"model_type": "t5"
+	},
+	"cardData": {
+		"pipeline_tag": "translation",
+		"language": [
+			"en",
+			"fr",
+			"ro",
+			"de"
+		],
+		"datasets": [
+			"c4"
+		],
+		"tags": [
+			"summarization",
+			"translation"
+		],
+		"license": "apache-2.0"
+	},
+	"transformersInfo": {
+		"auto_model": "AutoModelForSeq2SeqLM",
+		"pipeline_tag": "text2text-generation",
+		"processor": "AutoTokenizer"
+	},
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "README.md"
+		},
+		{
+			"rfilename": "config.json"
+		},
+		{
+			"rfilename": "flax_model.msgpack"
+		},
+		{
+			"rfilename": "generation_config.json"
+		},
+		{
+			"rfilename": "model.safetensors"
+		},
+		{
+			"rfilename": "pytorch_model.bin"
+		},
+		{
+			"rfilename": "rust_model.ot"
+		},
+		{
+			"rfilename": "spiece.model"
+		},
+		{
+			"rfilename": "tf_model.h5"
+		},
+		{
+			"rfilename": "tokenizer.json"
+		}
+	],
+	"spaces": [
+		"facebook/MusicGen",
+		"embedl/hfviewer",
+		"microsoft/HuggingGPT",
+		"Surn/UnlimitedMusicGen",
+		"FunAudioLLM/ThinkSound"
+	],
+	"createdAt": "2022-03-02T23:29:04.000Z",
+	"safetensors": {
+		"parameters": {
+			"F32": 222903936
+		},
+		"total": 222903936
+	},
+	"inference": "warm",
+	"usedStorage": 6793551855
+}

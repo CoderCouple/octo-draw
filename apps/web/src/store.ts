@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import type { DiagramIR, DiagramLayout, Diagnostic, Point } from '@octo-draw/core'
 import { STARTER } from './starter'
 import { ROOT_CRUMB, type Crumb } from './lib/pages'
+import type { PageTreeNode } from './lib/coreV2'
 
-export type Tool = 'select' | 'hand' | 'pen' | 'rect' | 'ellipse' | 'arrow' | 'text' | 'sticky' | 'eraser'
+export type Tool = 'select' | 'hand' | 'component' | 'pen' | 'rect' | 'ellipse' | 'arrow' | 'text' | 'sticky' | 'eraser'
 
 /** Freehand shape type lives in core (part of the OctoDocument format). */
 export type { FreeShape } from '@octo-draw/core'
@@ -80,6 +81,18 @@ interface State extends Snapshot {
 	drill: Record<string, string>
 	/** `title` directive of the root page */
 	rootTitle?: string
+	/** pages as a tree of drill links (outline, deep links) */
+	tree: PageTreeNode[]
+	/** the current view's IR after focus, before collapse (levels control) */
+	focusIR: DiagramIR | null
+	/** node key → how it can be expanded into a new page (no drill target yet) */
+	expandable: Record<string, 'src' | 'ai'>
+	/** a node being expanded via /api/expand */
+	expanding: { page: string; key: string; mode: string } | null
+	/** the deepest path visited along the current one (Cmd+] goes back down it) */
+	trail: Crumb[]
+	/** open the label editor on this node once it is laid out (Tab / Enter flow) */
+	editRequest: { key: string; page: string; placeholder: boolean } | null
 }
 
 export const useStore = create<State>(() => ({
@@ -108,6 +121,12 @@ export const useStore = create<State>(() => ({
 	pageNames: [''],
 	pageIR: null,
 	drill: {},
+	tree: [{ name: '', children: [], depth: 0 }],
+	focusIR: null,
+	expandable: {},
+	expanding: null,
+	trail: [ROOT_CRUMB],
+	editRequest: null,
 }))
 
 const get = useStore.getState

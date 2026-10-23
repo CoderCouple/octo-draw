@@ -318,6 +318,11 @@ export class Parser {
 		this.sawStatement = true
 		if (t.type === 'word') {
 			const nx = this.peek(1)
+			// `source <connector input>`: top level only, and only with a value (a lone `source` stays a node)
+			if (t.value === 'source' && parent === undefined && (nx.type === 'word' || nx.type === 'string')) {
+				this.parseDirective(parent)
+				return
+			}
 			if ((DIRECTIVES as readonly string[]).includes(t.value)) {
 				if (this.atEnd(nx)) {
 					this.next()
@@ -371,6 +376,9 @@ export class Parser {
 		switch (kw.value) {
 			case 'title':
 				this.ir.title = value
+				break
+			case 'source':
+				this.ir.source = value
 				break
 			case 'direction':
 				if ((DIRECTIONS as string[]).includes(value)) {

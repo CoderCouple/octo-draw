@@ -123,7 +123,7 @@ export function analyzeCompose(files: ScanFiles): AnalyzerResult {
 			if (![...svcs.values()].some((s) => s.networks.includes(n))) continue
 			const k = keys.take(`${n} network`)
 			netKey.set(n, k)
-			nodes.push({ key: k, label: n, role: 'group', isContainer: true, icon: 'network' })
+			nodes.push({ key: k, label: n, role: 'group', isContainer: true, icon: 'network', src: `${paths[0]}#networks.${n}` })
 		}
 		r.notes.push(`grouped services by ${plural(netKey.size, 'network')}`)
 	} else if (nets.length) r.notes.push(`${plural(nets.length, 'network')} not drawn as groups (services span several)`)
@@ -147,6 +147,7 @@ export function analyzeCompose(files: ScanFiles): AnalyzerResult {
 			aliases: [s.name, ...(s.build !== undefined ? [s.build === '' ? '.' : s.build, basename(s.build)] : [])],
 			dir: s.build,
 			facts,
+			src: `${s.file}#services.${s.name}`,
 		})
 		for (const d of s.deps) if (svcKey.has(d)) addEdge({ from: key, to: svcKey.get(d)! })
 		for (const h of s.envHosts) if (svcKey.has(h) && h !== s.name) addEdge({ from: key, to: svcKey.get(h)! })
@@ -164,7 +165,7 @@ export function analyzeCompose(files: ScanFiles): AnalyzerResult {
 			if (!volKey.has(v)) {
 				const k = keys.take(`${v} volume`)
 				volKey.set(v, k)
-				nodes.push({ key: k, label: v, shape: 'cylinder', icon: 'storage', role: 'store' })
+				nodes.push({ key: k, label: v, shape: 'cylinder', icon: 'storage', role: 'store', src: `${paths.find((p) => Object.keys(asObj(asObj(parseYaml(files.get(p) ?? '')).volumes)).includes(v)) ?? paths[0]}#volumes.${v}` })
 			}
 			addEdge({ from: svcKey.get(s.name)!, to: volKey.get(v)!, plain: true })
 		}

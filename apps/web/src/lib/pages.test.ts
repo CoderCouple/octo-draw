@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crumbLabels, drillInto, focusInto, goTo, goUp, jumpTo, pagePins, pinKey, pruneStack, ROOT_CRUMB, withPagePins } from './pages'
+import { crumbLabels, drillInto, focusInto, goTo, goUp, jumpTo, jumpToPath, pagePins, pinKey, pruneStack, ROOT_CRUMB, truncateCrumbs, withPagePins } from './pages'
 
 describe('pin keys', () => {
 	it('keeps root keys plain and prefixes other pages', () => {
@@ -79,5 +79,27 @@ describe('breadcrumb stack', () => {
 		const s = focusInto(drillInto([ROOT_CRUMB], 'Payments flow'), 'Backend')
 		expect(crumbLabels(s, 'Checkout', (_p, k) => `${k}!`)).toEqual(['Checkout', 'Payments flow', 'Backend!'])
 		expect(crumbLabels([ROOT_CRUMB], '', () => '')).toEqual(['Root'])
+	})
+})
+
+describe('deep breadcrumbs', () => {
+	it('shows every level up to 4, then folds the middle', () => {
+		expect(truncateCrumbs(1)).toEqual({ shown: [0], hidden: [] })
+		expect(truncateCrumbs(4)).toEqual({ shown: [0, 1, 2, 3], hidden: [] })
+		expect(truncateCrumbs(5)).toEqual({ shown: [0, 'more', 3, 4], hidden: [1, 2] })
+		expect(truncateCrumbs(9)).toEqual({ shown: [0, 'more', 7, 8], hidden: [1, 2, 3, 4, 5, 6] })
+	})
+
+	it('rebuilds the trail from a page path unless the page is on it', () => {
+		const stack = [ROOT_CRUMB, { page: 'A', via: 'a' }, { page: 'A / B', via: 'b' }]
+		expect(jumpToPath(stack, 'A', [])).toEqual(stack.slice(0, 2))
+		const path = [{ page: '' }, { page: 'X', via: 'x' }, { page: 'X / Y', via: 'y' }]
+		expect(jumpToPath(stack, 'X / Y', path)).toEqual([ROOT_CRUMB, { page: 'X', via: 'x' }, { page: 'X / Y', via: 'y' }])
+		expect(jumpToPath(stack, 'Orphan', [])).toEqual([ROOT_CRUMB, { page: 'Orphan' }])
+	})
+
+	it('labels path-style pages by their last part', () => {
+		const stack = [ROOT_CRUMB, { page: 'Platform' }, { page: 'Platform / Checkout' }, { page: 'Platform / Checkout', focus: 'Cart' }]
+		expect(crumbLabels(stack, 'Acme', (_p, k) => k.toUpperCase())).toEqual(['Acme', 'Platform', 'Checkout', 'CART'])
 	})
 })

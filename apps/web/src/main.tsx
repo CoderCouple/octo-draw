@@ -49,6 +49,9 @@ window.octo = {
 	setPage: (name) => setPage(name, true),
 }
 
+// dev-only handle for headless tests
+if (import.meta.env.DEV) (window as unknown as { __octoStore?: typeof useStore }).__octoStore = useStore
+
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<App />

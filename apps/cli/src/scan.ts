@@ -10,9 +10,10 @@ import { defaultIconsDir } from '@octo-draw/core/node/iconCache'
 import type { IO } from './cli'
 import { CliError, convertDoc, loadInput } from './convert'
 
-export const SCAN_HELP = `  octo-draw scan <dir|source> [-o out.octo] [--render out.svg] [--only ${ANALYZERS.join(',')}] [--json]
+export const SCAN_HELP = `  octo-draw scan <dir|source> [-o out.octo] [--render out.svg] [--only ${ANALYZERS.join(',')}] [--json] [--depth N]
                                                   architecture diagram from a folder or a source:
                                                   github.com/owner/repo[/tree/ref/dir], owner/repo@ref, hf:org/model, aws:region
+                                                  --depth N pre-generates N levels of drill-down pages (default 1)
 `
 
 export interface ScanFlags {
@@ -23,6 +24,7 @@ export interface ScanFlags {
 	json?: boolean
 	quiet?: boolean
 	theme?: RenderTheme
+	depth?: string
 }
 
 function parseOnly(v: string | undefined): AnalyzerName[] | undefined {
@@ -61,9 +63,11 @@ export function rootPage(code: string): string {
 export async function scanCommand(io: IO, input: string | undefined, flags: ScanFlags): Promise<number> {
 	if (!input) throw new CliError('missing <dir|source> to scan')
 	const only = parseOnly(flags.only)
+	const depth = flags.depth === undefined ? undefined : Number(flags.depth)
+	if (depth !== undefined && (!Number.isInteger(depth) || depth < 1 || depth > 8)) throw new CliError('--depth must be an integer from 1 to 8')
 	let result: Pick<ConnectorResult, 'code' | 'findings' | 'warnings'> & { source?: string }
 	if (isDir(input)) {
-		const r = await scanDir(input.startsWith('~/') ? homedir() + input.slice(1) : input, { only, title: flags.title })
+		const r = await scanDir(input.startsWith('~/') ? homedir() + input.slice(1) : input, { only, title: flags.title, depth })
 		result = { ...r, source: `${r.root} (${r.fileCount} files)` }
 	} else {
 		const hit = resolveSource(input)
@@ -71,7 +75,7 @@ export async function scanCommand(io: IO, input: string | undefined, flags: Scan
 		const env = { ...io.env }
 		if (hit.ref.kind === 'github' && !env.GITHUB_TOKEN && !env.GH_TOKEN) env.GITHUB_TOKEN = await ghToken()
 		try {
-			const r = await hit.connector.scan({ ...hit.ref, options: { ...hit.ref.options, only, title: flags.title } }, { fetch: io.fetch, env, log: flags.quiet ? undefined : (m) => io.stderr(`${m}\n`) })
+			const r = await hit.connector.scan({ ...hit.ref, options: { ...hit.ref.options, only, title: flags.title, ...(depth ? { depth } : {}) } }, { fetch: io.fetch, env, log: flags.quiet ? undefined : (m) => io.stderr(`${m}\n`) })
 			result = { ...r, source: `${r.source.kind}:${r.source.id}${r.source.ref ? `@${r.source.ref}` : ''}` }
 		} catch (err) {
 			if (err instanceof ConnectorError) throw new CliError(err.message)

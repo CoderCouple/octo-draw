@@ -60,7 +60,7 @@ export async function checkLocalPath(path: string, env: Record<string, string | 
 
 let ghTokenCache: Promise<string | undefined> | null = null
 /** `gh auth token` (cached), if the GitHub CLI is installed and logged in. */
-function ghToken(): Promise<string | undefined> {
+export function ghToken(): Promise<string | undefined> {
 	ghTokenCache ??= new Promise((res) => {
 		try {
 			execFile('gh', ['auth', 'token'], { timeout: 4000 }, (err, stdout) => res(err ? undefined : stdout.trim() || undefined))
@@ -83,6 +83,8 @@ export interface ScanRequest {
 	source?: string
 	only?: string[]
 	title?: string
+	/** Levels of drill-down pages to pre-generate (1-5, default 1). */
+	depth?: number
 	/** Connector options (cloud: regions, profile, scope, subscriptions, export, ...). Filtered by SCAN_OPTION_KEYS. */
 	options?: Record<string, unknown>
 }
@@ -102,7 +104,8 @@ export async function runScan(req: ScanRequest, deps: ScanDeps = {}): Promise<Co
 	const env = deps.env ?? process.env
 	const input = req.path ?? req.source
 	if (!input || typeof input !== 'string') throw new ScanError(400, 'Missing "path" or "source"')
-	const options = { ...clientOptions(req.options), ...(req.only ? { only: req.only } : {}), ...(req.title ? { title: req.title } : {}), allowFiles: false }
+	const depth = req.depth === undefined ? undefined : Math.max(1, Math.min(5, Math.floor(Number(req.depth) || 1)))
+	const options = { ...clientOptions(req.options), ...(req.only ? { only: req.only } : {}), ...(req.title ? { title: req.title } : {}), ...(depth ? { depth } : {}), allowFiles: false }
 	let ref: SourceRef | null = req.path !== undefined ? { kind: 'local', id: req.path } : localConnector.parse(input)
 	let connector = ref ? localConnector : null
 	if (!ref) {

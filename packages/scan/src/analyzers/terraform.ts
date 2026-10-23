@@ -211,6 +211,7 @@ interface Block {
 	dir: string
 	attrs: Record<string, string>
 	body: string
+	file: string
 }
 
 const GENERIC_NAMES = new Set(['this', 'main', 'default', 'primary', 'example', 'self', 'current'])
@@ -227,8 +228,8 @@ export function analyzeTerraform(files: ScanFiles): AnalyzerResult {
 	for (const path of tf) {
 		const dir = dirname(path)
 		for (const b of scanBlocks(files.get(path) ?? '')) {
-			if (b.type === 'resource' && b.labels.length >= 2) blocks.push({ addr: `${b.labels[0]}.${b.labels[1]}`, kind: 'resource', type: b.labels[0], name: b.labels[1], dir, attrs: attributes(b.body), body: b.body })
-			else if (b.type === 'module' && b.labels.length >= 1) blocks.push({ addr: `module.${b.labels[0]}`, kind: 'module', type: 'module', name: b.labels[0], dir, attrs: attributes(b.body), body: b.body })
+			if (b.type === 'resource' && b.labels.length >= 2) blocks.push({ addr: `${b.labels[0]}.${b.labels[1]}`, kind: 'resource', type: b.labels[0], name: b.labels[1], dir, attrs: attributes(b.body), body: b.body, file: path })
+			else if (b.type === 'module' && b.labels.length >= 1) blocks.push({ addr: `module.${b.labels[0]}`, kind: 'module', type: 'module', name: b.labels[0], dir, attrs: attributes(b.body), body: b.body, file: path })
 		}
 	}
 	if (!blocks.length) return r
@@ -309,13 +310,13 @@ export function analyzeTerraform(files: ScanFiles): AnalyzerResult {
 		if (b.kind === 'module') {
 			const src = stringValue(b.attrs.source)
 			const local = !!src && /^\.\.?\//.test(src)
-			nodes.push({ key: k, label: `module ${b.name}`, icon: local ? 'terraform' : iconForModuleSource(src), role: local ? 'group' : 'infra', parent, facts: src ? [`source ${src}`] : [] })
+			nodes.push({ key: k, label: `module ${b.name}`, icon: local ? 'terraform' : iconForModuleSource(src), role: local ? 'group' : 'infra', parent, facts: src ? [`source ${src}`] : [], src: `${b.file}#${b.addr}` })
 			continue
 		}
 		const icon = iconForTerraformType(b.type)
 		const label = GENERIC_NAMES.has(b.name) || /^this_/.test(b.name) ? `${humanType(b.type)} ${b.name}` : (nameCount.get(b.name) ?? 0) > 1 ? `${b.name} ${humanType(b.type)}` : b.name
 		const store = /(_db_|_rds_|dynamodb|_s3_bucket$|storage_bucket|_sql_|cosmosdb|_redis|elasticache|bigquery_dataset|bigtable|spanner|firestore|_storage_account|_efs_)/.test(b.type)
-		nodes.push({ key: k, label, icon, shape: store ? 'cylinder' : undefined, role: isContainerType(b.type) && usedAsParent.has(b) ? 'group' : store ? 'store' : 'infra', parent, facts: [b.type] })
+		nodes.push({ key: k, label, icon, shape: store ? 'cylinder' : undefined, role: isContainerType(b.type) && usedAsParent.has(b) ? 'group' : store ? 'store' : 'infra', parent, facts: [b.type], src: `${b.file}#${b.addr}` })
 	}
 	// mark containers
 	const containers = new Set<string>()

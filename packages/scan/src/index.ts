@@ -5,7 +5,7 @@
  */
 
 export * from './types'
-export { scanSource, emitGraph, safePageName, type ScanResult } from './scan'
+export { scanSource, emitGraph, deepenScan, safePageName, type ScanResult } from './scan'
 export { graphToIR, emitOcto, type EmittedPage } from './emit'
 export { analyzeCode, findWorkspaces, externalFor, EXTERNALS, type Workspace, type CodeMeta } from './analyzers/code'
 export { analyzeCompose } from './analyzers/compose'
@@ -16,3 +16,5 @@ export { scanBlocks, attributes as hclAttributes } from './analyzers/hcl'
 export { techFor, techForImage } from './tech'
 export * from './connectors'
 export { SKIP_DIRS, isScannable, isScannablePath, skipDir, filePriority } from './filter'
+export * from './expand'
+export * from './symbols'

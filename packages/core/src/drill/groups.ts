@@ -33,7 +33,7 @@ function cloneIR(ir: DiagramIR, nodes: IRNode[], edges: IREdge[]): DiagramIR {
 }
 
 /** Parent links with dangling parents and cycles removed. */
-function parentMap(ir: DiagramIR): Map<string, string> {
+export function parentMap(ir: DiagramIR): Map<string, string> {
 	const byKey = new Map(ir.nodes.map((n) => [n.key, n]))
 	const out = new Map<string, string>()
 	for (const n of ir.nodes) {
@@ -125,13 +125,16 @@ function rewire(edges: IREdge[], map: (key: string) => string | undefined): IREd
 
 /**
  * Collapses containers into leaf nodes (`isContainer: false`,
- * `ext.collapsed = '<descendant count>'`). Their descendants disappear and
+ * `ext.collapsed = '<descendant count>'`, `ext.children = '<direct children count>'`,
+ * both counted on the input IR). Their descendants disappear and
  * edges are rewired to the nearest visible ancestor.
  */
 export function collapseGroups(ir: DiagramIR, collapsed: Iterable<string>): DiagramIR {
 	const want = new Set(collapsed)
 	const parents = parentMap(ir)
 	const counts = descendantCounts(parents)
+	const direct = new Map<string, number>()
+	for (const p of parents.values()) direct.set(p, (direct.get(p) ?? 0) + 1)
 	const isGroup = (key: string) => counts.has(key) || ir.nodes.some((n) => n.key === key && n.isContainer)
 	const keys = new Set([...want].filter(isGroup))
 	if (keys.size === 0) return cloneIR(ir, ir.nodes.map(cloneNode), ir.edges.map(cloneEdge))
@@ -147,7 +150,7 @@ export function collapseGroups(ir: DiagramIR, collapsed: Iterable<string>): Diag
 		const c = cloneNode(n)
 		if (keys.has(n.key)) {
 			c.isContainer = false
-			c.ext = { ...c.ext, collapsed: String(counts.get(n.key) ?? 0) }
+			c.ext = { ...c.ext, collapsed: String(counts.get(n.key) ?? 0), children: String(direct.get(n.key) ?? 0) }
 		}
 		nodes.push(c)
 	}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseOctoPages } from '@octo-draw/core'
 import { ConnectorError, type ConnectorContext } from '../types'
-import { createAwsConnector, createAzureConnector, createGcpConnector, parseAwsInput, parseAzureInput, parseGcpInput } from './connectors'
+import { cloudSourceInput, createAwsConnector, createAzureConnector, createGcpConnector, loadCloudGraph, parseAwsInput, parseAzureInput, parseGcpInput } from './connectors'
 import { fixturePath, fixtureText, PLANTED_SECRETS } from './fixtures'
 import { mockAwsApi, mockAzureHttp, mockGcpHttp } from './mocks'
 import { redactTags } from './model'
@@ -186,5 +186,82 @@ describe('redaction', () => {
 		// env vars appear only as reference edges named by the variable
 		expect(results[0].code).toContain('env TABLE_NAME')
 		expect(results[0].code).not.toMatch(/API_TOKEN|DB_PASSWORD|SESSION_SECRET/)
+	})
+})
+
+describe('src refs, source directive and depth', () => {
+	const aws = createAwsConnector({ ...noLive, readFile })
+
+	it('every single-resource node carries src and the root page re-creates the inventory', async () => {
+		const r = await aws.scan(parseAwsInput('aws:describe-bundle.json')!, ctx)
+		const { pages } = parseOctoPages(r.code)
+		expect(pages[0].ir.source).toBe('aws:describe-bundle.json')
+		expect(r.code).toMatch(/^title AWS account 111122223333\nsource aws:describe-bundle\.json$/m)
+		const lambda = pages.flatMap((p) => p.ir.nodes).find((n) => n.key === 'order-processor')!
+		expect(lambda.ext?.src).toBe('aws:arn:aws:lambda:us-east-1:111122223333:function:order-processor')
+		const vpc = pages[0].ir.nodes.find((n) => n.isContainer && n.ext?.src === 'aws:vpc-0a1b2c3d4e5f60001')
+		expect(vpc).toBeDefined()
+		// folded / count nodes have no src
+		for (const n of pages.flatMap((p) => p.ir.nodes)) if (n.ext?.drill) expect(n.ext.src).toBeUndefined()
+	})
+
+	it('source directives for live and detected inputs; none for inline exports', async () => {
+		expect(cloudSourceInput('aws', parseAwsInput('aws:prod@us-east-1,eu-west-1')!)).toBe('aws:prod@us-east-1,eu-west-1')
+		expect(cloudSourceInput('aws', parseAwsInput('aws:')!)).toBe('aws:')
+		expect(cloudSourceInput('aws', parseAwsInput('aws:us-east-1')!)).toBe('aws:us-east-1')
+		expect(cloudSourceInput('aws', parseAwsInput('aws:staging')!)).toBe('aws:staging')
+		expect(cloudSourceInput('azure', parseAwsInput('exports/azure-graph.json')!)).toBe('exports/azure-graph.json')
+		expect(cloudSourceInput('gcp', parseGcpInput('gcp:acme-shop-prod')!)).toBe('gcp:acme-shop-prod')
+		expect(cloudSourceInput('gcp', parseGcpInput('gcp:folders/123')!)).toBe('gcp:folders/123')
+		expect(cloudSourceInput('azure', parseAzureInput('azure:')!)).toBe('azure:')
+		expect(cloudSourceInput('azure', { kind: 'azure', id: 'x', options: { export: '{}' } })).toBeUndefined()
+		const live = await createAwsConnector({ aws: async () => mockAwsApi() }).scan(parseAwsInput('aws:us-east-1')!, ctx)
+		expect(live.code).toMatch(/^source aws:us-east-1$/m)
+		const inline = await createAzureConnector(noLive).scan({ kind: 'azure', id: 'upload', options: { export: fixtureText('azure/resource-graph.json') } }, ctx)
+		expect(inline.code).not.toMatch(/^source /m)
+		expect(inline.code).toMatch(/src: "?azure:\/subscriptions\//)
+	})
+
+	it('loadCloudGraph reads the same inventory the scan uses', async () => {
+		const g = await loadCloudGraph('aws', parseAwsInput('aws:describe-bundle.json')!, ctx, { ...noLive, readFile })
+		expect(g.provider).toBe('aws')
+		expect(g.label).toBe('describe-bundle.json')
+		expect(g.graph.resources.some((r) => r.id === 'vpc-0a1b2c3d4e5f60001')).toBe(true)
+		await expect(loadCloudGraph('aws', { kind: 'aws', id: 'x', options: { file: '/etc/x.json', allowFiles: false } }, ctx, { readFile })).rejects.toMatchObject({ status: 403 })
+	})
+
+	it('depth > 1 pre-generates deeper resource pages with drills; depth 1 is unchanged', async () => {
+		const one = await aws.scan(parseAwsInput('aws:describe-bundle.json')!, ctx)
+		const base = await aws.scan({ ...parseAwsInput('aws:describe-bundle.json')!, options: { file: 'describe-bundle.json', depth: 1 } }, ctx)
+		expect(base.code).toBe(one.code)
+		const two = await aws.scan({ ...parseAwsInput('aws:describe-bundle.json')!, options: { file: 'describe-bundle.json', depth: 2 } }, ctx)
+		const three = await aws.scan({ ...parseAwsInput('aws:describe-bundle.json')!, options: { file: 'describe-bundle.json', depth: 3 } }, ctx)
+		const p1 = parseOctoPages(one.code).pages.length
+		const p2 = parseOctoPages(two.code)
+		const p3 = parseOctoPages(three.code)
+		expect(p2.diagnostics.filter((d) => d.severity === 'error')).toEqual([])
+		expect(p3.diagnostics.filter((d) => d.severity === 'error')).toEqual([])
+		expect(p2.pages.length).toBeGreaterThan(p1)
+		// root resources (subnets included) got their pages at depth 2: depth 3 links to them instead of duplicating
+		expect(p3.pages.length).toBeGreaterThanOrEqual(p2.pages.length)
+		// the VPC drills into its page, whose subnets drill one level deeper at depth 3
+		const vpcNode = p3.pages[0].ir.nodes.find((n) => n.ext?.src === 'aws:vpc-0a1b2c3d4e5f60001')!
+		expect(vpcNode.ext?.drill).toBeDefined()
+		const vpcPage = p3.pages.find((p) => p.name === vpcNode.ext!.drill)!
+		expect(vpcPage).toBeDefined()
+		const sub = vpcPage.ir.nodes.find((n) => n.ext?.src === 'aws:subnet-0bb0000000000b002')!
+		expect(p3.pages.some((p) => p.name === sub.ext?.drill)).toBe(true)
+		// a resource expanded once is linked, not duplicated
+		const names = p3.pages.map((p) => p.name.toLowerCase())
+		expect(new Set(names).size).toBe(names.length)
+		const text = JSON.stringify(three)
+		for (const s of PLANTED_SECRETS) expect(text, s).not.toContain(s)
+		expect(three.code).not.toMatch(/API_TOKEN|DB_PASSWORD|SESSION_SECRET/)
+	})
+
+	it('respects the page cap with a warning', async () => {
+		const r = await aws.scan({ ...parseAwsInput('aws:describe-bundle.json')!, options: { file: 'describe-bundle.json', depth: 3, maxDiagramPages: 8 } }, ctx)
+		expect(parseOctoPages(r.code).pages.length).toBeLessThanOrEqual(8)
+		expect(r.warnings.some((w) => /page cap reached \(8 pages\)/.test(w))).toBe(true)
 	})
 })

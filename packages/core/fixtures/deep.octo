@@ -1,0 +1,82 @@
+title Acme Commerce platform
+direction right
+
+// Root: the whole platform. Every service drills into its own page tree.
+Shoppers [icon: users, shape: oval]
+CDN [icon: globe]
+Platform [icon: cloud, drill: Platform]
+Analytics [icon: database, shape: cylinder]
+Shoppers > CDN > Platform: HTTPS
+Platform > Analytics: events
+
+page Platform
+direction right
+Gateway [icon: server, src: "local:services/gateway"]
+Checkout [icon: credit-card, drill: Platform / Checkout]
+Catalog [icon: box, drill: Platform / Catalog]
+Accounts [icon: user]
+Gateway > Checkout, Catalog, Accounts
+
+page Platform / Catalog
+Search index [icon: database, shape: cylinder]
+Catalog API [icon: server]
+Catalog API > Search index
+// a link back up the tree (cycle)
+Platform overview [drill: Platform]
+Catalog API > Platform overview
+
+page Platform / Checkout
+direction right
+Cart [icon: shopping-cart]
+Payments [icon: credit-card, drill: Platform / Checkout / Payments]
+Orders [icon: database, shape: cylinder]
+Cart > Payments > Orders
+
+page Platform / Checkout / Payments
+direction right
+Payment API [icon: server, src: "local:services/payments/src/api"]
+Card processing [drill: Platform / Checkout / Payments / Card processing]
+Wallets
+Payment API > Card processing, Wallets
+
+page Platform / Checkout / Payments / Card processing
+direction right
+Tokenizer
+Authorization [drill: Platform / Checkout / Payments / Card processing / Authorization]
+Settlement
+Tokenizer > Authorization > Settlement
+
+page Platform / Checkout / Payments / Card processing / Authorization
+direction right
+Risk check
+Issuer gateway [drill: Platform / Checkout / Payments / Card processing / Authorization / Issuer gateway]
+3-D Secure
+Risk check > 3-D Secure > Issuer gateway
+
+page Platform / Checkout / Payments / Card processing / Authorization / Issuer gateway
+direction right
+// groups nested five levels deep on one page
+Region eu-west-1 [color: blue] {
+	VPC payments [color: green] {
+		Private subnet [color: teal] {
+			Issuer cluster [icon: kubernetes] {
+				Issuer pod [icon: box] {
+					Connector [icon: plug, src: "local:services/payments/src/issuer/connector.ts#Connector"]
+					Retry queue [icon: layers]
+				}
+				Sidecar
+			}
+			HSM [icon: lock]
+		}
+	}
+}
+Visa network [icon: globe]
+Mastercard network [icon: globe]
+Connector > HSM: sign
+Connector > Visa network, Mastercard network
+Retry queue > Connector: retry
+Sidecar -- Connector
+
+page Legacy batch jobs
+// nothing drills here: an orphan page
+Nightly export > Analytics warehouse

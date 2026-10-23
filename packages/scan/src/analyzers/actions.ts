@@ -81,14 +81,14 @@ export function analyzeActions(files: ScanFiles, pageName = 'CI/CD'): ActionsRes
 		const name = asStr(doc.name) ?? basename(path).replace(/\.ya?ml$/, '')
 		const on = triggers(doc.on ?? doc.true)
 		const g = keys.take(`${name} workflow`)
-		nodes.push({ key: g, label: on.length ? `${name} (${on.slice(0, 3).join(', ')})` : name, role: 'group', isContainer: true, icon: 'github-actions' })
+		nodes.push({ key: g, label: on.length ? `${name} (${on.slice(0, 3).join(', ')})` : name, role: 'group', isContainer: true, icon: 'github-actions', src: path })
 		const jobKey = new Map<string, string>()
 		for (const [id, raw] of Object.entries(jobs)) {
 			const k = keys.take(`${name} ${id}`)
 			jobKey.set(id, k)
 			const job = asObj(raw)
 			const uses = asStr(job.uses) // reusable workflow
-			nodes.push({ key: k, label: asStr(job.name) ?? id, parent: g, role: 'service', icon: uses ? 'workflow' : 'ci' })
+			nodes.push({ key: k, label: asStr(job.name) ?? id, parent: g, role: 'service', icon: uses ? 'workflow' : 'ci', src: `${path}#jobs.${id}` })
 			jobsTotal++
 		}
 		for (const [id, raw] of Object.entries(jobs)) {

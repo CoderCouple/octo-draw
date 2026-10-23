@@ -4,7 +4,8 @@ import { TopBar } from './components/TopBar'
 import { Editor } from './editor/Editor'
 import { Canvas } from './canvas/Canvas'
 import { AgentPanel } from './components/AgentPanel'
-import { Toolbar, ZoomControls, TOOL_KEYS } from './components/CanvasChrome'
+import { LevelsControl, Toolbar, ZoomControls, TOOL_KEYS } from './components/CanvasChrome'
+import { ConnectSourceDialog } from './components/ConnectSourceDialog'
 import { PasteDialog } from './components/PasteDialog'
 import { Icon } from './components/Icon'
 import { dismissToast, redo, requestFit, undo, useStore } from './store'
@@ -12,8 +13,8 @@ import { deleteSelection } from './lib/actions'
 import { handlePaste } from './lib/importing'
 import { zoomAt, useCamera } from './canvas/camera'
 import { usePeers, type ConnState } from './lib/sync'
-import { PageTabs } from './components/PageTabs'
-import { goBack } from './lib/view'
+import { PageOutline } from './components/PageOutline'
+import { goBack, goDeeper, siblingPage } from './lib/view'
 
 const SPLIT_KEY = 'octo-draw:split'
 
@@ -136,6 +137,18 @@ function useGlobalKeys() {
 				goBack()
 				return
 			}
+			// Cmd+[ / Cmd+]: shallower / deeper along the last path
+			if (mod && !e.shiftKey && (e.key === '[' || e.key === ']')) {
+				e.preventDefault()
+				if (e.key === '[') goBack()
+				else goDeeper()
+				return
+			}
+			if (!mod && (e.key === 'PageUp' || e.key === 'PageDown')) {
+				e.preventDefault()
+				siblingPage(e.key === 'PageUp' ? -1 : 1)
+				return
+			}
 			if (mod || e.altKey) return
 			if (e.key === '!' || (e.shiftKey && e.code === 'Digit1')) {
 				requestFit(true)
@@ -167,6 +180,7 @@ function useGlobalKeys() {
 export function App() {
 	const [split, setSplit] = useState(readSplit)
 	const [pasteOpen, setPasteOpen] = useState(false)
+	const [connectOpen, setConnectOpen] = useState(false)
 	const mainRef = useRef<HTMLDivElement>(null)
 	const [dragging, setDragging] = useState(false)
 	useGlobalKeys()
@@ -194,14 +208,14 @@ export function App() {
 
 	return (
 		<div className={`app${dragging ? ' resizing' : ''}`}>
-			<TopBar onPasteDialog={() => setPasteOpen(true)} />
+			<TopBar onPasteDialog={() => setPasteOpen(true)} onConnectSource={() => setConnectOpen(true)} />
 			<main className="main" ref={mainRef}>
 				<section className="code-pane" style={{ width: `${split}%` }}>
 					<div className="pane-head">
 						<span>Diagram code</span>
 						<span className="muted small">octo DSL</span>
 					</div>
-					<PageTabs />
+					<PageOutline />
 					<Editor />
 					<StatusBar />
 				</section>
@@ -210,11 +224,13 @@ export function App() {
 					<Canvas />
 					<Toolbar />
 					<ZoomControls />
+					<LevelsControl />
 				</section>
 				<AgentPanel />
 			</main>
 			<ToastView />
 			{pasteOpen && <PasteDialog onClose={() => setPasteOpen(false)} />}
+			{connectOpen && <ConnectSourceDialog onClose={() => setConnectOpen(false)} />}
 		</div>
 	)
 }

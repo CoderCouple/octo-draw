@@ -10,7 +10,8 @@
 import { lstat, readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { basename as pathBase, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { registerConnector, type Connector } from './connectors'
-import { isScannable, skipDir } from './filter'
+import { isScannable, isScannablePath, skipDir } from './filter'
+import { registerFileSource } from './expand'
 import { scanSource } from './scan'
 import type { ScanFiles, ScanOptions } from './types'
 
@@ -111,10 +112,10 @@ export async function walkDir(dir: string, opts: WalkOptions = {}): Promise<Walk
 	return { files, root, skipped, warnings }
 }
 
-/** Walks and scans a local directory. */
+/** Walks and scans a local directory. The root page gets `source <real path>` and nodes `src: local:<path>`. */
 export async function scanDir(dir: string, opts: ScanOptions & { walk?: WalkOptions } = {}) {
 	const w = await walkDir(dir, opts.walk)
-	const r = scanSource(w.files, { rootName: pathBase(w.root), ...opts })
+	const r = scanSource(w.files, { rootName: pathBase(w.root), source: w.root, ...opts })
 	return { ...r, warnings: [...w.warnings, ...r.warnings], fileCount: w.files.size, root: w.root, files: w.files }
 }
 
@@ -136,3 +137,77 @@ export const localConnector: Connector = {
 	},
 }
 registerConnector(localConnector)
+
+/**
+ * Lists the scannable files under `root` (names only, same skip rules as
+ * `walkDir`), breadth-first, capped.
+ */
+export async function listFiles(root: string, opts: { maxFiles?: number; maxDepth?: number } = {}): Promise<string[]> {
+	const maxFiles = opts.maxFiles ?? 20000
+	const maxDepth = opts.maxDepth ?? 12
+	const real = await realpath(resolve(root))
+	const out: string[] = []
+	const visited = new Set<string>([real])
+	const queue: { abs: string; depth: number }[] = [{ abs: real, depth: 0 }]
+	const inside = (p: string) => p === real || p.startsWith(real + sep)
+	while (queue.length && out.length < maxFiles) {
+		const { abs, depth } = queue.shift()!
+		let entries
+		try {
+			entries = await readdir(abs, { withFileTypes: true })
+		} catch {
+			continue
+		}
+		entries.sort((a, b) => a.name.localeCompare(b.name))
+		for (const e of entries) {
+			let full = join(abs, e.name)
+			let isDir = e.isDirectory()
+			let isFile = e.isFile()
+			if (e.isSymbolicLink()) {
+				const target = await realpath(full).catch(() => null)
+				if (!target || !inside(target)) continue
+				const st = await lstat(target).catch(() => null)
+				if (!st) continue
+				isDir = st.isDirectory()
+				isFile = st.isFile()
+				full = target
+			}
+			if (isDir) {
+				if (skipDir(e.name) || depth >= maxDepth || visited.has(full)) continue
+				visited.add(full)
+				queue.push({ abs: full, depth: depth + 1 })
+			} else if (isFile && isScannable(e.name) && out.length < maxFiles) out.push(relative(real, join(abs, e.name)).split(sep).join('/'))
+		}
+	}
+	return out
+}
+
+/**
+ * Reads files of a local source for on-demand expansion. Paths are
+ * repo-relative; `..`, absolute paths, skipped / secret files and anything
+ * whose real path leaves the root are refused (null).
+ */
+export function localFileSource(root: string, opts: { maxFileBytes?: number } = {}) {
+	const maxFileBytes = opts.maxFileBytes ?? 512 * 1024
+	let realRoot: Promise<string> | null = null
+	const rootReal = () => (realRoot ??= realpath(resolve(root)))
+	return {
+		list: async () => listFiles(await rootReal()),
+		read: async (path: string): Promise<string | null> => {
+			if (!path || isAbsolute(path) || path.split('/').some((s) => s === '..' || s === '') || !isScannablePath(path)) return null
+			const base = await rootReal()
+			const full = await realpath(join(base, ...path.split('/'))).catch(() => null)
+			if (!full || !full.startsWith(base + sep)) return null
+			const st = await stat(full).catch(() => null)
+			if (!st || !st.isFile() || st.size > maxFileBytes) return null
+			const buf = await readFile(full).catch(() => null)
+			if (!buf || buf.subarray(0, 8000).includes(0)) return null
+			return buf.toString('utf8')
+		},
+	}
+}
+
+registerFileSource('local', (ref, ctx) => {
+	const home = ctx.env.HOME ?? ''
+	return localFileSource(ref.id.startsWith('~') ? join(home, ref.id.slice(1)) : ref.id)
+})

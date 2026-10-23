@@ -7,6 +7,7 @@
 import { ConnectorError, type Connector, type ConnectorContext, type ConnectorResult, type SourceKind, type SourceRef } from './types'
 import { githubConnector } from './github'
 import { cloudConnectors } from './cloud'
+import { huggingfaceConnector } from './huggingface'
 
 export * from './types'
 
@@ -57,3 +58,4 @@ export async function scanAny(input: string | SourceRef, ctx: ConnectorContext):
 
 registerConnector(githubConnector)
 for (const c of cloudConnectors) registerConnector(c)
+registerConnector(huggingfaceConnector)

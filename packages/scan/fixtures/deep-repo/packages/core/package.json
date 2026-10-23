@@ -1,0 +1,4 @@
+{
+	"name": "@shop/core",
+	"main": "src/index.ts"
+}

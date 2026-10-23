@@ -12,15 +12,24 @@
  * Options (`ref.options`, e.g. from `POST /api/scan`): `regions`, `profile`,
  * `roleArn`, `externalId` (AWS); `scope` (GCP); `subscriptions`, `kql` (Azure);
  * `export` (export JSON as text or object, no file needed); `maxNodesPerPage`,
- * `maxPages`, `title`; `allowFiles: false` refuses file paths (servers).
+ * `maxPages`, `title`; `allowFiles: false` refuses file paths (servers);
+ * `depth` (default 1): N > 1 pre-generates N levels of resource pages with
+ * the cloud expander (`expandCloudResource`), capped by `maxDiagramPages`
+ * (default 200 pages in total; `maxPages` is the API paging cap) and `timeBudgetMs` (default 20 s).
+ *
+ * Output: every node standing for one resource carries `src: <provider>:<id>`
+ * and the root page a `source` directive that re-creates the inventory
+ * (`cloudSourceInput`), so nodes can be expanded on demand later.
  *
  * Collectors and SDKs load lazily, only for live scans. Credentials stay in the
  * SDKs: results carry the diagram, counts and warnings, never secrets.
  */
 
 import { ConnectorError, type Connector, type ConnectorContext, type ConnectorResult, type SourceKind, type SourceRef } from '../types'
-import type { CloudProvider } from './model'
-import { cloudExportToOcto, detectCloudExport, parseExportText } from './pipeline'
+import type { CloudGraph, CloudProvider } from './model'
+import { detectCloudExport, normalizeCloud, parseExportText } from './pipeline'
+import { renderCloudGraph, type RenderResult } from './render'
+import { expandCloudResource } from './expand'
 import { importModule } from './lazy'
 import type { AwsApi } from './aws/collect'
 import type { GcpHttp } from './gcp/collect'
@@ -149,7 +158,7 @@ async function loadExport(ref: SourceRef, f: CloudClientFactories): Promise<{ da
 	return { data: parts.length === 1 ? parts[0] : parts, label: files.map((p) => p.split(/[\\/]/).pop()).join(', ') }
 }
 
-function toResult(provider: CloudProvider, ref: SourceRef, out: NonNullable<ReturnType<typeof cloudExportToOcto>>, sourceNote: string, collectorWarnings: string[] = []): ConnectorResult {
+function toResult(provider: CloudProvider, ref: SourceRef, out: { graph: CloudGraph } & RenderResult, sourceNote: string, collectorWarnings: string[] = []): ConnectorResult {
 	const regions = new Set(out.graph.resources.map((r) => r.region).filter(Boolean))
 	const notes = [
 		`${sourceNote}: ${out.stats.resources} resources (${out.stats.drawn} drawn) in ${regions.size} region${regions.size === 1 ? '' : 's'}`,
@@ -174,14 +183,122 @@ function renderOpts(ref: SourceRef) {
 	return { maxNodesPerPage: num(o.maxNodesPerPage), title: str(o.title) }
 }
 
-async function offline(kind: CloudProvider, ref: SourceRef, f: CloudClientFactories): Promise<ConnectorResult | null> {
+/**
+ * The connector input that re-creates this inventory (the document's `source`
+ * directive): `aws:<file>` / the bare path for detected exports, `aws:` /
+ * `aws:<profile>@<regions>`, `gcp:<project>` / `gcp:folders/1`,
+ * `azure:<subs>` / `azure:`. Inline exports have none (undefined).
+ */
+export function cloudSourceInput(kind: CloudProvider, ref: SourceRef): string | undefined {
+	const o = ref.options ?? {}
+	if (o.export !== undefined) return undefined
+	const file = str(o.file)
+	if (file) return o.detect ? file : `${kind}:${file}`
+	if (kind === 'aws') {
+		const profile = str(o.profile)
+		const regions = strs(o.regions) ?? (ref.ref ? strs(ref.ref) : undefined) ?? []
+		if (profile && regions.length) return `aws:${profile}@${regions.join(',')}`
+		if (profile) return `aws:${profile}`
+		return `aws:${regions.join(',')}`
+	}
+	if (kind === 'gcp') {
+		const scope = str(o.scope) ?? ref.id
+		return `gcp:${scope.replace(/^projects\//, '')}`
+	}
+	const subs = strs(o.subscriptions) ?? []
+	return `azure:${subs.join(',')}`
+}
+
+export interface LoadedCloudGraph {
+	graph: CloudGraph
+	/** What was read: export file names, `account 123`, the GCP scope, `2 subscriptions`. */
+	label: string
+	warnings: string[]
+	/** The provider the inventory turned out to be (offline exports are detected). */
+	provider: CloudProvider
+}
+
+/** Offline export (options.export / file) or a live read-only collection, normalized into a CloudGraph. */
+export async function loadCloudGraph(kind: CloudProvider, ref: SourceRef, ctx: ConnectorContext, f: CloudClientFactories = {}): Promise<LoadedCloudGraph> {
 	const loaded = await loadExport(ref, f)
-	if (!loaded) return null
-	const detected = detectCloudExport(loaded.data)
-	if (!detected) throw new ConnectorError(`${loaded.label}: not a recognised AWS, Google Cloud or Azure export (see docs/CONNECTORS.md for the export commands)`)
-	if (detected !== kind && !ref.options?.detect) throw new ConnectorError(`${loaded.label} looks like ${PROVIDER_ARTICLE[detected]} export, not ${PROVIDER_NAME[kind]} (use ${detected}:${String(ref.options?.file ?? 'file.json')})`)
-	const out = cloudExportToOcto(loaded.data, { provider: detected, ...renderOpts(ref) })!
-	return toResult(detected, ref, out, loaded.label)
+	if (loaded) {
+		const detected = detectCloudExport(loaded.data)
+		if (!detected) throw new ConnectorError(`${loaded.label}: not a recognised AWS, Google Cloud or Azure export (see docs/CONNECTORS.md for the export commands)`)
+		if (detected !== kind && !ref.options?.detect) throw new ConnectorError(`${loaded.label} looks like ${PROVIDER_ARTICLE[detected]} export, not ${PROVIDER_NAME[kind]} (use ${detected}:${String(ref.options?.file ?? 'file.json')})`)
+		return { graph: normalizeCloud(detected, loaded.data), label: loaded.label, warnings: [], provider: detected }
+	}
+	const o = ref.options ?? {}
+	if (kind === 'aws') {
+		const { collectAws, defaultAwsApi, envRegion } = await import('./aws/collect')
+		const regions = strs(o.regions) ?? [envRegion(ctx.env) ?? 'us-east-1']
+		const profile = str(o.profile)
+		const roleArn = str(o.roleArn)
+		if (roleArn && !/^arn:aws[a-z-]*:iam::\d{12}:role\/[\w+=,.@/-]{1,512}$/.test(roleArn)) throw new ConnectorError('roleArn must be an IAM role ARN')
+		let api: AwsApi
+		try {
+			api = await (f.aws ?? defaultAwsApi)({ profile, roleArn, externalId: str(o.externalId), signal: ctx.signal })
+		} catch (err) {
+			throw new ConnectorError(`AWS credentials: ${(err as Error).message}`, 401)
+		}
+		let inv
+		try {
+			inv = await collectAws(api, { regions, maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
+		} catch (err) {
+			throw new ConnectorError(`AWS${profile ? ` (profile ${profile})` : ''}: ${(err as Error).message}`, 401)
+		}
+		return { graph: normalizeCloud('aws', inv, { defaultRegion: regions[0] }), label: `account ${inv.account ?? 'unknown'}`, warnings: [], provider: 'aws' }
+	}
+	if (kind === 'gcp') {
+		const scope = str(o.scope) ?? (ref.id.includes('/') ? ref.id : `projects/${ref.id}`)
+		const { collectGcp, defaultGcpHttp, validGcpScope } = await import('./gcp/collect')
+		if (!validGcpScope(scope)) throw new ConnectorError(`invalid Google Cloud scope "${scope}"`)
+		let http: GcpHttp
+		try {
+			http = await (f.gcp ?? ((x) => defaultGcpHttp(x.signal)))({ signal: ctx.signal })
+		} catch (err) {
+			throw new ConnectorError(`Google Cloud credentials: ${(err as Error).message} (run gcloud auth application-default login)`, 401)
+		}
+		const inv = await collectGcp(http, { scope, maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
+		if (!inv.resources.length && !inv.assets.length) throw new ConnectorError(`Google Cloud: no assets returned for ${scope}: ${(inv.warnings ?? [])[0] ?? 'check permissions (roles/cloudasset.viewer)'}`, 403)
+		return { graph: normalizeCloud('gcp', inv, { scope: scope.replace(/^projects\//, '') }), label: scope, warnings: [], provider: 'gcp' }
+	}
+	const subscriptions = strs(o.subscriptions) ?? []
+	const { collectAzure, defaultAzureHttp, validSubscription } = await import('./azure/collect')
+	for (const s of subscriptions) if (!validSubscription(s)) throw new ConnectorError(`invalid Azure subscription id "${s}"`)
+	let http: AzureHttp
+	try {
+		http = await (f.azure ?? ((x) => defaultAzureHttp(x.fetch, x.signal)))({ fetch: ctx.fetch, signal: ctx.signal })
+	} catch (err) {
+		throw new ConnectorError(`Azure credentials: ${(err as Error).message} (run az login)`, 401)
+	}
+	let inv
+	try {
+		inv = await collectAzure(http, { subscriptions, kql: str(o.kql), maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
+	} catch (err) {
+		throw new ConnectorError(`Azure: ${(err as Error).message}`, 502)
+	}
+	return { graph: normalizeCloud('azure', inv), label: `${inv.subscriptions.length} subscription${inv.subscriptions.length === 1 ? '' : 's'}`, warnings: [], provider: 'azure' }
+}
+
+/** Renders a loaded graph (+ deeper pages for `options.depth > 1`) into a connector result. */
+async function renderLoaded(kind: CloudProvider, ref: SourceRef, loaded: LoadedCloudGraph): Promise<ConnectorResult> {
+	const o = ref.options ?? {}
+	const out = renderCloudGraph(loaded.graph, { ...renderOpts(ref), source: cloudSourceInput(loaded.provider, ref) })
+	const warnings = [...loaded.warnings]
+	const depth = num(o.depth) ?? 1
+	if (depth > 1) {
+		// loaded lazily: the deepen helper imports the scanner, which imports the connector registry (a cycle at load time)
+		const { applyDeepen, deepenSync } = await import('../../expand/deepen')
+		const r = deepenSync(out.code, (req) => expandCloudResource(loaded.graph, req.src.path, { maxNodes: 30 }), {
+			depth,
+			maxPages: num(o.maxDiagramPages) ?? 200,
+			deadline: Date.now() + (num(o.timeBudgetMs) ?? 20000),
+		})
+		out.code = applyDeepen(out.code, r)
+		out.pages.push(...r.pages.map((p) => p.name))
+		out.warnings.push(...r.warnings)
+	}
+	return toResult(loaded.provider, ref, { ...out, graph: loaded.graph }, loaded.label, warnings)
 }
 
 export function createAwsConnector(f: CloudClientFactories = {}): Connector {
@@ -189,28 +306,8 @@ export function createAwsConnector(f: CloudClientFactories = {}): Connector {
 		kind: 'aws',
 		parse: parseAwsInput,
 		async scan(ref, ctx) {
-			const off = await offline(ref.kind === 'aws' || ref.options?.detect ? 'aws' : (ref.kind as CloudProvider), ref, f)
-			if (off) return off
-			const o = ref.options ?? {}
-			const { collectAws, defaultAwsApi, envRegion } = await import('./aws/collect')
-			const regions = strs(o.regions) ?? [envRegion(ctx.env) ?? 'us-east-1']
-			const profile = str(o.profile)
-			const roleArn = str(o.roleArn)
-			if (roleArn && !/^arn:aws[a-z-]*:iam::\d{12}:role\/[\w+=,.@/-]{1,512}$/.test(roleArn)) throw new ConnectorError('roleArn must be an IAM role ARN')
-			let api: AwsApi
-			try {
-				api = await (f.aws ?? defaultAwsApi)({ profile, roleArn, externalId: str(o.externalId), signal: ctx.signal })
-			} catch (err) {
-				throw new ConnectorError(`AWS credentials: ${(err as Error).message}`, 401)
-			}
-			let inv
-			try {
-				inv = await collectAws(api, { regions, maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
-			} catch (err) {
-				throw new ConnectorError(`AWS${profile ? ` (profile ${profile})` : ''}: ${(err as Error).message}`, 401)
-			}
-			const out = cloudExportToOcto(inv, { provider: 'aws', defaultRegion: regions[0], ...renderOpts(ref) })!
-			return toResult('aws', ref, out, `account ${inv.account ?? 'unknown'}`, [])
+			const kind: CloudProvider = ref.kind === 'aws' || ref.options?.detect ? 'aws' : (ref.kind as CloudProvider)
+			return renderLoaded(kind, ref, await loadCloudGraph(kind, ref, ctx, f))
 		},
 	}
 }
@@ -220,22 +317,7 @@ export function createGcpConnector(f: CloudClientFactories = {}): Connector {
 		kind: 'gcp',
 		parse: parseGcpInput,
 		async scan(ref, ctx) {
-			const off = await offline('gcp', ref, f)
-			if (off) return off
-			const o = ref.options ?? {}
-			const scope = str(o.scope) ?? (ref.id.includes('/') ? ref.id : `projects/${ref.id}`)
-			const { collectGcp, defaultGcpHttp, validGcpScope } = await import('./gcp/collect')
-			if (!validGcpScope(scope)) throw new ConnectorError(`invalid Google Cloud scope "${scope}"`)
-			let http: GcpHttp
-			try {
-				http = await (f.gcp ?? ((x) => defaultGcpHttp(x.signal)))({ signal: ctx.signal })
-			} catch (err) {
-				throw new ConnectorError(`Google Cloud credentials: ${(err as Error).message} (run gcloud auth application-default login)`, 401)
-			}
-			const inv = await collectGcp(http, { scope, maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
-			if (!inv.resources.length && !inv.assets.length) throw new ConnectorError(`Google Cloud: no assets returned for ${scope}: ${(inv.warnings ?? [])[0] ?? 'check permissions (roles/cloudasset.viewer)'}`, 403)
-			const out = cloudExportToOcto(inv, { provider: 'gcp', scope: scope.replace(/^projects\//, ''), ...renderOpts(ref) })!
-			return toResult('gcp', ref, out, scope)
+			return renderLoaded('gcp', ref, await loadCloudGraph('gcp', ref, ctx, f))
 		},
 	}
 }
@@ -245,26 +327,7 @@ export function createAzureConnector(f: CloudClientFactories = {}): Connector {
 		kind: 'azure',
 		parse: parseAzureInput,
 		async scan(ref, ctx) {
-			const off = await offline('azure', ref, f)
-			if (off) return off
-			const o = ref.options ?? {}
-			const subscriptions = strs(o.subscriptions) ?? []
-			const { collectAzure, defaultAzureHttp, validSubscription } = await import('./azure/collect')
-			for (const s of subscriptions) if (!validSubscription(s)) throw new ConnectorError(`invalid Azure subscription id "${s}"`)
-			let http: AzureHttp
-			try {
-				http = await (f.azure ?? ((x) => defaultAzureHttp(x.fetch, x.signal)))({ fetch: ctx.fetch, signal: ctx.signal })
-			} catch (err) {
-				throw new ConnectorError(`Azure credentials: ${(err as Error).message} (run az login)`, 401)
-			}
-			let inv
-			try {
-				inv = await collectAzure(http, { subscriptions, kql: str(o.kql), maxPages: num(o.maxPages), log: ctx.log, signal: ctx.signal })
-			} catch (err) {
-				throw new ConnectorError(`Azure: ${(err as Error).message}`, 502)
-			}
-			const out = cloudExportToOcto(inv, { provider: 'azure', ...renderOpts(ref) })!
-			return toResult('azure', ref, out, `${inv.subscriptions.length} subscription${inv.subscriptions.length === 1 ? '' : 's'}`, [])
+			return renderLoaded('azure', ref, await loadCloudGraph('azure', ref, ctx, f))
 		},
 	}
 }

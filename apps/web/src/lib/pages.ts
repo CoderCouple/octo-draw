@@ -1,4 +1,5 @@
 import type { Point } from '@octo-draw/core'
+import { shortPageLabel } from './outline'
 
 /**
  * Pure helpers for drill-down view state: per-page pin keys and the
@@ -111,5 +112,35 @@ export function pruneStack(stack: Crumb[], pages: string[], groupsOf: (page: str
 
 /** Display labels: the root shows the title, pages their name, a focus the group label. */
 export function crumbLabels(stack: Crumb[], title: string, labelOf: (page: string, key: string) => string): string[] {
-	return stack.map((c) => (c.focus ? labelOf(c.page, c.focus) : c.page || title || 'Root'))
+	return stack.map((c, i) => {
+		if (c.focus) return labelOf(c.page, c.focus)
+		if (!c.page) return title || 'Root'
+		// path-style names (`a / b / c`) read as their last part under their parent page
+		const parent = stack.slice(0, i).reverse().find((x) => x.page && x.page !== c.page)?.page
+		return shortPageLabel(c.page, parent)
+	})
+}
+
+/**
+ * Deep link (outline, editor caret, agent hook): keeps the current path when
+ * the page is already on it, otherwise rebuilds the trail from the page tree
+ * (`pagePath`, root first), reusing the `via` nodes it reports.
+ */
+export function jumpToPath(stack: Crumb[], page: string, path: { page: string; via?: string }[]): Crumb[] {
+	const at = stack.findIndex((c) => c.page === page && !c.focus)
+	if (at >= 0) return stack.slice(0, at + 1)
+	const out: Crumb[] = path.map((p) => (p.via !== undefined ? { page: p.page, via: p.via } : { page: p.page }))
+	if (!out.length || out[0].page !== '') out.unshift(ROOT_CRUMB)
+	if (out[out.length - 1].page !== page) out.push({ page })
+	return out
+}
+
+/**
+ * Which crumbs a trail of `count` levels shows: all of them up to `max`, else
+ * the root, a "…" menu for the middle and the last two levels.
+ */
+export function truncateCrumbs(count: number, max = 4): { shown: (number | 'more')[]; hidden: number[] } {
+	if (count <= max) return { shown: Array.from({ length: count }, (_, i) => i), hidden: [] }
+	const hidden = Array.from({ length: count - 3 }, (_, i) => i + 1)
+	return { shown: [0, 'more', count - 2, count - 1], hidden }
 }

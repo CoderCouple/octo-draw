@@ -1,0 +1,74 @@
+{
+	"id": "black-forest-labs/FLUX.1-dev",
+	"sdk": "gradio",
+	"likes": 9573,
+	"tags": [
+		"gradio",
+		"region:us"
+	],
+	"private": false,
+	"author": "black-forest-labs",
+	"sha": "1570eee0d269c0e2995c4d23bac5d50b51ac5fdf",
+	"lastModified": "2025-11-25T22:59:20.000Z",
+	"cardData": {
+		"title": "FLUX.1 [dev]",
+		"emoji": "🖥️",
+		"colorFrom": "yellow",
+		"colorTo": "pink",
+		"sdk": "gradio",
+		"sdk_version": "5.25.2",
+		"app_file": "app.py",
+		"pinned": false,
+		"license": "mit"
+	},
+	"subdomain": "black-forest-labs-flux-1-dev",
+	"gated": false,
+	"disabled": false,
+	"host": "https://black-forest-labs-flux-1-dev.hf.space",
+	"models": [
+		"black-forest-labs/FLUX.1-dev",
+		"black-forest-labs/FLUX.2-dev",
+		"madebyollin/taef1"
+	],
+	"region": "us",
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "README.md"
+		},
+		{
+			"rfilename": "app.py"
+		},
+		{
+			"rfilename": "live_preview_helpers.py"
+		},
+		{
+			"rfilename": "requirements.txt"
+		}
+	],
+	"createdAt": "2024-08-01T14:14:02.000Z",
+	"usedStorage": 169749907,
+	"runtime": {
+		"stage": "RUNNING",
+		"hardware": {
+			"current": "zero-a10g",
+			"requested": "zero-a10g"
+		},
+		"gcTimeout": 172800,
+		"replicas": {
+			"current": 1,
+			"requested": "auto"
+		},
+		"devMode": false,
+		"domains": [
+			{
+				"domain": "black-forest-labs-flux-1-dev.hf.space",
+				"stage": "READY"
+			}
+		],
+		"sha": "1570eee0d269c0e2995c4d23bac5d50b51ac5fdf",
+		"pySpacesVersion": "0.50.0"
+	}
+}

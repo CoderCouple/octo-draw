@@ -1,10 +1,13 @@
-import { StickyNote, Circle, Eraser, Hand, Maximize, Minus, MousePointer2, MoveUpRight, Pencil, Plus, Redo2, Square, Type, Undo2, WandSparkles, Trash } from 'lucide'
+import { useEffect, useRef, useState } from 'react'
+import { StickyNote, Circle, Eraser, Hand, Maximize, Minus, MousePointer2, MoveUpRight, Pencil, Plus, Redo2, Square, Type, Undo2, WandSparkles, Trash, Boxes, ListTree, Group, Ungroup, SquareArrowOutDownRight, ChevronDown, LoaderCircle, Layers, X } from 'lucide'
 import { Icon } from './Icon'
 import { IconPickerButton } from './IconPicker'
 import { pushHistory, redo, requestFit, selectedIds, setCode, undo, useStore, type Tool } from '../store'
 import { useCamera, zoomAt } from '../canvas/camera'
 import { setEdgeProp, setNodeProp } from '../lib/drillCore'
-import { currentPins } from '../lib/view'
+import { currentLevels, currentPins, maxGroupDepth, setLevels } from '../lib/view'
+import { addChildTo, addSubDiagramFor, groupSelection, ungroupSelection } from '../lib/compose'
+import { cancelExpand, expandDepth, expandNode, setExpandDepth, type ExpandMode } from '../lib/expand'
 import { INK_COLORS, NODE_COLORS, PALETTE, inkColor } from '../lib/colors'
 import { useTheme } from '../lib/theme'
 import { deleteSelection, tidy } from '../lib/actions'
@@ -12,6 +15,7 @@ import { deleteSelection, tidy } from '../lib/actions'
 const TOOLS: { id: Tool; icon: unknown; label: string; key: string }[] = [
 	{ id: 'select', icon: MousePointer2, label: 'Select', key: 'V' },
 	{ id: 'hand', icon: Hand, label: 'Hand', key: 'H' },
+	{ id: 'component', icon: Boxes, label: 'Component: drag to add a node (inside a container nests it; around nodes groups them)', key: 'C' },
 	{ id: 'pen', icon: Pencil, label: 'Pen', key: 'P' },
 	{ id: 'rect', icon: Square, label: 'Rectangle', key: 'R' },
 	{ id: 'ellipse', icon: Circle, label: 'Ellipse', key: 'O' },
@@ -31,6 +35,7 @@ export function Toolbar() {
 	const shapeSel = useStore((s) => selectedIds(s.selection).length > 0)
 	const edgeKey = useStore((s) => (s.selection?.kind === 'edge' ? s.selection.key : null))
 	const nodeKey = useStore((s) => (s.selection?.kind === 'node' && !s.selection.key.startsWith('ghost:') ? s.selection.key : null))
+	const multiKeys = useStore((s) => (s.selection?.kind === 'multi' ? s.selection.keys.length : 0))
 	const theme = useTheme()
 	const drawing = tool !== 'select' && tool !== 'hand' && tool !== 'eraser'
 	return (
@@ -66,6 +71,17 @@ export function Toolbar() {
 					</div>
 					<div className="tool-sep" />
 					<IconPickerButton nodeKey={nodeKey} />
+					<div className="tool-sep" />
+					<NodeDepthActions nodeKey={nodeKey} />
+				</>
+			)}
+			{multiKeys > 1 && (
+				<>
+					<div className="tool-sep" />
+					<button className="tool wide" title="Group selection (⌘G)" onClick={() => groupSelection()}>
+						<Icon icon={Group} size={16} />
+						<span>Group</span>
+					</button>
 				</>
 			)}
 			{edgeKey && (
@@ -123,6 +139,129 @@ export function Toolbar() {
 					</button>
 				</>
 			)}
+		</div>
+	)
+}
+
+/** Selected node: nest inside, sub-diagram (add / open), expand (auto / source / AI, depth), ungroup. */
+function NodeDepthActions({ nodeKey }: { nodeKey: string }) {
+	const target = useStore((s) => s.drill[nodeKey])
+	const flow = useStore((s) => s.ir?.kind === 'flowchart')
+	const isGroup = useStore((s) => !!s.layout?.nodes[nodeKey]?.isContainer)
+	const expandable = useStore((s) => s.expandable[nodeKey])
+	const expanding = useStore((s) => s.expanding?.key === nodeKey)
+	return (
+		<div className="tool-group">
+			{flow && (
+				<button className="tool" title="Add a component inside (Tab)" aria-label="Add a component inside" onClick={() => addChildTo(nodeKey)}>
+					<Icon icon={Plus} size={16} />
+				</button>
+			)}
+			<button className="tool wide" title={target ? `Open sub-diagram "${target}" (⌘↵)` : 'Add an empty sub-diagram page for this node (⌘↵)'} onClick={() => addSubDiagramFor(nodeKey)}>
+				<Icon icon={ListTree} size={16} />
+				<span>{target ? 'Open' : 'Sub-diagram'}</span>
+			</button>
+			{!target && expandable && <ExpandButton nodeKey={nodeKey} hasSrc={expandable === 'src'} busy={expanding} />}
+			{isGroup && flow && (
+				<button className="tool" title="Ungroup (⇧⌘G)" aria-label="Ungroup" onClick={() => ungroupSelection()}>
+					<Icon icon={Ungroup} size={16} />
+				</button>
+			)}
+		</div>
+	)
+}
+
+function ExpandButton({ nodeKey, hasSrc, busy }: { nodeKey: string; hasSrc: boolean; busy: boolean }) {
+	const [open, setOpen] = useState(false)
+	const [depth, setDepth] = useState(expandDepth)
+	const ref = useRef<HTMLDivElement>(null)
+	useEffect(() => {
+		if (!open) return
+		const close = (e: PointerEvent) => {
+			if (ref.current && e.target instanceof Node && !ref.current.contains(e.target)) setOpen(false)
+		}
+		window.addEventListener('pointerdown', close, true)
+		return () => window.removeEventListener('pointerdown', close, true)
+	}, [open])
+	const run = (mode: ExpandMode) => {
+		setOpen(false)
+		void expandNode(nodeKey, mode, depth)
+	}
+	const step = (d: number) => {
+		const next = Math.max(1, Math.min(5, depth + d))
+		setDepth(next)
+		setExpandDepth(next)
+	}
+	if (busy) {
+		return (
+			<button className="tool wide" title="Cancel expansion" onClick={cancelExpand}>
+				<Icon icon={LoaderCircle} size={16} className="spin" />
+				<span>Expanding…</span>
+				<Icon icon={X} size={13} />
+			</button>
+		)
+	}
+	return (
+		<div className="menu split" ref={ref}>
+			<button className="tool wide" title="Expand into a new sub-diagram (auto: from source when possible, else AI)" onClick={() => run('auto')}>
+				<Icon icon={SquareArrowOutDownRight} size={16} />
+				<span>Expand</span>
+			</button>
+			<button className="tool caret" aria-label="Expand options" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+				<Icon icon={ChevronDown} size={13} />
+			</button>
+			{open && (
+				<div className="menu-pop expand-menu" role="menu">
+					<button className="menu-item" onClick={() => run('auto')}>
+						<span className="menu-label">Auto</span>
+						<span className="muted small">{hasSrc ? 'from source' : 'with AI'}</span>
+					</button>
+					<button className="menu-item" disabled={!hasSrc} onClick={() => run('source')} title={hasSrc ? undefined : 'This node has no src: reference'}>
+						<span className="menu-label">From source</span>
+						<span className="muted small">{hasSrc ? 'src:' : 'no src'}</span>
+					</button>
+					<button className="menu-item" onClick={() => run('ai')}>
+						<span className="menu-label">With AI</span>
+						<span className="muted small">streams</span>
+					</button>
+					<div className="menu-sep" />
+					<div className="stepper" aria-label="Depth">
+						<span>Depth</span>
+						<button className="icon-btn" onClick={() => step(-1)} disabled={depth <= 1} aria-label="Less depth">
+							<Icon icon={Minus} size={13} />
+						</button>
+						<span className="stepper-value">{depth}</span>
+						<button className="icon-btn" onClick={() => step(1)} disabled={depth >= 5} aria-label="More depth">
+							<Icon icon={Plus} size={13} />
+						</button>
+						<span className="muted small">{depth > 1 ? `${depth} levels of pages` : 'one page'}</span>
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}
+
+/** "Levels: All / 1 / 2 / 3…" for the current view's group nesting. */
+export function LevelsControl() {
+	const view = useStore((s) => s.focusIR)
+	const level = useStore((s) => currentLevels(s))
+	const max = maxGroupDepth(view)
+	if (max < 1) return null
+	const opts = Array.from({ length: max }, (_, i) => i + 1)
+	return (
+		<div className="levels pill" onPointerDown={(e) => e.stopPropagation()} role="group" aria-label="Visible levels">
+			<span className="levels-label" title="How many levels of groups are open">
+				<Icon icon={Layers} size={13} /> Levels
+			</span>
+			<button className={`levels-btn${level === null ? ' on' : ''}`} onClick={() => setLevels(null)} title="Everything open">
+				All
+			</button>
+			{opts.map((n) => (
+				<button key={n} className={`levels-btn${level === n ? ' on' : ''}`} onClick={() => setLevels(n)} title={n === 1 ? 'Top level only: every group collapsed' : `${n} levels open`}>
+					{n}
+				</button>
+			))}
 		</div>
 	)
 }

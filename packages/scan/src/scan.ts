@@ -18,7 +18,10 @@ import { analyzeCompose } from './analyzers/compose'
 import { analyzeK8s } from './analyzers/k8s'
 import { analyzeOpenApi, type OpenApiSpec } from './analyzers/openapi'
 import { analyzeTerraform } from './analyzers/terraform'
+import { parseOcto } from '@octo-draw/core'
 import { emitOcto, graphToIR, type EmittedPage } from './emit'
+import { applyDeepen, deepenSync } from './expand/deepen'
+import { expandInFiles } from './expand'
 import { ANALYZERS, emptyResult, type AnalyzerName, type AnalyzerResult, type ArchEdge, type ArchGraph, type ArchNode, type ArchPage, type Finding, type ScanFiles, type ScanOptions } from './types'
 import { asStr, isObj, KeyAllocator, parseJsonLoose, uniq, within } from './util'
 
@@ -29,8 +32,8 @@ export interface ScanResult {
 	pages: EmittedPage[]
 	findings: Finding[]
 	warnings: string[]
-	/** The merged graphs before IR conversion (for explain / refinement). */
-	graph: { root: ArchGraph; pages: ArchPage[]; title: string }
+	/** The merged graphs before IR conversion (for explain / refinement). Depth > 1 pages are only in `code` / `pages`. */
+	graph: { root: ArchGraph; pages: ArchPage[]; title: string; source?: string }
 }
 
 /** Page names must survive `page <Name>` and `drill: <Name>` without quoting surprises. */
@@ -80,6 +83,7 @@ function absorb(base: ArchGraph, other: ArchGraph) {
 		b.label ??= n.label
 		b.tech ??= n.tech
 		b.drill ??= n.drill
+		b.src ??= n.src
 		b.parent ??= n.parent
 		b.aliases = uniq([...(b.aliases ?? []), ...(n.aliases ?? [])])
 		b.facts = uniq([...(b.facts ?? []), ...(n.facts ?? [])])
@@ -289,21 +293,50 @@ export function scanSource(input: ScanFiles, opts: ScanOptions = {}): ScanResult
 	}
 	visit(root)
 	const outPages = uniq(pages.filter((p) => reachable.has(p.name)))
-	const rootIR = graphToIR(root, { title })
+	const scheme = opts.srcScheme ?? 'local'
+	for (const g of [root, ...outPages]) for (const n of g.nodes) if (n.src !== undefined && !HAS_SCHEME.test(n.src)) n.src = `${scheme}:${n.src}`
+	const rootIR = graphToIR(root, { title, source: opts.source })
 	const emitted = outPages.map((p) => ({ name: p.name, ir: graphToIR(p) }))
 	const header = findings.length ? [`scanned by octo-draw: ${findings.map((f) => `${f.analyzer} ${Math.round(f.confidence * 100)}%`).join(', ')}`] : []
+	let out = emitOcto({ name: '', ir: rootIR }, emitted, header)
+	if ((opts.depth ?? 1) > 1) {
+		const deep = deepenScan(out, files, opts)
+		out = deep.code
+		warnings.push(...deep.warnings)
+		for (const p of deep.pages) emitted.push({ name: p.name, ir: parseOcto(p.body).ir })
+	}
 	return {
-		code: emitOcto({ name: '', ir: rootIR }, emitted, header),
+		code: out,
 		ir: rootIR,
 		pages: emitted,
 		findings,
 		warnings,
-		graph: { root, pages: outPages, title },
+		graph: { root, pages: outPages, title, source: opts.source },
 	}
+}
+
+const HAS_SCHEME = /^[a-z][a-z0-9+-]*:/i
+
+/**
+ * Pre-generates `opts.depth` levels of pages (root = 0; the scanners' own
+ * module pages are level 1) with the code / config expanders on the
+ * in-memory files. Caps: `maxNodesPerPage` (30), `maxPages` (200, warning),
+ * `timeBudgetMs` (20 s, warning).
+ */
+export function deepenScan(code: string, files: ScanFiles, opts: Pick<ScanOptions, 'depth' | 'srcScheme' | 'maxNodesPerPage' | 'maxPages' | 'timeBudgetMs'>): { code: string; warnings: string[]; pages: { name: string; body: string }[] } {
+	const depth = Math.max(1, Math.floor(opts.depth ?? 1))
+	if (depth <= 1) return { code, warnings: [], pages: [] }
+	const scheme = opts.srcScheme ?? 'local'
+	const r = deepenSync(code, (req) => expandInFiles(files, req.src, { maxNodes: opts.maxNodesPerPage ?? 30, scheme }), {
+		depth,
+		maxPages: opts.maxPages ?? 200,
+		deadline: Date.now() + (opts.timeBudgetMs ?? 20000),
+	})
+	return { code: applyDeepen(code, r), warnings: r.warnings, pages: r.pages }
 }
 
 /** Re-emits a (possibly refined) graph. */
 export function emitGraph(graph: ScanResult['graph'], header: string[] = []): string {
-	return emitOcto({ name: '', ir: graphToIR(graph.root, { title: graph.title }) }, graph.pages.map((p) => ({ name: p.name, ir: graphToIR(p) })), header)
+	return emitOcto({ name: '', ir: graphToIR(graph.root, { title: graph.title, source: graph.source }) }, graph.pages.map((p) => ({ name: p.name, ir: graphToIR(p) })), header)
 }
 

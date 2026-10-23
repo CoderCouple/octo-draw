@@ -1,0 +1,161 @@
+{
+	"id": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+	"private": false,
+	"pipeline_tag": "text-generation",
+	"tags": [
+		"gguf",
+		"facebook",
+		"meta",
+		"pytorch",
+		"llama",
+		"llama-3",
+		"text-generation",
+		"en",
+		"de",
+		"fr",
+		"it",
+		"pt",
+		"hi",
+		"es",
+		"th",
+		"base_model:meta-llama/Llama-3.1-8B-Instruct",
+		"base_model:quantized:meta-llama/Llama-3.1-8B-Instruct",
+		"license:llama3.1",
+		"endpoints_compatible",
+		"region:us",
+		"conversational"
+	],
+	"downloads": 488781,
+	"likes": 426,
+	"modelId": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+	"author": "bartowski",
+	"sha": "bf5b95e96dac0462e2a09145ec66cae9a3f12067",
+	"lastModified": "2024-12-01T04:12:27.000Z",
+	"gated": false,
+	"disabled": false,
+	"model-index": null,
+	"config": {},
+	"cardData": {
+		"base_model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+		"language": [
+			"en",
+			"de",
+			"fr",
+			"it",
+			"pt",
+			"hi",
+			"es",
+			"th"
+		],
+		"license": "llama3.1",
+		"pipeline_tag": "text-generation",
+		"tags": [
+			"facebook",
+			"meta",
+			"pytorch",
+			"llama",
+			"llama-3"
+		],
+		"quantized_by": "bartowski"
+	},
+	"gguf": {
+		"total": 8030261312,
+		"architecture": "llama",
+		"context_length": 131072,
+		"bos_token": "<|begin_of_text|>",
+		"eos_token": "<|eot_id|>",
+		"totalFileSize": 32128885888
+	},
+	"siblings": [
+		{
+			"rfilename": ".gitattributes"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-IQ2_M.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-IQ3_M.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-IQ3_XS.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-IQ4_NL.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-IQ4_XS.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q2_K.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q2_K_L.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q3_K_L.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q3_K_M.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q3_K_S.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q3_K_XL.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_0_4_4.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_0_4_8.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_0_8_8.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_K_L.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q4_K_S.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q5_K_L.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q5_K_S.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q6_K.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q6_K_L.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct-f32.gguf"
+		},
+		{
+			"rfilename": "Meta-Llama-3.1-8B-Instruct.imatrix"
+		},
+		{
+			"rfilename": "README.md"
+		}
+	],
+	"spaces": [
+		"VIDraft/global-llm-leaderboard",
+		"ngxson/debug_ollama_manifest",
+		"Steven10429/apply_lora_and_quantize",
+		"educatedlucifer12/whisper-ai",
+		"AyoubZolodick/rag_lite"
+	],
+	"createdAt": "2024-07-23T15:36:34.000Z",
+	"usedStorage": 538821279080
+}

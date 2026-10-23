@@ -1,0 +1,26 @@
+{
+	"id": "acme/rag-chat",
+	"author": "acme",
+	"sdk": "gradio",
+	"likes": 42,
+	"private": false,
+	"tags": ["gradio", "region:us"],
+	"cardData": {
+		"title": "RAG Chat",
+		"emoji": "📚",
+		"colorFrom": "blue",
+		"colorTo": "green",
+		"sdk": "gradio",
+		"sdk_version": "5.9.1",
+		"app_file": "app.py",
+		"pinned": false,
+		"license": "apache-2.0",
+		"models": ["meta-llama/Llama-3.1-8B-Instruct", "BAAI/bge-small-en-v1.5"],
+		"datasets": ["acme/handbook"]
+	},
+	"models": ["BAAI/bge-small-en-v1.5", "meta-llama/Llama-3.1-8B-Instruct"],
+	"datasets": ["acme/handbook"],
+	"host": "https://acme-rag-chat.hf.space",
+	"siblings": [{ "rfilename": ".gitattributes" }, { "rfilename": "README.md" }, { "rfilename": "app.py" }, { "rfilename": "retriever.py" }, { "rfilename": "requirements.txt" }],
+	"runtime": { "stage": "RUNNING", "hardware": { "current": "cpu-upgrade", "requested": "cpu-upgrade" } }
+}

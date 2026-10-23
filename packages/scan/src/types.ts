@@ -24,6 +24,16 @@ export interface ScanOptions {
 	ci?: boolean
 	/** Max nodes on a module page before folding the rest (default 25). */
 	maxModuleNodes?: number
+	/** Levels of drill-down pages below the root (default 1 = root + one module page per service). */
+	depth?: number
+	/** Written as the root page's `source` directive (the connector input that re-reads this source). */
+	source?: string
+	/** Scheme for node `src` refs (default `local`). */
+	srcScheme?: string
+	/** Caps for depth > 1: nodes per generated page (30), total pages (200), time (20 s). */
+	maxNodesPerPage?: number
+	maxPages?: number
+	timeBudgetMs?: number
 }
 
 export interface Finding {
@@ -57,6 +67,13 @@ export interface ArchNode {
 	dir?: string
 	/** Free-form facts (ports, image, entrypoints) kept for summaries and AI explain. */
 	facts?: string[]
+	/**
+	 * Scanned origin for on-demand expansion (emitted as the `src` prop). Analyzers
+	 * write it relative to the scanned root without a scheme (`apps/api/src`,
+	 * `docker-compose.yml#services.api`, `main.tf#aws_lambda_function.api`);
+	 * `scanSource` prefixes the scheme (`local:`, `github:`). Expanders write full refs.
+	 */
+	src?: string
 }
 
 export interface ArchEdge {

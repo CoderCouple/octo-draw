@@ -124,8 +124,13 @@ export function analyzePage(src: string, page: OctoPage): OctoAnalysis {
 		if (title) {
 			delete a.result.ir.title
 			a.result.diagnostics.push({ from: title.from, to: title.to, severity: 'warning', message: '"title" is only read from the root page' })
-			a.result.diagnostics.sort((x, y) => x.from - y.from)
 		}
+		const source = a.statements.find((s) => s.kind === 'directive' && s.name === 'source' && s.parent === undefined)
+		if (source) {
+			delete a.result.ir.source
+			a.result.diagnostics.push({ from: source.from, to: source.to, severity: 'warning', message: '"source" is only read from the root page' })
+		}
+		if (title || source) a.result.diagnostics.sort((x, y) => x.from - y.from)
 	}
 	return a
 }
@@ -134,6 +139,12 @@ export function analyzePage(src: string, page: OctoPage): OctoAnalysis {
 export function parsePage(src: string, name: string): ParseResult | null {
 	const page = findPage(splitPages(src), name)
 	return page ? analyzePage(src, page).result : null
+}
+
+/** The root page's `source` directive (the connector input node `src` refs are relative to), if any. */
+export function sourceDirective(src: string): string | undefined {
+	if (!/^[ \t]*source[ \t]/m.test(src)) return undefined
+	return parsePage(src, ROOT_PAGE)?.ir.source
 }
 
 /** Maps node key to its drill target page name (`drill: P`, else a page named like the key, case-insensitive). */
@@ -147,7 +158,8 @@ export function drillTargets(ir: DiagramIR, pageNames: string[], self?: string):
 	}
 	const exact = new Set(byLower.values())
 	const resolve = (name: string) => (exact.has(name) ? name : byLower.get(name.toLowerCase()))
-	const out: Record<string, string> = {}
+	// null prototype: node keys like `constructor` must not hit Object.prototype
+	const out: Record<string, string> = Object.create(null)
 	for (const n of ir.nodes) {
 		const drill = n.ext?.drill
 		const target = (drill !== undefined && drill !== 'true' ? resolve(drill) : undefined) ?? resolve(n.key)

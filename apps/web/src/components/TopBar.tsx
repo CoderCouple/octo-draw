@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ROOT_CRUMB } from '../lib/pages'
-import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot, LayoutTemplate, Workflow, Cloud, ArrowLeftRight, Table, Layers } from 'lucide'
+import { Monitor, Moon, Sun, Braces, ChevronDown, ClipboardPaste, CodeXml, Copy, FileImage, Image, ImageDown, LoaderCircle, Sparkles, Upload, X, GitFork, Bot, LayoutTemplate, Workflow, Cloud, ArrowLeftRight, Table, Layers, Plug, Network } from 'lucide'
 import { Icon } from './Icon'
 import { pushHistory, requestFit, useStore } from '../store'
 import { EXAMPLES, type Example } from '../examples'
@@ -61,7 +61,7 @@ function MenuItem({ icon, label, hint, onClick }: { icon: unknown; label: string
 	)
 }
 
-const EXAMPLE_ICONS: Record<string, unknown> = { flowchart: Workflow, architecture: Cloud, sequence: ArrowLeftRight, erd: Table, drill: Layers }
+const EXAMPLE_ICONS: Record<string, unknown> = { flowchart: Workflow, architecture: Cloud, sequence: ArrowLeftRight, erd: Table, drill: Layers, deep: Network }
 
 /** Replaces the document with an example (undoable). */
 function openExample(e: Example) {
@@ -137,7 +137,7 @@ function ThemeToggle() {
 	)
 }
 
-export function TopBar({ onPasteDialog }: { onPasteDialog: () => void }) {
+export function TopBar({ onPasteDialog, onConnectSource }: { onPasteDialog: () => void; onConnectSource: () => void }) {
 	const title = useStore((s) => s.title)
 	const aiBusy = useStore((s) => s.aiBusy)
 	const hasCode = useStore((s) => s.code.trim().length > 0)
@@ -229,6 +229,15 @@ export function TopBar({ onPasteDialog }: { onPasteDialog: () => void }) {
 							onClick={() => {
 								close()
 								onPasteDialog()
+							}}
+						/>
+						<div className="menu-sep" />
+						<MenuItem
+							icon={Plug}
+							label="Connect source…"
+							onClick={() => {
+								close()
+								onConnectSource()
 							}}
 						/>
 					</>

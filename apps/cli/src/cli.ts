@@ -6,6 +6,7 @@ import { OCTO_DOCUMENT_SCHEMA, type RenderTheme } from '@octo-draw/core'
 import { CliError, convertDoc, formatForOutput, INPUT_FORMATS, loadInput, OUTPUT_FORMATS, type InputFormat, type OutputFormat } from './convert'
 import { defaultIconsDir } from '@octo-draw/core/node/iconCache'
 import { scanCommand, SCAN_HELP } from './scan'
+import { expandCommand, EXPAND_HELP } from './expand'
 
 export interface IO {
 	readFile(path: string): Promise<string>
@@ -25,7 +26,7 @@ Usage:
   octo-draw push <input|-> [--server <url>]       replace the running editor's diagram
   octo-draw pull [-o <file>] [--to <format>] [--server <url>]
   octo-draw schema                                print the document JSON schema
-${SCAN_HELP}
+${SCAN_HELP}${EXPAND_HELP}
 Input is detected automatically: octo DSL, mermaid flowchart, ASCII box art
 (markdown fences are fine), an octo document (.json), or a tldraw snapshot.
 Formats:  --to ${OUTPUT_FORMATS.join(' | ')}    --from ${INPUT_FORMATS.join(' | ')}
@@ -174,6 +175,15 @@ export async function run(argv: string[], io: IO): Promise<number> {
 					json: args.flags.json === true,
 					quiet: args.flags.quiet === true,
 					theme: theme(args),
+					depth: str(args, 'depth'),
+				})
+			case 'expand':
+				return await expandCommand(io, args.positional[1], {
+					node: str(args, 'node'),
+					page: str(args, 'page'),
+					depth: str(args, 'depth'),
+					out: str(args, 'out'),
+					quiet: args.flags.quiet === true,
 				})
 			case 'schema':
 				io.stdout(JSON.stringify(OCTO_DOCUMENT_SCHEMA, null, '\t') + '\n')

@@ -210,13 +210,14 @@ server.registerTool(
 			source: z.string().optional().describe('Folder path or source URL / shorthand'),
 			path: z.string().optional().describe('Local folder path (same as source for folders)'),
 			only: z.array(z.enum(['code', 'compose', 'k8s', 'terraform', 'openapi'])).optional().describe('Run only these analyzers'),
+			depth: z.number().int().min(1).max(5).optional().describe('Levels of drill-down pages to pre-generate (default 1)'),
 			apply: z.boolean().optional().describe('Also replace the current diagram with the result'),
 			docId: DOC_ID,
 		},
 	},
-	({ source, path, only, apply, docId }) => guard(async () => {
+	({ source, path, only, depth, apply, docId }) => guard(async () => {
 		if (!source && !path) return fail('Give "source" (folder, github.com/owner/repo, ...) or "path".')
-		const r = (await call('POST', '/api/scan', { source, path, only })) as unknown as { code: string; findings: { analyzer: string; confidence: number; notes?: string[] }[]; warnings: string[] }
+		const r = (await call('POST', '/api/scan', { source, path, only, depth })) as unknown as { code: string; findings: { analyzer: string; confidence: number; notes?: string[] }[]; warnings: string[] }
 		const findings = r.findings.map((f) => `- ${f.analyzer} (${Math.round(f.confidence * 100)}%): ${(f.notes ?? []).join('; ')}`).join('\n')
 		const warnings = r.warnings.length ? `\n\nWarnings:\n${r.warnings.map((w) => `- ${w}`).join('\n')}` : ''
 		let applied = ''
@@ -225,6 +226,32 @@ server.registerTool(
 			applied = `\n\nSet as the current diagram (version ${doc.version}).`
 		}
 		return text(`Findings:\n${findings || '- nothing recognised'}${warnings}${applied}\n\n${r.code}`)
+	}),
+)
+
+server.registerTool(
+	'expand_node',
+	{
+		title: 'Expand node',
+		description:
+			'Drill into a node that has no page yet: generates a new page that decomposes the node (named "<page> / <label>") and links it with drill:. ' +
+			'mode "source" reads the scanned origin (the node\'s src prop, relative to the document\'s source directive: code folders/files/symbols, cloud resources, Hugging Face modules); ' +
+			'"ai" asks Claude; "auto" (default) uses source when the node has a resolvable src, else AI. depth > 1 (source mode) generates several levels at once. ' +
+			'The result is written to the current diagram.',
+		inputSchema: {
+			node: z.string().describe('Node key (its DSL name)'),
+			page: z.string().optional().describe('Page the node is on (default: the root page)'),
+			mode: z.enum(['auto', 'ai', 'source']).optional(),
+			depth: z.number().int().min(1).max(5).optional().describe('Levels to generate (source mode)'),
+			docId: DOC_ID,
+		},
+	},
+	({ node, page, mode, depth, docId }) => guard(async () => {
+		const doc = await call('GET', withDoc('/api/doc', docId))
+		const r = (await call('POST', '/api/expand', { code: doc.code, page, node, mode, depth, stream: false })) as unknown as { code: string; page: string; pages: string[]; mode: string; warnings: string[] }
+		const saved = await call('PUT', withDoc('/api/doc', docId), { code: r.code, baseVersion: doc.version, source: SOURCE })
+		const warnings = r.warnings.length ? `\n\nWarnings:\n${r.warnings.map((w) => `- ${w}`).join('\n')}` : ''
+		return text(`Expanded "${node}" (${r.mode}) into ${r.pages.length === 1 ? `page "${r.page}"` : `${r.pages.length} pages: ${r.pages.map((p) => `"${p}"`).join(', ')}`} (version ${saved.version}).${warnings}${diagnostics(saved.code)}`)
 	}),
 )
 

@@ -64,7 +64,7 @@ describe('collapseGroups', () => {
 		expect(keys(out)).toEqual(['Users', 'Cloud', 'Backend', 'API', 'Worker', 'Jobs', 'Cron', 'Queue', 'Cache', 'Data'])
 		const data = out.nodes.find((n) => n.key === 'Data')!
 		expect(data.isContainer).toBe(false)
-		expect(data.ext).toEqual({ collapsed: '2' })
+		expect(data.ext).toEqual({ collapsed: '2', children: '2' })
 		// Replica - DB became a self-loop and is dropped; two "write" edges keep their shared label
 		expect(pairs(out)).toEqual([
 			'Users>API:HTTPS',
@@ -107,7 +107,7 @@ describe('collapseGroups', () => {
 		const out = collapseGroups(ir(), ['Jobs', 'Cloud'])
 		expectValid(out)
 		expect(keys(out)).toEqual(['Users', 'Cloud', 'Data', 'DB', 'Replica'])
-		expect(out.nodes.find((n) => n.key === 'Cloud')!.ext).toEqual({ collapsed: '7' })
+		expect(out.nodes.find((n) => n.key === 'Cloud')!.ext).toEqual({ collapsed: '7', children: '2' })
 		expect(pairs(out)).toEqual(['Users>Cloud:HTTPS', 'Cloud>DB:3 links', 'Replica>DB', 'Cloud>Users:notify'])
 		const inner = collapseGroups(ir(), ['Jobs'])
 		expectValid(inner)

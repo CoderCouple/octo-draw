@@ -261,3 +261,25 @@ export function agentChatUserMessage(prompt: string, code: string, selection: st
 	const sel = selection.length ? `\n\nSelected nodes: ${selection.map((k) => JSON.stringify(k)).join(', ')}` : ''
 	return `Current diagram code:\n<code>\n${code || '(empty)'}\n</code>${sel}\n\nRequest: ${prompt}`
 }
+
+export const EXPAND_SYSTEM = `You are octo-draw's drill-down author. A diagram is written in the octo DSL (reference below) and split into pages: a line \`page <Name>\` starts a sub-diagram, and a node with \`drill: <Name>\` opens that page. The user wants to drill into one node that has no page yet: you write the body of that node's new page, decomposing it into its internals.
+
+${DSL_REFERENCE}
+
+## How to write the page
+- Output ONLY the page body in octo DSL: no \`page\` line, no \`title\`, no prose, no markdown fences. You may start with \`direction right\` (or down) when it reads better.
+- Show what is INSIDE the node: its components, sub-steps, data stores, modules or layers, at one level of detail below the parent (usually 5-15 nodes, at most 30). Group related parts with \`Name { ... }\` and nest groups when that clarifies structure.
+- Be consistent with the surrounding pages: reuse the exact names, icons and colors the document already uses for the same things; do not contradict other pages; do not repeat the parent page's nodes as internals.
+- Connect the internals to the outside world: for each neighbour of the node on the parent page (given below), add a node with the neighbour's exact name and \`[color: gray]\`, and draw edges from/to the internal parts that actually handle that interaction, with the same direction and a short label like the parent edge.
+- Label edges where the relationship is not obvious. Use icons from the reference for well-known technologies. Do not add \`drill\` or \`src\` props.
+- If the node is too vague to decompose with confidence, still produce a plausible, conventional breakdown and add a short \`// assumption: ...\` comment line at the top.`
+
+export function expandUserMessage(input: { code: string; page: string; node: { key: string; label?: string; props: string }; neighbours: string[] }): string {
+	const where = input.page ? `the page "${input.page}"` : 'the root page'
+	return [
+		`Full document (all pages):\n<code>\n${input.code}\n</code>`,
+		`Drill into the node "${input.node.key}"${input.node.label ? ` (label "${input.node.label}")` : ''} on ${where}.${input.node.props ? ` Its properties: ${input.node.props}.` : ''}`,
+		input.neighbours.length ? `Its connections on that page:\n${input.neighbours.map((n) => `- ${n}`).join('\n')}` : 'It has no connections on that page.',
+		'Write the body of its new page.',
+	].join('\n\n')
+}

@@ -113,7 +113,8 @@ export function analyzeK8s(files: ScanFiles): AnalyzerResult {
 	if (groupNs) for (const ns of namespaces) {
 		const k = keys.take(`ns ${ns}`)
 		nsKey.set(ns, k)
-		nodes.push({ key: k, label: ns, role: 'group', isContainer: true, icon: 'kubernetes' })
+		const nsDoc = resources.find((x) => x.kind === 'Namespace' && x.name === ns)
+		nodes.push({ key: k, label: ns, role: 'group', isContainer: true, icon: 'kubernetes', src: nsDoc ? `${nsDoc.file}#Namespace/${ns}` : undefined })
 	}
 	const keyOf = new Map<string, string>()
 	const id = (kind: string, ns: string, name: string) => `${kind}/${ns}/${name}`
@@ -122,7 +123,8 @@ export function analyzeK8s(files: ScanFiles): AnalyzerResult {
 		if (keyOf.has(i)) return keyOf.get(i)!
 		const k = keys.take(want)
 		keyOf.set(i, k)
-		nodes.push({ key: k, parent: nsKey.get(ns), ...n })
+		const res = resources.find((x) => (x.kind === kind || (kind === 'HPA' && x.kind === 'HorizontalPodAutoscaler') || (kind === 'PVC' && x.kind === 'PersistentVolumeClaim')) && x.ns === ns && x.name === name)
+		nodes.push({ key: k, parent: nsKey.get(ns), ...(res ? { src: `${res.file}#${res.kind}/${res.name}` } : {}), ...n })
 		return k
 	}
 

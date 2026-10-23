@@ -197,3 +197,63 @@ interface Connector { kind: SourceRef['kind']; parse(input: string): SourceRef |
   - **Auth:** `GITHUB_TOKEN` / `GH_TOKEN`; the CLI and server fall back to `gh auth token`. The token is only sent to api.github.com and raw.githubusercontent.com. Rate limits give a clear 429 `ConnectorError` with the reset time.
 
 **CLI:** `octo-draw scan <dir|source> [-o out.octo] [--render out.svg] [--only code,compose,k8s,terraform,openapi] [--json] [--title T]`. Folders are tried first; anything else goes through `resolveSource`. `--render` draws the root page.
+
+## Recursive drill-down (v2)
+
+Drill-down works at any depth, both across pages and within groups on one page. Deeper levels can be generated on demand.
+
+### 1. Nested pages
+- **Page tree:** pages stay a flat list in the code, and the tree comes from `drill:` links. `pageTree(src) => PageTreeNode[]` where `PageTreeNode = { name: string; via?: string /* node key on the parent page */; children: PageTreeNode[]; depth: number }`.
+  - The root is the top.
+  - A page reachable from several parents appears under its first parent (BFS order). Cycles are cut and noted on the node with `cycle: true`.
+  - Orphan pages, which no node drills into, go under a synthetic "Unlinked" entry.
+- **Path-style page names** like `server modules / sync / room.ts` are just names. Generated pages use `<parent page> / <node label>`, so the code reads as a tree and names stay unique.
+- **Breadcrumbs:**
+  - They come from the navigation stack. Deep links (opening a page directly, or the caret moving into a page) rebuild the stack from `pageTree` (`pagePath(src, name) => { page, via }[]`).
+  - Long trails collapse the middle into a "…" menu.
+
+### 2. Nested groups on one page
+- Groups nest to any depth; that already works.
+- **Focus inside focus:** focusing a group inside a focused view pushes a new crumb (`Checkout › Backend › Workers`). `focusGroup` works on the original page IR with the deepest group key, and ghosts are computed against that group.
+- **Depth control:** `collapseToDepth(ir, depth) => string[]` returns the container keys that are deeper than `depth`, to feed `collapseGroups`. The web adds a "Levels: All / 1 / 2 / 3…" control to the canvas chrome that sets `collapsed[page]` from it.
+- **Collapsed nested groups** show a count of all descendants, plus the number of direct children.
+
+### 3. On-demand expansion (lazy drill)
+A node can be expanded into a new page when it has no page yet.
+- **Source refs:** scanners put the scanned origin on nodes as the prop `src`, e.g.:
+  - `src: "local:apps/server/src/sync"`
+  - `src: "github:o/r@sha:path"`
+  - `src: "aws:arn:aws:lambda:…"`
+  - `src: "hf:org/model#layers.0"`
+  The value is relative to a document-level directive `source <connector input>` on the root page (e.g. `source github.com/o/r@abc123`), so repo-relative paths stay short. `src` lands in `ext` like `drill`.
+- **Expandable nodes:** a node is expandable if it has no drill target and either has `src` (a source expander exists for its kind) or is any other node (AI expansion). The web shows a different corner mark for "expandable" (dotted ↘) than for "has page" (solid ↘).
+- **Expander API (`@octo-draw/scan`):** `expandNode(input: { source: string /* the document's source directive */; src: string; node: { key; label? }; parentPage: string; depth?: number }, ctx) => Promise<{ body: string /* octo page body */; title: string; findings; warnings }>`.
+  - **Code:**
+    - A directory gives its subdirectories and files, with import edges aggregated at that level and external systems.
+    - A file gives its top-level symbols: classes, functions, exported consts, types/interfaces, with call/reference edges between them and imports to sibling files as ghost-ish nodes.
+    - A class gives its methods and properties, with calls between methods.
+    - Every child node carries its own `src` so it is expandable again.
+    - Cap at about 30 nodes per page and fold the rest.
+    - TS/JS uses a solid tokenizer-based symbol extractor (no TypeScript compiler dependency). Python, Go and Rust are best-effort.
+  - **Cloud:**
+    - A VPC gives its subnets and resources; a subnet gives its resources.
+    - An ECS service gives its tasks and containers.
+    - A Lambda gives its triggers, destinations, env references and IAM role.
+    - A load balancer gives its listeners, rules and targets.
+    - Other resources give a details page of key props as a note, plus related resources.
+    - It reads from the same inventory the scan used: the export or a live read-only call.
+  - **Hugging Face:** a model gives its blocks, and a block gives its sublayers.
+  - **Depth:** `depth > 1` expands recursively and returns several pages at once (a `body` with extra `page` sections).
+- **AI expansion:** `POST /api/expand { code, page, node, mode: 'auto' | 'ai' | 'source' }`.
+  - In `auto` mode the source expander is used when `src` resolves, otherwise AI.
+  - AI mode sends the full doc (all pages), the parent page and the node to Claude. Claude returns a page body that decomposes the node into its internals, with nodes consistent with the surrounding pages and edges to ghost references of the parent's neighbours. It streams over SSE like `/api/generate`.
+  - Response: `{ code }`. This is the full new code: the page appended via `addPage(src, '<parent> / <label>', body)` and the node patched with `drill:` via `setNodeProp(..., page)`. Expanding is therefore a normal code edit: synced, undoable, visible to agents.
+  - **MCP:** `expand_node { node, page?, mode?, depth? }`.
+- **Scan depth:** `scan --depth N` (and `/api/scan { depth }`) pre-generates N levels using the same expanders. The default is 1, which is today's behaviour: root plus one module page per service.
+
+### v2 implementation notes (as built)
+- **Core** (`packages/core/src/drill/tree.ts`, exported): `pageTree(src) => PageTreeNode[]` (`{ name; via?; children; depth; cycle?: true; unlinked?: true }`; root first, synthetic `{ name: 'Unlinked', unlinked: true }` last when there are orphans), `pagePath(src, name) => { page; via? }[]` (unknown → `[]`, root → `[{ page: '' }]`), `collapseToDepth(ir, depth) => string[]` (top-level = level 1; every container at level ≥ depth; non-finite → `[]`), `sourceDirective(src) => string | undefined`. `DiagramIR.source?: string` (root page only; a `source` on another page is a warning). `collapseGroups` adds `ext.children` (direct children) next to `ext.collapsed` (descendants). `drillTargets` returns a null-prototype record. Fixture: `packages/core/fixtures/deep.octo` (6 page levels, 5 group levels, a cycle, an orphan).
+- **src values:** `<scheme>:<path>[#fragment]`. Code: `local:` / `github:` + repo-relative path (`local:.` = root), fragments `Class`, `Class.method`, `uses:<System>` (files using an external system); config files `docker-compose.yml#services.api`, `k8s.yaml#Deployment/api`, `main.tf#aws_lambda_function.api`. Cloud: `aws:<arn>`, `gcp:<name>`, `azure:<id>`. HF: `hf:org/model#path`.
+- **Scan** (`@octo-draw/scan`): `expandNode(input: ExpandNodeInput, ctx: ExpandContext) => Promise<ExpandNodeResult>` (`{ body, title, findings, warnings, pages }`); `registerExpander(kind, fn: Expander)` where `Expander = (req: ExpanderRequest, ctx: ExpandContext) => Promise<ExpandedPage | null>`, `ExpandedPage = { body; children?: string[]; findings?; warnings? }` (one page body; `children` = node keys recursed into for depth > 1). `registerFileSource(kind, factory)` for code (local: `@octo-draw/scan/node`, fs confined to the root; github: REST tree + raw). `ScanOptions.depth` (also `maxNodesPerPage` 30, `maxPages` 200, `timeBudgetMs` 20000; cloud connectors use `maxDiagramPages`). `deepenScan`, `deepenSync/deepenAsync/applyDeepen`, `extractSymbols(path, text)` (TS/JS tokenizer-based; Python/Go/Rust best effort). Generated page names are `<parent page> / <label>` (labels lose a trailing `/`).
+- **Server:** `POST /api/expand { code, page?, node, mode?, depth?, options?, stream? }`. SSE by default (`{delta}` chunks in AI mode, then `{ done: true, code, page, pages, mode, warnings, findings }`); `stream: false` returns that object as JSON. Errors: 400 bad request / no source, 403 outside OCTO_SCAN_ROOTS or foreign origin (source expansion is loopback-only like `/api/scan`), 404 unknown page/node/src, 409 node already has a page, 503 no credentials (AI). auto falls back to AI (with a warning) when source expansion fails. `/api/scan { depth }` (1-5). MCP: `expand_node { node, page?, mode?, depth?, docId? }`, `scan_source { depth? }`.
+- **CLI:** `octo-draw scan --depth N`, `octo-draw expand <file.octo> --node <key> [--page P] [--depth N] [-o out]` (stdout by default; a relative local `source` resolves against the file's folder).
