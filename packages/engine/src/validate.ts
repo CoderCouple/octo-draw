@@ -10,14 +10,16 @@ import type { MdpDoc } from './mdp'
  * templates, palette, default connection tag); `resolver.validate(doc)` runs the whole pipeline
  * minus icon loading, `resolver.resolve(doc)` also inlines icons through our loader.
  */
-let stock: Promise<Resolver> | undefined
+const resolvers = new WeakMap<IconLoader, Promise<Resolver>>()
 
+/** One warm resolver per icon loader (boot compiles the library's schemas once). */
 export function octoResolver(iconLoader: IconLoader = octoIconLoader): Promise<Resolver> {
-	if (iconLoader === octoIconLoader) {
-		stock ??= createResolver({ library: stockLibrary, normalizers: stockNormalizers, iconLoader, onUnknownIcon: 'placeholder' })
-		return stock
+	let r = resolvers.get(iconLoader)
+	if (!r) {
+		r = createResolver({ library: stockLibrary, normalizers: stockNormalizers, iconLoader, onUnknownIcon: 'placeholder' })
+		resolvers.set(iconLoader, r)
 	}
-	return createResolver({ library: stockLibrary, normalizers: stockNormalizers, iconLoader, onUnknownIcon: 'placeholder' })
+	return r
 }
 
 /** The MDP part of a doc: `octo` (our sidecar) is not MDP. */

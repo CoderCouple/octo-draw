@@ -60,7 +60,10 @@ const STOCK_SHAPES = new Set(['rectangle', 'parallelogram', 'trapezoid', 'diamon
 const STOCK_PALETTE = new Set(['white', 'yellow', 'green', 'blue', 'purple', 'red', 'orange', 'black'])
 const CSS_HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
-const CARD_TO_REL: Record<Cardinality, string> = { '1-1': 'one-to-one', '1-n': 'one-to-many', 'n-1': 'many-to-one', 'n-n': 'many-to-many' }
+/** Glyph square for `Icon` entities (the corpus uses 50). */
+export const ICON_ENTITY_SIZE = 44
+
+const CARD_TO_REL:Record<Cardinality, string> = { '1-1': 'one-to-one', '1-n': 'one-to-many', 'n-1': 'many-to-one', 'n-n': 'many-to-many' }
 const REL_TO_CARD: Record<string, Cardinality> = Object.fromEntries(Object.entries(CARD_TO_REL).map(([k, v]) => [v, k as Cardinality]))
 
 /** Labels are plain text in octo; MDP text props are markdown. Escape markdown punctuation. */
@@ -149,6 +152,13 @@ export function irToMdp(ir: DiagramIR, layout: DiagramLayout, opts: IrToMdpOptio
 		} else if (n.icon && !n.shape) {
 			base.tag = 'Icon'
 			base.icon = octoIconName(n.icon, brand)
+			// An Icon's width/height is the glyph square (its label hangs below as external text).
+			// octo's layout box is a label-wide rectangle: centre a fixed glyph in it instead.
+			const b = layout.nodes[n.key]
+			if (b) {
+				const s = Math.min(ICON_ENTITY_SIZE, Math.round(b.w), Math.round(b.h))
+				Object.assign(base, { x: Math.round(b.x + dx + (b.w - s) / 2), y: Math.round(b.y + dy + Math.max(0, (b.h - s - 18) / 2)), width: s, height: s })
+			}
 			base.texts = [{ text: escapeMarkdown(label), ...(typeface ? { typeface } : {}) }]
 			// Icon.color is x-css-color (no palette tokens): resolve tokens ourselves
 			if (color.mdp) base.color = color.mdp
@@ -212,6 +222,41 @@ export function irToMdp(ir: DiagramIR, layout: DiagramLayout, opts: IrToMdpOptio
 	if (dx || dy) octo.offset = { x: dx, y: dy }
 	if (Object.keys(extras).length) octo.elements = extras
 	return { entities, connections, octo }
+}
+
+/** The doc's own entity geometry as an octo `DiagramLayout` (what routing should run against). */
+export function layoutFromMdp(doc: MdpDoc): DiagramLayout {
+	const containers = new Set(doc.entities.map((e) => e.containerId).filter((c): c is string => typeof c === 'string'))
+	const nodes: DiagramLayout['nodes'] = {}
+	let minX = Infinity
+	let minY = Infinity
+	let maxX = -Infinity
+	let maxY = -Infinity
+	for (const e of doc.entities) {
+		const x = Number(e.x ?? 0)
+		const y = Number(e.y ?? 0)
+		const w = Number(e.width ?? 120)
+		const h = Number(e.height ?? 60)
+		nodes[e.id] = { key: e.id, x, y, w, h, isContainer: e.tag === 'Group' || containers.has(e.id), depth: 0 }
+		minX = Math.min(minX, x)
+		minY = Math.min(minY, y)
+		maxX = Math.max(maxX, x + w)
+		maxY = Math.max(maxY, y + h)
+	}
+	return { nodes, edges: {}, bounds: Number.isFinite(minX) ? { x: minX, y: minY, w: maxX - minX, h: maxY - minY } : { x: 0, y: 0, w: 0, h: 0 } }
+}
+
+/** Write polylines (absolute coordinates, keyed by connection id) into the doc as authored `points`. */
+export function withRoutes(doc: MdpDoc, routes: Record<string, { points: { x: number; y: number }[] }>): MdpDoc {
+	return {
+		...doc,
+		connections: doc.connections.map((c) => {
+			const r = routes[c.id]
+			if (!r || r.points.length < 2) return c
+			const o = r.points[0]
+			return { ...c, x: Math.max(0, Math.round(o.x)), y: Math.max(0, Math.round(o.y)), points: r.points.map((p) => ({ x: Math.round(p.x) - Math.max(0, Math.round(o.x)), y: Math.round(p.y) - Math.max(0, Math.round(o.y)) })) }
+		}),
+	}
 }
 
 /** A text run's plain text (stock `texts[]` entries are `{ text }` objects). */

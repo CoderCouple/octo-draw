@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { layoutDiagram, parseOcto, parseOctoPages, type DiagramIR } from '@octo-draw/core'
 import { EXAMPLES } from '../../../apps/web/src/examples'
-import { escapeMarkdown, irToMdp, mdpToIr, unescapeMarkdown, type MdpDoc } from './mdp'
+import { escapeMarkdown, irToMdp, layoutFromMdp, mdpToIr, unescapeMarkdown, withRoutes, type MdpDoc, type MdpElement } from './mdp'
+import { routeEdges } from './route'
 import { octoResolver, resolveMdp, validateMdp } from './validate'
 import { fromOctoDocument, octoDocumentToDsl, toOctoDocument } from './document'
 
@@ -109,6 +110,17 @@ A > B: [color: gray]`).ir
 		expect(doc.octo?.elements?.A).toMatchObject({ link: 'https://x.dev', shape: 'cloud', color: 'lightblue', ext: { drill: 'Payments', owner: 'team-a' } })
 		expect(doc.entities.find((e) => e.id === 'A')).not.toHaveProperty('shape')
 		expect(comparable(mdpToIr(doc))).toEqual(comparable(ir))
+	})
+
+	it('pre-routes on the doc’s own geometry and stores route-local points', async () => {
+		const ir = parseOcto('direction right\nA [icon: server]\nB [shape: diamond]\nA > B: go').ir
+		const doc = irToMdp(ir, await layoutDiagram(ir))
+		const routed = routeEdges(layoutFromMdp(doc), ir, { repair: false })
+		const out = withRoutes(doc, routed.edges)
+		const c = out.connections[0] as MdpElement & { x: number; y: number; points: { x: number; y: number }[] }
+		expect(c.points[0]).toEqual({ x: 0, y: 0 })
+		expect(c.points.length).toBeGreaterThanOrEqual(2)
+		expect((await validateMdp(out)).errors).toEqual([])
 	})
 
 	it('escapes markdown in labels', () => {
