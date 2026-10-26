@@ -1,0 +1,55 @@
+// 5-level nesting: edges that cross several group walls, siblings and cousins.
+title Deep nesting
+direction right
+
+Client [icon: monitor]
+Partner [icon: globe]
+
+Cloud [icon: cloud] {
+	Edge [icon: shield] {
+		CDN [icon: zap]
+		WAF [icon: shield-check]
+	}
+	Region [icon: map] {
+		VPC [icon: network] {
+			Public subnet {
+				LB [icon: server]
+				NAT [icon: router]
+			}
+			Private subnet {
+				Cluster [icon: box] {
+					API [icon: server]
+					Worker [icon: cpu]
+					Scheduler [icon: clock]
+				}
+				Cache [icon: zap]
+			}
+			Data subnet {
+				Primary DB [icon: database, shape: cylinder]
+				Replica DB [icon: database, shape: cylinder]
+			}
+		}
+		Queue [icon: radio]
+	}
+	Observability {
+		Logs [icon: file-text]
+		Metrics [icon: activity]
+	}
+}
+
+Client > CDN: HTTPS
+Partner > WAF
+CDN > WAF > LB
+LB > API
+API > Worker
+API > Cache
+Worker > Queue: jobs
+Scheduler > Worker
+Queue > Worker
+API > Primary DB: writes
+Primary DB > Replica DB: replication
+Worker > Replica DB: reads
+API --> Logs
+Worker --> Metrics
+NAT > Partner
+Cluster --> Metrics: health

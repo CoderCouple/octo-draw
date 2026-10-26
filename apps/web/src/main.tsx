@@ -27,33 +27,38 @@ declare global {
 	}
 }
 
-loadSaved()
-// `?example=sequence` (flowchart | architecture | sequence | erd) opens a starter diagram
-const exampleId = new URLSearchParams(location.search).get('example')
-const example = exampleId ? getExample(exampleId) : undefined
-if (example) useStore.setState({ code: example.code, pins: {}, crumbs: [ROOT_CRUMB], page: '', collapsed: {} })
-else loadView()
-startPipeline()
-startPersistence()
-// an example link is a local preview: do not pull (or overwrite) the shared server doc
-if (!example) startSync()
-void loadIcons()
+// `?engine=1`: the v2 spike page (Eraser render pipeline), isolated from the app (no sync, no persistence)
+if (new URLSearchParams(location.search).has('engine')) {
+	void import('./engine/EnginePage').then(({ EnginePage }) => createRoot(document.getElementById('root')!).render(<EnginePage />))
+} else {
+	loadSaved()
+	// `?example=sequence` (flowchart | architecture | sequence | erd) opens a starter diagram
+	const exampleId = new URLSearchParams(location.search).get('example')
+	const example = exampleId ? getExample(exampleId) : undefined
+	if (example) useStore.setState({ code: example.code, pins: {}, crumbs: [ROOT_CRUMB], page: '', collapsed: {} })
+	else loadView()
+	startPipeline()
+	startPersistence()
+	// an example link is a local preview: do not pull (or overwrite) the shared server doc
+	if (!example) startSync()
+	void loadIcons()
 
-window.octo = {
-	getCode: () => useStore.getState().code,
-	setCode: (code) => setCode(code),
-	applyActions: (actions) => runActions(actions),
-	getIR: () => useStore.getState().ir,
-	getLayout: () => useStore.getState().layout,
-	getPage: () => useStore.getState().page,
-	setPage: (name) => setPage(name, true),
+	window.octo = {
+		getCode: () => useStore.getState().code,
+		setCode: (code) => setCode(code),
+		applyActions: (actions) => runActions(actions),
+		getIR: () => useStore.getState().ir,
+		getLayout: () => useStore.getState().layout,
+		getPage: () => useStore.getState().page,
+		setPage: (name) => setPage(name, true),
+	}
+
+	createRoot(document.getElementById('root')!).render(
+		<StrictMode>
+			<App />
+		</StrictMode>,
+	)
 }
 
 // dev-only handle for headless tests
 if (import.meta.env.DEV) (window as unknown as { __octoStore?: typeof useStore }).__octoStore = useStore
-
-createRoot(document.getElementById('root')!).render(
-	<StrictMode>
-		<App />
-	</StrictMode>,
-)

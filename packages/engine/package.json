@@ -1,0 +1,32 @@
+{
+	"name": "@octo-draw/engine",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"description": "v2 spike: octo IR <-> MDP mapping and Eraser corridor routing",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./browser": "./src/browser.ts",
+		"./worker": "./src/route.worker.ts",
+		"./synthetic": "./src/synthetic.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"@eraserlabs/diagram-templates": "0.3.0",
+		"@eraserlabs/layout": "0.3.0",
+		"@eraserlabs/protocol": "0.3.0",
+		"@eraserlabs/render": "0.3.0",
+		"@eraserlabs/resolve": "0.3.0",
+		"@octo-draw/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "22.20.5",
+		"typescript": "5.9.3",
+		"vitest": "5.0.5"
+	}
+}
